@@ -21,11 +21,13 @@ The toolkit has implementations in javascript, C++ and Swift.
 
 This code bellow is the simplest way to load all telll widgets
 
-    /* Example */
-    myMoviePlayer = document.getElementById('movie-player'); // the div (video or canvas) player id
-    myAdManager = new telllSDK.Telll();
-    myAdManager.syncMoviePlayer(myMoviePlayer);
-    myAdTest.start();
+```javascript
+/* Basic telll load */
+myMoviePlayer = document.getElementById('movie-player'); // the div (video or canvas) player id
+myAdManager = new telllSDK.Telll();
+myAdManager.syncMoviePlayer(myMoviePlayer);
+myAdTest.start();
+```
 
 #### b. Login
 #### c. Load and display video ads
