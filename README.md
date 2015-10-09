@@ -1,5 +1,5 @@
 [![Stories in Ready](https://badge.waffle.io/Telll/SDK.png?label=ready&title=Ready)](https://waffle.io/Telll/SDK)
-# SDK
+# telllSDK
 Telll core SDK.
 
 To integrate mobile and web apps with the telll player.
@@ -17,13 +17,14 @@ The toolkit has implementations in javascript, C++ and Swift.
 
 ### 3. Add Code
 
+#### a. Basic
+
 This code bellow is the simplest way to load all telll widgets
 
     /* Example */
     myAdTest = new telllSDK.Telll();
     myAdTest.start();
 
-#### a. Basic
 #### a. Login
 #### g. Load and display video ads
 
