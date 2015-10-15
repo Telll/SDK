@@ -5,7 +5,7 @@
 
 function Movie(){
     //Constructor
-
+    console.log('Telll Movie ...');
 
 }
 

@@ -21,8 +21,11 @@ var app = {
     initialize: function() {
         console.log('Telll SDK Demo ...');
         this.bindEvents();
+
         myAdsControl = new telllSDK.Telll();
         console.log(myAdsControl);
+
+        myAdsControl.login();
     },
     // Bind Event Listeners
     //
