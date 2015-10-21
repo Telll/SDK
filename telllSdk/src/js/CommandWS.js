@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 const tv4 = require("tv4");
 
 module.exports = CommandWS;
-function CommandWS(path, via) {
+function CommandWS(url, path, via) {
 	EventEmitter.call(this);
 	if(via == null) {
 		via = window.WebSocket != undefined ? "ws" : "lp";
@@ -12,6 +12,7 @@ function CommandWS(path, via) {
 	this.via = via;
 	this.cmd = {};
 	this._path = path;
+        this._url = url;
 	this._init();
 }
 
@@ -19,7 +20,7 @@ util.inherits(CommandWS, EventEmitter);
 
 CommandWS.prototype.__defineGetter__("url", function() {
 	if(this.via == "ws")
-		return "ws://" + location.host + "/ws";
+		return "ws://" + this._url + "/ws";
 	else if(this.via == "lp")
 		return "/ws";
 	else

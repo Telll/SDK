@@ -91,7 +91,7 @@ Command.prototype = {
 		var seed = this.fields2check.map(function(field) {
 			return this.msg[field]
 		}.bind(this)).join("\n")
-		console.log("seed", seed);
+		//console.log("seed", seed);
 		shasum.update(seed);
 		return shasum.digest('hex');
 	}

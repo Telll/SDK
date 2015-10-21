@@ -3,10 +3,10 @@
 * Class: User
 */
 
-function User(){
+function User(data){
     //Constructor
-
-
+    this.username = data.username;
+    this.password = data.password;
 }
 
 

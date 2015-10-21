@@ -1,10 +1,11 @@
 {
   "scripts": {
-    "start": "beefy main.js:telllSDK.js --live",
-    "bundle": "browserify main.js -o telllSDK.js"
+    "start": "beefy -t brfs  main.js:telllSDK.js --live",
+    "bundle": "browserify -t brfs main.js -o telllSDK.js"
   },
   "dependencies": {
     "browserify-mustache": "0.0.4",
     "hogan.js": "^3.0.2"
-  }
+  },
+  "browserify": { "transform": [ "brfs" ] }
 }

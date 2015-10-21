@@ -5,36 +5,52 @@
 */
 function Telll(){
     //Constructor
-    console.log('Telll SDK - Telll, the controller ...');
-    // get telll cookies and device id
+    console.log('Begin Telll controller ...');
+
+   // get credentials and device id
     this.credentials = {
         username: this.getCookie('username'),
         password: this.getCookie('password'),
         device: this.getDevice().id,
-        auth: this.getCookie('auth')
-    };
-    this.tws = {
-        user: new telllSDK.TWS.User(),
-        device: new telllSDK.TWS.Device(),
-        movie: new telllSDK.TWS.Movie(),
-        trackms: new telllSDK.TWS.Trackms(),
-        photolink: new telllSDK.TWS.Photolink()
-    };
+        authKey: this.getCookie('auth_key')
+    }
+    console.log('Credentials');
+    console.log(this.credentials);
+    this.movie = this.getCookie('movieId');
+    this.conf = require('./conf.js');
+    // store var for views
+    this.store = require('./store.js');
+    // the web server API 
+    this.tws = new telllSDK.TWS(this.conf.host); 
+    this.deviceModel = "iPad";
 }
 
 /**
 * @return {null}
 */
 Telll.prototype.start = function(){
-    console.log('Starting telll ...'); 
+    console.log('Starting telll ...');
+    this.getDevice(); 
     this.login();
-    // Load widgets
-    this.showPanel();
-    this.showTagPlayer();
-    this.showTelllBtn();
+
+// TODO: separate from view, we dont want a $(some) here
+    var me = this;
+    $("#login-ok").on( "authOk", function( e, data ) {
+        me.loadWidgets();
+    });
 };
 
-
+/**
+* Telll.loadWidgets()
+* @return bool
+*/
+Telll.prototype.loadWidgets = function(){
+   // Load widgets
+   this.showClickbox();
+   this.showPhotolinksList();
+   this.showTagPlayer();
+   this.showTelllBtn();
+}
 
 /**
 * Telll.login()
@@ -45,9 +61,24 @@ Construct the login machine.
 - 
 */
 Telll.prototype.login = function(data){
-    if (!this.credentials.auth) new telllSDK.View.Login( this );
+    var loginView;
+    // Creates the Login view object if dont have authKey
+    if (!this.credentials.authKey) loginView = new telllSDK.View.Login( this );
+    else this.loadWidgets();
     return true;
 };
+
+/**
+* Telll.showClickbox()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.showClickbox = function(data){
+    this.store.photolink = this.photolink;
+    var clickboxView = new telllSDK.View.Clickbox( this );
+    return true;
+};
+
 
 /**
 * @param trkm {} 
@@ -55,16 +86,47 @@ Telll.prototype.login = function(data){
 */
 Telll.prototype.auth = function(data){
     console.log('Contacting TWS');
-    console.log(CommandWS);
+    console.log(data);
+    this.user = new telllSDK.TWS.User(data);
+    var xhr = this.tws.login(this.user, this.deviceModel);
+    xhr.addEventListener('load', function(){
+        console.log(this.responseText);
+        var jsData = JSON.parse(this.responseText);
+        console.log(jsData);
+// TODO: separate from view, we dont want a $(some) here
+        $.extend(jsData,data,jsData);
+        if (jsData.error) alert(jsData.error);
+	else $( "#login-ok" ).trigger( "authOk",jsData );
+    });	 
+    /*
+    var cmd = new CommandWS(this.conf.host,"/ws", location.hash == "#lp" ? "lp" : null);
+    console.log(cmd);
+    console.log('Login data');
+    console.log(data);
+    cmd.on("command", function(tdata) {
+        console.log('Command');
+        console.log(tdata.msg.checksum);
+    });
+    */
+    //console.log(xhr);
 };
 
 /**
-* @param trkm {} 
 * @return {null}
 */
-Telll.prototype.showPanel = function(trkm){
+Telll.prototype.showPhotolinksList = function(){
     console.log('Showing the telll panel');
-
+    // get movie and list of photolinks
+    var movie; 
+    if (!this.movie) {
+        alert('Please, select a movie first.');
+        this.showMoviesList();
+    }
+    else var panelView = new telllSDK.View.PhotolinksList( this );
+    $("#panel-sensor").on( "some-event", function( e, data ) {
+	// Do some
+    });
+    return true;
 };
 
 /**
@@ -76,6 +138,18 @@ Telll.prototype.showTagPlayer = function(trkm){
     console.log('Showing the tag player');
 
 };
+
+/**
+* @return {null}
+*/
+Telll.prototype.showMoviesList = function(){
+    //TODO: Implement Me 
+    console.log('Showing the Movies List');
+    this.movie = this.getMovie(0);
+    this.store.movies = this.listMovies();
+    var moviesView = new telllSDK.View.MoviesList( this );
+};
+
 
 /**
 * @param trkm {} 
@@ -92,8 +166,8 @@ Telll.prototype.showTelllBtn = function(trkm){
 * @return bool
 */
 Telll.prototype.getMovie = function(movieId){
-    if (this.credentials.auth){ 
-        this.movie = new telllSDK.TWS.Movie(this.credentials.auth, movieId);
+    if (this.credentials.authKey){ 
+        this.movie = new telllSDK.TWS.Movie(this.credentials.authKey, movieId);
     }
 };
 
@@ -152,12 +226,12 @@ Telll.prototype.sendPhotolink = function(data){
 /**
 * @param cname 
 * @param cvalue 
-* @param exdays
+* @param extime
 * @return string
 */
-Telll.prototype.setCookie = function (cname, cvalue, exdays) {
+Telll.prototype.setCookie = function (cname, cvalue, extime) {
     var d = new Date();
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    d.setTime(d.getTime() + extime);
     var expires = "expires="+d.toUTCString();
     document.cookie = cname + "=" + cvalue + "; " + expires;
 }
@@ -183,6 +257,9 @@ Telll.prototype.getCookie = function (cname) {
 */
 Telll.prototype.getDevice = function () {
     var device = this.device || {id:null};
+    //this.deviceModel = navigator.userAgent;
+    this.deviceModel = 'iPad';
+    console.log(this.deviceModel);
     device.isMobile = {
     Android: function() {
         return navigator.userAgent.match(/Android/i);
@@ -204,6 +281,7 @@ Telll.prototype.getDevice = function () {
     }
 };
     // TODO: connect with TWS to retrieve device data
+    device.id = this.getCookie('device');
     return device;
 }
 
