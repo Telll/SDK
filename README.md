@@ -24,8 +24,7 @@ This code bellow is the simplest way to load all telll widgets
 ```javascript
 /* Basic telll load */
 myMoviePlayer = document.getElementById('movie-player'); // the div (video or canvas) player id
-myAdManager = new telllSDK.Telll();
-myAdManager.syncMoviePlayer(myMoviePlayer);
+myAdManager = new telllSDK.Telll(myMoviePlayer);
 myAdManager.start();
 ```
 
