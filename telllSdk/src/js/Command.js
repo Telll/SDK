@@ -63,7 +63,7 @@ Command.prototype = {
 			this.msg.trans_id = this.createTransId();
 
 		this.msg.checksum = this.generateChecksum();
-		if(this.msg.lp == null)
+		if(this.msg.lp === null)
 			this.sock._ws.send(JSON.stringify(this.msg));
 		else {
 			var xhr = new XMLHttpRequest();
@@ -79,7 +79,7 @@ Command.prototype = {
 		var reply = this.clone();
 		reply.msg.type	= Command.flow[this.msg.type];
 		reply.msg.data	= data;
-		reply.send()
+		reply.send();
 	},
 	createTransId:	function() {
 		var shasum = crypto.createHash('sha1');
@@ -89,8 +89,8 @@ Command.prototype = {
 	generateChecksum: function() {
 		var shasum = crypto.createHash('sha1');
 		var seed = this.fields2check.map(function(field) {
-			return this.msg[field]
-		}.bind(this)).join("\n")
+			return this.msg[field];
+		}.bind(this)).join("\n");
 		//console.log("seed", seed);
 		shasum.update(seed);
 		return shasum.digest('hex');

@@ -21,20 +21,15 @@ MoviesList.prototype._showWidget = function(data){
     $(html).appendTo('body');
     var telll = this.t;
     var me = this;
-    $("#list-ok").on( "movieSelected", function( e, data ) {
-	me.detach();
-        console.log('Movie selected');
-        console.log(data);
-        telll.setCookie('movieId',data.id,telll.conf.extime);
-    });
     $( "#select-movie" ).on("change", function(e) {
         e.preventDefault();
 	var data = {
            id:$("#select-movie").val(),
 	};
+	me.detach();
         console.log('Movie selected');
         console.log(data);
-        $( "#list-ok" ).trigger( "movieSelected", data );
+        telll.setCookie('movieId',data.id,telll.conf.extime);
     });
 
     return true;

@@ -9,7 +9,8 @@ function Login(t){
     this._showLoginWidget(t.credentials);
 
     $("#login-ok").on( "loginDone", function( e, data ) {
-        // Authenticate device 
+        // Authenticate device via ws or rest 
+        t.wsAuth(data);
         t.auth(data);
     });
 }

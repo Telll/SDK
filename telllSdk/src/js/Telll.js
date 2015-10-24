@@ -13,7 +13,7 @@ function Telll(){
         password: this.getCookie('password'),
         device: this.getDevice().id,
         authKey: this.getCookie('auth_key')
-    }
+    };
     console.log('Credentials');
     console.log(this.credentials);
     this.movie = this.getCookie('movieId');
@@ -22,6 +22,7 @@ function Telll(){
     this.store = require('./store.js');
     // the web server API 
     this.tws = new telllSDK.TWS(this.conf.host); 
+    this.cws = new CommandWS(this.conf.host); 
     this.deviceModel = "iPad";
 }
 
@@ -50,7 +51,7 @@ Telll.prototype.loadWidgets = function(){
    this.showPhotolinksList();
    this.showTagPlayer();
    this.showTelllBtn();
-}
+};
 
 /**
 * Telll.login()
@@ -79,6 +80,20 @@ Telll.prototype.showClickbox = function(data){
     return true;
 };
 
+Telll.prototype.wsAuth = function(data) {
+    var ret = this.cws.cmd.login({
+        api_key:    this.api_key,
+        user_name:  data.user_name ? data.user_name : data.username,
+        password:   data.password,
+        model:      "iPad"
+    }, function(response) {
+        if("auth_key" in response.data) {
+            this.credentials.authKey = response.data.auth_key;
+        }
+        if(data.cb) data.cb.call(this, response.error, response.data);
+    }.bind(this));
+    return ret;
+}
 
 /**
 * @param trkm {} 
@@ -98,17 +113,7 @@ Telll.prototype.auth = function(data){
         if (jsData.error) alert(jsData.error);
 	else $( "#login-ok" ).trigger( "authOk",jsData );
     });	 
-    /*
-    var cmd = new CommandWS(this.conf.host,"/ws", location.hash == "#lp" ? "lp" : null);
-    console.log(cmd);
-    console.log('Login data');
-    console.log(data);
-    cmd.on("command", function(tdata) {
-        console.log('Command');
-        console.log(tdata.msg.checksum);
-    });
-    */
-    //console.log(xhr);
+    return xhr;
 };
 
 /**
@@ -234,7 +239,7 @@ Telll.prototype.setCookie = function (cname, cvalue, extime) {
     d.setTime(d.getTime() + extime);
     var expires = "expires="+d.toUTCString();
     document.cookie = cname + "=" + cvalue + "; " + expires;
-}
+};
 
 /**
 * @param cname 
@@ -246,10 +251,10 @@ Telll.prototype.getCookie = function (cname) {
     for(var i=0; i<ca.length; i++) {
         var c = ca[i];
         while (c.charAt(0)==' ') c = c.substring(1);
-        if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
+        if (c.indexOf(name) === 0) return c.substring(name.length,c.length);
     }
     return "";
-}
+};
 
 /**
 * @param cname 
@@ -283,7 +288,7 @@ Telll.prototype.getDevice = function () {
     // TODO: connect with TWS to retrieve device data
     device.id = this.getCookie('device');
     return device;
-}
+};
 
 
 
