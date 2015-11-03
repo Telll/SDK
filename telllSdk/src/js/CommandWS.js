@@ -102,7 +102,7 @@ CommandWS.prototype._onListCommands	= function(command) {
 				for(var i = 0; i < schema.length; i++) {
 					var sch = schema[i];
 					var valid = tv4.validate(data, sch);
-					console.log("result:", valid);
+					//console.log("result:", valid);
 					if(!valid) {
 						console.warn("local_validation fail:", tv4.error);
 						return cb({error: tv4.error});

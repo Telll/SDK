@@ -1,4 +1,6 @@
 *.DS_Store
+*.swp.mtjs
+*.swo.mtjs
 *.swp
 *.swo
 *.log

@@ -1,25 +1,24 @@
 require('./iPlayer.js');
-
 /**
   * class MockPlayer
   * 
   */
-MockPlayer = function ($div, data)
+MockPlayer = function (t)
 {
-  this._init ($div,data);
+  this._init (t);
 }
 
-MockPlayer.prototype = new iPlayer ();
+MockPlayer.prototype =Object.create(iPlayer.prototype);
 
 /**
  * _init sets all MockPlayer attributes to their default value. Make sure to call
  * this method within your class constructor
  */
-MockPlayer.prototype._init = function ($div, data)
+MockPlayer.prototype._init = function (t)
 {
-  this.me = $div; 
+  this.t = t; 
   //iPlayer.prototype._init.call(this, $div, data);
-  $div.append("<h1>MockPlayer</h1>");
+  $('body').append("<h1>MockPlayer - implement me!!!!</h1>");
 }
 
 /**
@@ -32,3 +31,6 @@ MockPlayer.prototype.on = function (evt, callback)
   this.me[0].addEventListener(evt, callback);
 }
  */
+
+
+module.exports = {MockPlayer:MockPlayer};

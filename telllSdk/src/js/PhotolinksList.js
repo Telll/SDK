@@ -1,31 +1,45 @@
+require ('./iView.js');
 /**
 * Generated On: 2015-10-8
 * Class: PhotolinksList
 */
-function PhotolinksList(t, data){
-    //Constructor
-    this._showPanelWidget(data);
-
-    $("#panel-sensor").on( "gotoPhotolink", function( e, data ) {
-        // t.someAction()
-    });
+function PhotolinksList(t){
+    this.t = t;
+    this._init(t);
 }
 
+PhotolinksList.prototype =Object.create(iView.prototype);
+
 /**
-* createPhotolinksPanel
+* @param t {} 
+* @return bool
+*/
+PhotolinksList.prototype._init = function(t){
+    this.status = null;
+    this._showWidget(t.store);
+    return null;
+};
+
+
+/**
+* Create the widget
 * @param data {} 
 * @return bool
 */
-PhotolinksList.prototype._showPanelWidget = function(data){
+PhotolinksList.prototype._showWidget = function(data){
     console.log('Showing the photolinks-list-widget');
     var tmpl = require('./templates/panel_template.mtjs');
     var html = Mustache.render(tmpl.html, data);
     $(html).appendTo('body');
-	    // Fill panel with photolinks
-	    //photolinks = myPhotolinks;
-	    //console.log(photolinks);
-	    $("#panel-slider").html(""); // clean panel
-/*	    for (i = 0; i < photolinks.length; ++i) {
+    // Fill panel with photolinks
+    //photolinks = myPhotolinks;
+    //console.log(photolinks);
+    $("#panel-slider").html(""); // clean panel
+
+    
+    
+    
+    /*	    for (i = 0; i < photolinks.length; ++i) {
 	       //console.log(photolinks[i]);
 	       $("#panel-slider").append('<div class="frame-icon"><img class="photolink-icon" id="icon_'+photolinks[i].id+'" src="'+photolinks[i].thumb+'" id_photolink='+photolinks[i].id+'><label for="icon_'+photolinks[i].id+'">'+photolinks[i].links[0].title+'<label></div>');
 	    }
@@ -183,36 +197,34 @@ PhotolinksList.prototype._showPanelWidget = function(data){
            },450);
            */
 
-/*    }
-    function highlightPhotolink(n){
-        pls = $("#panel").find('.frame-icon img');
-        console.log('---> '+n);
-        console.log(pls.eq(n));
-        pls.each(function(i){
-            //console.log(pls.eq(i).attr('id_photolink'));
-            //newSrc = pls.eq(i).find('img').attr('src').replace("_green.jpg", ".jpg");
-            //pls.eq(i).find('img').attr('src', newSrc);
-            if (parseInt(pls.eq(i).attr('id_photolink')) != n ){
-                pls.eq(i).css('opacity', '0.3');
-            } else {
-                pls.eq(n).css('opacity', '1');
-                console.log('highlighting '+n);
-            }
-        });
-        // highlight actual photolink
-        //newSrc = pls.eq(n).find('img').attr('src').replace(".jpg", "_green.jpg");
-        //pls.eq(n).find('img').attr('src', newSrc);
-        //pls.eq(n).css({'width':'96px','height':'52px'});
-    }
-*/
-
-
-
-
-
-
 
     return true;
 };
+
+/**
+ *
+ */
+PhotolinksList.prototype.highlightPhotolink = function(n){
+    pls = $("#panel").find('.frame-icon img');
+    console.log('---> '+n);
+    console.log(pls.eq(n));
+    pls.each(function(i){
+        //console.log(pls.eq(i).attr('id_photolink'));
+        //newSrc = pls.eq(i).find('img').attr('src').replace("_green.jpg", ".jpg");
+        //pls.eq(i).find('img').attr('src', newSrc);
+        if (parseInt(pls.eq(i).attr('id_photolink')) != n ){
+            pls.eq(i).css('opacity', '0.3');
+        } else {
+            pls.eq(n).css('opacity', '1');
+            console.log('highlighting '+n);
+        }
+    });
+    // highlight actual photolink
+    //newSrc = pls.eq(n).find('img').attr('src').replace(".jpg", "_green.jpg");
+    //pls.eq(n).find('img').attr('src', newSrc);
+    //pls.eq(n).css({'width':'96px','height':'52px'});
+};
+
+
 
 module.exports = {PhotolinksList:PhotolinksList};

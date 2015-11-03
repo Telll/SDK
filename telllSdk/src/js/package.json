@@ -1,7 +1,12 @@
 {
+  "name":"telllSDK",
   "scripts": {
-    "start": "beefy -t brfs  main.js:telllSDK.js --live",
-    "bundle": "browserify -t brfs main.js -o telllSDK.js"
+    "start": "beefy main.js:telllSDK.js --live",
+    "bundle": "browserify -t brfs main.js -o telllSDK.js",
+    "prepare": "./scripts/compile_templates.pl",
+
+    "prestart": "npm run prepare",
+    "prebundle": "npm run prepare"
   },
   "dependencies": {
     "browserify-mustache": "0.0.4",

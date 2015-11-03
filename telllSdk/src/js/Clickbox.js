@@ -1,3 +1,4 @@
+require ('./iView.js');
 /**
 * @param {Telll} t the telll object
 * @author Monsenhor filipo at kobkob.org
@@ -5,8 +6,21 @@
 */
 function Clickbox(t){
     this.t = t;
-    this._showWidget(t.store);
+    this._init(t);
 }
+
+Clickbox.prototype = Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+Clickbox.prototype._init = function(t){
+    this.status = null;
+    this._showWidget(t.store);
+    return null;
+}
+
 
 /**
 * @param data {} 
@@ -21,11 +35,10 @@ Clickbox.prototype._showWidget = function(data){
     $(html).appendTo('body');
     var telll = this.t;
     var me = this;
-    $("#clickbox-ok").on( "photolinkSelected", function( e, data ) {
+    this.status = "open";
+    $(".telll-clickbox-widget #close-button").on( "click", function( e, data ) {
 	me.detach();
         console.log('Clickbox closing ...');
-        console.log(data);
-        telll.setCookie('photolinkId',data.id,telll.conf.extime);
     });
     return true;
 };
@@ -36,8 +49,5 @@ Clickbox.prototype._showWidget = function(data){
 Clickbox.prototype.detach = function(){
     $('.telll-clickbox-widget').detach();
 };
-
-module.exports = {Clickbox:Clickbox};
-
 
 module.exports = {Clickbox:Clickbox};

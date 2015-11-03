@@ -1,29 +1,52 @@
+console.log('Loadind websockets support ...');
+// Load Websockets commands
+CommandWS = require("./CommandWS.js");
 /**
 * Implements the telll controler
 * @author Monsenhor filipo at kobkob.org
 * @constructor
 */
 function Telll(){
+    this.VERSION = "0.15";
     //Constructor
-    console.log('Begin Telll controller ...');
+    console.log('Begin Telll controller '+this.VERSION+' ...');
 
-   // get credentials and device id
+    this.conf = require('./conf.js');
+    this.device = this.getDevice();
+    // get credentials and device id
+    console.log('Device');
+    console.log(this.device);
     this.credentials = {
         username: this.getCookie('username'),
         password: this.getCookie('password'),
-        device: this.getDevice().id,
+        device: this.device.id,
+        apiKey: '1234',
         authKey: this.getCookie('auth_key')
     };
     console.log('Credentials');
     console.log(this.credentials);
     this.movie = this.getCookie('movieId');
-    this.conf = require('./conf.js');
+
     // store var for views
     this.store = require('./store.js');
+    // views
+    this.loginView = {status:null};
+    this.dashboardView = {status:null};
+    this.clickboxView = {status:null};
+    this.moviesListView = {status:null};
+    this.photolinksListView = {status:null};
+    this.telllBtnView = {status:null};
+    this.tagPlayerView = {status:null};
+    this.moviePlayerView = {status:null};
+
     // the web server API 
     this.tws = new telllSDK.TWS(this.conf.host); 
-    this.cws = new CommandWS(this.conf.host); 
-    this.deviceModel = "iPad";
+    this.cws = new CommandWS(this.conf.host);
+    this.device.model = "iPad";
+    
+    this.cws.on("open", function() {
+         console.log('CWS Opened!!!');
+    });
 }
 
 /**
@@ -32,13 +55,8 @@ function Telll(){
 Telll.prototype.start = function(){
     console.log('Starting telll ...');
     this.getDevice(); 
-    this.login();
+    this.login(this.loadWidgets);
 
-// TODO: separate from view, we dont want a $(some) here
-    var me = this;
-    $("#login-ok").on( "authOk", function( e, data ) {
-        me.loadWidgets();
-    });
 };
 
 /**
@@ -47,6 +65,7 @@ Telll.prototype.start = function(){
 */
 Telll.prototype.loadWidgets = function(){
    // Load widgets
+   this.showDashboard();
    this.showClickbox();
    this.showPhotolinksList();
    this.showTagPlayer();
@@ -59,13 +78,17 @@ Telll.prototype.loadWidgets = function(){
 * @return bool
 Construct the login machine.
 - login widget
-- 
+- donut if still authorized 
 */
-Telll.prototype.login = function(data){
+Telll.prototype.login = function(data, cb){
     var loginView;
     // Creates the Login view object if dont have authKey
-    if (!this.credentials.authKey) loginView = new telllSDK.View.Login( this );
-    else this.loadWidgets();
+    if (!this.credentials.authKey) {
+	    loginView = new telllSDK.View.Login( this );
+            loginView.on('authOk', function(){if(cb) cb(null, data)});
+            this.loginView = loginView;
+    } else {if(cb) cb(null, data)}
+
     return true;
 };
 
@@ -75,43 +98,109 @@ Telll.prototype.login = function(data){
 * @return bool
 */
 Telll.prototype.showClickbox = function(data){
-    this.store.photolink = this.photolink;
-    var clickboxView = new telllSDK.View.Clickbox( this );
+    if (this.clickboxView.status) {
+        console.log(this.clickboxView.status);
+        switch (this.clickboxView.status){
+        case 'closed':
+        this.clickboxView.open();
+        break;
+        case 'open':
+        this.clickboxView.close();
+        break;
+        case 'detached':
+        this.clickboxView.attach();
+        break;
+        }
+     } else this.clickboxView = new telllSDK.View.Clickbox ( this );
+    return true;
+
+};
+
+/**
+* Telll.showDashboard()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.showDashboard = function(data){
+    if (this.dashboardView.status) {
+        console.log(this.dashboardView.status);
+        switch (this.dashboardView.status){
+        case 'closed':
+        this.dashboardView.open();
+        break;
+        case 'open':
+        this.dashboardView.close();
+        break;
+        case 'detached':
+        this.dashboardView.attach();
+        break;
+        }
+     } else this.dashboardView = new telllSDK.View.Dashboard ( this );
     return true;
 };
 
-Telll.prototype.wsAuth = function(data) {
+
+/**
+* Telll.wsAuth()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.wsAuth = function(data, cb) {
+	console.log("Contacting CWS");
+	console.log(data);
+    var me = this;
     var ret = this.cws.cmd.login({
-        api_key:    this.api_key,
+        api_key:    this.credentials.apiKey,
         user_name:  data.user_name ? data.user_name : data.username,
         password:   data.password,
-        model:      "iPad"
+        model:      this.device.model
     }, function(response) {
+        //response = response.msg;
+        //console.log('Response:');
+        //console.log(response);
+        //console.log('Callback:');
+        //console.log(cb);
         if("auth_key" in response.data) {
-            this.credentials.authKey = response.data.auth_key;
-        }
-        if(data.cb) data.cb.call(this, response.error, response.data);
-    }.bind(this));
+            me.credentials.authKey = response.data.auth_key;
+            me.credentials.username = data.username;
+            me.credentials.password = data.password;
+            if(cb) cb(null, response.data);
+        } else cb(response.error, response.data);
+    });
+    //console.log(ret);
     return ret;
+}
+
+/**
+* Telll.logout()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.logout = function(cb) {
+    var ret = cws.cmd.logout({
+        api_key:    this.credentials.apiKey,
+        auth_key:   this.credentials.authKey,
+    }, function(response) {
+        if(cb) cb(response.error, response.data);
+    });
 }
 
 /**
 * @param trkm {} 
 * @return {null}
 */
-Telll.prototype.auth = function(data){
+Telll.prototype.auth = function(data, cb){
     console.log('Contacting TWS');
     console.log(data);
     this.user = new telllSDK.TWS.User(data);
-    var xhr = this.tws.login(this.user, this.deviceModel);
+    var xhr = this.tws.login(this.user, this.device.model);
     xhr.addEventListener('load', function(){
         console.log(this.responseText);
         var jsData = JSON.parse(this.responseText);
         console.log(jsData);
-// TODO: separate from view, we dont want a $(some) here
         $.extend(jsData,data,jsData);
         if (jsData.error) alert(jsData.error);
-	else $( "#login-ok" ).trigger( "authOk",jsData );
+	else if(cb) cb.call(this, jsData);
     });	 
     return xhr;
 };
@@ -127,12 +216,43 @@ Telll.prototype.showPhotolinksList = function(){
         alert('Please, select a movie first.');
         this.showMoviesList();
     }
-    else var panelView = new telllSDK.View.PhotolinksList( this );
+    else this.photolinksListView = new telllSDK.View.PhotolinksList( this );
     $("#panel-sensor").on( "some-event", function( e, data ) {
 	// Do some
     });
     return true;
 };
+
+/**
+* @return {null}
+*/
+Telll.prototype.showMockPlayer = function(){
+    //TODO: Implement Me 
+    console.log('Showing the Mock player');
+    this.moviePlayerView = new telllSDK.View.MockPlayer ( this );
+
+};
+
+/**
+* @return {null}
+*/
+Telll.prototype.showMoviePlayer = function(){
+    //TODO: Implement Me 
+    console.log('Showing the Telll player');
+    this.moviePlayerView = new telllSDK.View.TelllPlayer ( this );
+
+};
+
+/**
+* @return {null}
+*/
+Telll.prototype.showYoutubePlayer = function(){
+    //TODO: Implement Me 
+    console.log('Showing the Youtube player');
+    this.moviePlayerView = new telllSDK.View.YoutubePlayer ( this );
+
+};
+
 
 /**
 * @param trkm {} 
@@ -141,6 +261,7 @@ Telll.prototype.showPhotolinksList = function(){
 Telll.prototype.showTagPlayer = function(trkm){
     //TODO: Implement Me 
     console.log('Showing the tag player');
+    this.tagPlayerView = new telllSDK.View.TagPlayer ( this );
 
 };
 
@@ -152,7 +273,7 @@ Telll.prototype.showMoviesList = function(){
     console.log('Showing the Movies List');
     this.movie = this.getMovie(0);
     this.store.movies = this.listMovies();
-    var moviesView = new telllSDK.View.MoviesList( this );
+    this.moviesListView = new telllSDK.View.MoviesList( this );
 };
 
 
@@ -163,6 +284,7 @@ Telll.prototype.showMoviesList = function(){
 Telll.prototype.showTelllBtn = function(trkm){
     //TODO: Implement Me 
     console.log('Showing the telll button');
+    this.telllBtnView = new telllSDK.View.TelllBtn ( this );
 
 };
 
@@ -203,6 +325,7 @@ Telll.prototype.getTrackms = function(trkId){
 */
 Telll.prototype.listPhotolinks = function(data){
     //TODO: Implement Me 
+    this.listPhotolinksView = new telllSDK.View.ListPhotolinks ( this );
 
 };
 
@@ -213,6 +336,7 @@ Telll.prototype.listPhotolinks = function(data){
 */
 Telll.prototype.listMovies = function(data){
     //TODO: Implement Me 
+    this.listMoviesView = new telllSDK.View.MoviesList ( this );
 
 };
 
@@ -257,14 +381,18 @@ Telll.prototype.getCookie = function (cname) {
 };
 
 /**
-* @param cname 
+* Retrieve the device.
+* If  
 * @return {null}
 */
 Telll.prototype.getDevice = function () {
     var device = this.device || {id:null};
-    //this.deviceModel = navigator.userAgent;
-    this.deviceModel = 'iPad';
-    console.log(this.deviceModel);
+    if (device.id){return device}
+    device.id = this.getCookie('device');
+    // TODO: connect with TWS to retrieve device data
+    //device.model = navigator.userAgent; TODO: retrieve model from environment
+    device.model = 'iPad'; // default model
+    // TODO: it bellow is better to be in some view ... we want node.js compatibility
     device.isMobile = {
     Android: function() {
         return navigator.userAgent.match(/Android/i);
@@ -285,8 +413,6 @@ Telll.prototype.getDevice = function () {
         return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
     }
 };
-    // TODO: connect with TWS to retrieve device data
-    device.id = this.getCookie('device');
     return device;
 };
 

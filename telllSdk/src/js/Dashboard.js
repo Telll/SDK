@@ -4,18 +4,18 @@ require ('./iView.js');
 * @author Monsenhor filipo at kobkob.org
 * @constructor
 */
-function TelllBtn(t){
+function Dashboard(t){
     this.t = t;
     this._init(t);
 }
 
-TelllBtn.prototype =Object.create(iView.prototype);
+Dashboard.prototype =Object.create(iView.prototype);
 
 /**
 * @param t {} 
 * @return bool
 */
-TelllBtn.prototype._init = function(t){
+Dashboard.prototype._init = function(t){
     this.status = null;
     this._showWidget(t.store);
     return null;
@@ -25,12 +25,12 @@ TelllBtn.prototype._init = function(t){
 * @param data {} 
 * @return bool
 */
-TelllBtn.prototype._showWidget = function(data){
-    console.log('Showing the telll_btn widget');
-    var tmpl = require('./templates/telll_btn.mtjs');
+Dashboard.prototype._showWidget = function(data){
+    console.log('Showing the dashboard widget');
+    var tmpl = require('./templates/dashboard.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
-    $('<style id="telll_btn-css">'+tmpl.css+'</style>').appendTo('head');
+    $('<style id="dashboard-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
     this.status = "open";
     var telll = this.t;
@@ -48,32 +48,32 @@ TelllBtn.prototype._showWidget = function(data){
 /**
 * @return null
 */
-TelllBtn.prototype.attach = function(){
+Dashboard.prototype.attach = function(){
     this._showWidget(this.t.store);
 };
 
 /**
 * @return null
 */
-TelllBtn.prototype.detach = function(){
-    $('.telll-telll_btn-widget').detach();
+Dashboard.prototype.detach = function(){
+    $('.telll-dashboard-widget').detach();
     this.status = "detached";
 };
 
 /**
 * @return null
 */
-TelllBtn.prototype.close = function(){
-    $('.telll-telll_btn-widget').fadeOut();
+Dashboard.prototype.close = function(){
+    $('.telll-dashboard-widget').fadeOut();
     this.status = "closed";
 };
 
 /**
 * @return null
 */
-TelllBtn.prototype.open = function(){
-    $('.telll-telll_btn-widget').fadeIn();
+Dashboard.prototype.open = function(){
+    $('.telll-dashboard-widget').fadeIn();
     this.status = "open";
 };
 
-module.exports = {TelllBtn:TelllBtn};
+module.exports = {Dashboard:Dashboard};

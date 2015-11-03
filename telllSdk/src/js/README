@@ -1,0 +1,14 @@
+telllSDK
+
+author: Monsenhor <filipo@telll.me>
+License: GPL Affero 3.0
+
+To compile telllSDK you need perl, npm and browserify
+Optionaly you can run on the fly with beefy.
+It runs under ubuntu 14.04 and OSX 10.4. Not tested on other platforms.
+
+compile:
+run npm build
+
+run in local machine
+npm start

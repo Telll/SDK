@@ -1,0 +1,2 @@
+module.exports = { html: ' <div class="telll-dashboard-widget"> <div class="logo-86x86"></div> <div id="telll-dashboard-frame"><p>Telll Dashboard<form name="dashboard_form" id="telll-dashboard"> <input type="button" value="Close" id="close-button"> </form> </div> <!-- end telll-dashboard-frame --> <div class="buttons"> </div> <!-- end buttons --> </div><!-- telll-dashboard-widget --> ' };
+
