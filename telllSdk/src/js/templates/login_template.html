@@ -7,18 +7,35 @@
         <div id="telll-login-frame">
 
 <form name="login_form" id="telll-login">
-<label for="email">email</label>
+<fieldset>
+<legend>Login on telll.me</legend>
+<div class="notes">
+<h4>Login Information</h4>
+<p class="last">Please enter your username and password to access your  te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> account.</p>
+</div>
+<div class="telll-login-field">
+<label for="email">Username</label>
 <input type="text" id="email" name="email"/>
-<label for="password">password</label>
+</div>
+<div class="telll-login-field">
+<label for="password">Password</label>
 <input type="password" id="password" name="password"/>
-<button id="login-ok-button" value="Login" data-icon="check" data-iconpos="right" data-inline="true">Login</button>
+</div>
+
+<div class="telll-login-field submit">
+<button id="login-ok-button" value="Login">Login</button>
+</div>
+
+</fieldset>
 </form>
          </div> <!-- end telll-login-frame -->
 
          <div class="buttons">
+<!--
     <span class="forgot"><a href="forgot.html" data-role="button">I forgot my login</a></span>
     <span class="google"><a href="google.html" data-role="button">Login with Google+</a></span>
     <span class="facebook"><a href="facebook.html" data-role="button">Login with Facebook</a></span>
+-->
          </div> <!-- end buttons -->
 <div id="login-ok"></div>
 </div><!-- telll-login-widget -->

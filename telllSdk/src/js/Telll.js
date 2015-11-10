@@ -44,6 +44,9 @@ function Telll(){
     this.cws = new CommandWS(this.conf.host);
     this.device.model = "iPad";
     
+    // setting states
+    if (this.credentials.authKey)
+        this.tws.headers = {"X-API-Key": 123, "X-Auth-Key": this.credentials.authKey}; 
     this.cws.on("open", function() {
          console.log('CWS Opened!!!');
     });
@@ -85,9 +88,9 @@ Telll.prototype.login = function(data, cb){
     // Creates the Login view object if dont have authKey
     if (!this.credentials.authKey) {
 	    loginView = new telllSDK.View.Login( this );
-            loginView.on('authOk', function(){if(cb) cb(null, data)});
+            loginView.on('authOk', function(){if(cb) cb(null, data);});
             this.loginView = loginView;
-    } else {if(cb) cb(null, data)}
+    } else {if(cb) cb(null, data);}
 
     return true;
 };
@@ -164,12 +167,13 @@ Telll.prototype.wsAuth = function(data, cb) {
             me.credentials.authKey = response.data.auth_key;
             me.credentials.username = data.username;
             me.credentials.password = data.password;
+	    me.tws.headers = {"X-API-Key": 123, "X-Auth-Key": response.data.auth_key}; 
             if(cb) cb(null, response.data);
         } else cb(response.error, response.data);
     });
     //console.log(ret);
     return ret;
-}
+};
 
 /**
 * Telll.logout()
@@ -183,7 +187,7 @@ Telll.prototype.logout = function(cb) {
     }, function(response) {
         if(cb) cb(response.error, response.data);
     });
-}
+};
 
 /**
 * @param trkm {} 
@@ -298,6 +302,31 @@ Telll.prototype.getMovie = function(movieId){
     }
 };
 
+/**
+* @param userId {} 
+* @return bool
+*/
+Telll.prototype.getUser = function(userId, cb){
+    if (this.credentials.authKey){ 
+	    if (!userId){
+		    var xhr = this.tws.self();
+                    xhr.addEventListener('load', function(){
+                        var jsData = JSON.parse(this.responseText);
+                        if (jsData.error) alert(jsData.error);
+                        else {
+			    if(cb) cb.call(this, jsData);
+	                    //this.user = new telllSDK.TWS.User(
+			    //    this.credentials.authKey, 
+			    //    jsData.userId
+			    //);
+
+			} 
+                    });	
+	    } else
+	    this.user = new telllSDK.TWS.User(this.credentials.authKey, userId);
+    }
+};
+
 
 /**
 * @param plId {} 
@@ -387,7 +416,7 @@ Telll.prototype.getCookie = function (cname) {
 */
 Telll.prototype.getDevice = function () {
     var device = this.device || {id:null};
-    if (device.id){return device}
+    if (device.id){return device;}
     device.id = this.getCookie('device');
     // TODO: connect with TWS to retrieve device data
     //device.model = navigator.userAgent; TODO: retrieve model from environment

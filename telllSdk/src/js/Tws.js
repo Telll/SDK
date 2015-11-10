@@ -74,6 +74,28 @@ Tws.prototype.user = function (data)
     }
 }
 
+/**
+ * self 
+ * 
+ */
+Tws.prototype.self = function ()
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/user/self', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+
+
 
 /**
  * login 

@@ -46,6 +46,11 @@ if (devMode) exampleImplementation();
 /* Example */
 function exampleImplementation (){
 console.log('Loading example implementation ...');
+// load default css
+var tmpl = require('./templates/default.mtjs');
+if (tmpl.css)
+$('<style id="dashboard-css">'+tmpl.css+'</style>').appendTo('head');
+ 
 myAdTest = new telllSDK.Telll();
 // We may do it for a simplest aproach
 // myAdTest.start();

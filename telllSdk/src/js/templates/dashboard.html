@@ -1,0 +1,175 @@
+<div class="telll-dashboard-widget"> 
+	<div class="logo-86x86"></div> 
+        <small>{{appName}} by {{author}}</small>
+	<div id="telll-dashboard-frame">
+		<div id="tell-dashboard-titlebar" class="dashboard-home"> 
+	            <span class="dashboard-title">Telll Dashboard</span>
+		    <input type="button" value="Close" id="close-button"> 
+                </div>
+	        <div class="buttons"> </div> <!-- end buttons --> 
+		<div id="tell-dashboard-menu" class="dashboard-home"> 
+		<li id="user-profile">User profile</li> 
+			<li id="movies">Movies</li>
+			<li id="tags">Tags</li>
+			<li id="photolinks">Photolinks</li>
+			<li id="clicks">Clicks</li>
+		</div>
+		<div id="user-dashboard" class="dashboard-panel">
+			<form id="dashboard_form_user" class="telll-dashboard">
+
+<fieldset class="dashboard-fieldset">
+<legend>User profile</legend>
+<div class="notes">
+<h4>Personal information</h4>
+<p class="last">Update your personal information on te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> account.</p>
+</div>
+<div class="telll-dashboard-field">
+
+ 
+				<label for="userid-field">Id:
+				<input type="text" name="userid" id="userid-field" value="{{user.id}}">
+</div>
+<div class="telll-dashboard-field">
+				<label for="username-field">Username:
+				<input type="text" name="username" id="username-field" value="{{user.username}}">
+</div>
+<div class="telll-dashboard-field">
+				<label for="email-field">Email:
+				<input type="text" name="email" id="email-field" value="{{user.email}}">
+</div>
+<div class="telll-dashboard-field">
+				<label for="password-field">Password:
+				<input type="text" name="password" id="password-field" value="{{user.password}}">
+</div>
+<div class="telll-dashboard-field submit">
+				<input type="button" value="Save" class="save-button"> 
+</div>
+</fieldset>
+		        </form> 
+		</div><!-- end user dashboard --> 
+
+		<div id="movies-dashboard" class="dashboard-panel"> 
+			<form id="dashboard_form_movie" class="telll-dashboard"> 
+<fieldset class="dashboard-fieldset">
+<legend>Movies</legend>
+<div class="notes">
+<h4>Update movies</h4>
+<p class="last">Select a movie you own and update that information on te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> account.</p>
+</div>
+<div class="telll-dashboard-field">
+				<label for="movie-select">Select movie:</label>
+				<select name="select_movie" id="movie-select">
+<option value="0">Select a movie to update</option>
+                                </select>
+
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Title:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="description-field">Description:</label>
+				<input type="text" name="descriptiom" id="description-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="url-field">Url:</label>
+				<input type="text" name="url" id="url-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="player-select">Player:</label>
+<select name="select_movie" id="player-select">
+<option value="0">Select the player for this movie</option>
+<option value="1">Telll</option>
+<option value="2">Youtube</option>
+<option value="3">Vimeo</option>
+                                </select>
+</div>
+
+<div class="telll-dashboard-field submit">
+				<input type="button" value="Save" class="save-button"> 
+</div>
+</fieldset>
+		        </form> 
+		</div><!-- end movies dashboard --> 
+
+		<div id="tags-dashboard" class="dashboard-panel"> 
+			<form id="dashboard_form_tags" class="telll-dashboard"> 
+
+<fieldset class="dashboard-fieldset">
+<legend>Tags & Trackmotions</legend>
+<div class="notes">
+<h4>Taging your movie</h4>
+<p class="last">Create tags using te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> photolinks. Select objects in scenes and create track motions over it.</p>
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Title:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Email:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Name:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field submit">
+				<input type="button" value="Save" class="save-button"> 
+</div>
+</fieldset>
+		        </form> 
+		</div><!-- end tags dashboard --> 
+		<div id="photolinks-dashboard" class="dashboard-panel"> 
+			<form id="dashboard_form_movie" class="telll-dashboard"> 
+<fieldset class="dashboard-fieldset">
+<legend>Photolinks</legend>
+<div class="notes">
+<h4>Taging your movie</h4>
+<p class="last">Create te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> photolinks uploading images and pointing url links. Use the photolinks in movie tags or send it to social networks.</p>
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Title:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Email:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Name:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field submit">
+				<input type="button" value="Save" class="save-button"> 
+</div>
+</fieldset>
+		        </form> 
+		</div><!-- end user dashboard --> 
+		<div id="clicks-dashboard" class="dashboard-panel"> 
+			<form id="dashboard_form_movie" class="telll-dashboard"> 
+<fieldset class="dashboard-fieldset">
+<legend>Clicks & Metrics</legend>
+<div class="notes">
+<h4>Control photolinks click and monetization</h4>
+<p class="last">Te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> photolinks generates extra revenue. Follow how your tags are trending.</p>
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Title:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Email:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field">
+				<label for="name-field">Name:</label>
+				<input type="text" name="name" id="name-field">
+</div>
+<div class="telll-dashboard-field submit">
+				<input type="button" value="Save" class="save-button"> 
+</div>
+</fieldset>
+		        </form> 
+		</div><!-- end user dashboard --> 
+        </div> <!-- end telll-dashboard-frame --> 
+</div><!-- telll-dashboard-widget -->

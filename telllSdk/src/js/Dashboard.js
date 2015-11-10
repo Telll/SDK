@@ -42,6 +42,40 @@ Dashboard.prototype._showWidget = function(data){
 	me.detach();
     });
 
+    $(".dashboard-home li#user-profile").on("click", function(e){
+	    console.log("Open user dashboard");
+	    telll.getUser( null, function(d){
+		    $("#userid-field").val(d.id);
+		    $("#username-field").val(d.username);
+		    $("#email-field").val(d.email);
+	    });
+            $("#user-dashboard").slideToggle("slow");
+	    $("#user-dashboard .save-button").on("click", function(e){
+		   var result = $("#user-dashboard form").serialize();
+	           console.log(result);
+	    });
+    });
+
+    $(".dashboard-home li#movies").on("click", function(e){
+	    console.log("Open movies dashboard");
+        $("#movies-dashboard").slideToggle("slow");
+    });
+
+    $(".dashboard-home li#photolinks").on("click", function(e){
+	    console.log("Open photolinks dashboard");
+        $("#photolinks-dashboard").slideToggle("slow");
+    });
+
+    $(".dashboard-home li#tags").on("click", function(e){
+	    console.log("Open user dashboard");
+        $("#tags-dashboard").slideToggle("slow");
+    });
+
+   $(".dashboard-home li#clicks").on("click", function(e){
+	    console.log("Open clicks dashboard");
+        $("#clicks-dashboard").slideToggle("slow");
+    });
+
     return true;
 };
 

@@ -1,0 +1,56 @@
+#telll-dashboard-frame{
+border: solid 1px black;
+width: 80%;
+background: white;
+color: black;
+margin: auto;
+}
+.dashboard-panel{
+display:none;
+border: solid 1px black;
+margin: auto;
+min-width: 560px;
+max-width: 620px;
+width: 590px;
+margin-bottom:12px;
+}
+#tell-dashboard-menu{
+margin-bottom:12px;
+clear: both;
+font-size: 100%;
+border-color: #000000;
+border-width: 1px 0 0 0;
+border-style: solid none none none;
+padding: 10px;
+margin: 0 0 0 0;
+}
+.dashboard-title{
+font-size: 130%;
+font-weight: normal;
+color: #000000;
+margin: 0 0 0 0;
+}
+#tell-dashboard-titlebar{
+margin-bottom:12px;
+clear: both;
+font-size: 100%;
+border-color: #000000;
+border-width: 1px 0 0 0;
+border-style: solid none none none;
+padding: 10px;
+margin: 0 0 0 0;
+background: black;
+}
+#tell-dashboard-titlebar .dashboard-title{
+color:grey;
+}
+#tell-dashboard-titlebar #close-button{
+float:right;
+}
+#tell-dashboard-menu li {
+list-style-type: none;
+cursor:pointer;
+display: inline;
+margin-right: 12px;
+}
+
