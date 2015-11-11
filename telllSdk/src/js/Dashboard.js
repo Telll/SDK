@@ -17,6 +17,8 @@ Dashboard.prototype =Object.create(iView.prototype);
 */
 Dashboard.prototype._init = function(t){
     this.status = null;
+    this.tagEditor = null;
+    this.metricsPanel = null;
     this._showWidget(t.store);
     return null;
 }
@@ -42,6 +44,7 @@ Dashboard.prototype._showWidget = function(data){
 	me.detach();
     });
 
+    // open in a form box
     $(".dashboard-home li#user-profile").on("click", function(e){
 	    console.log("Open user dashboard");
 	    telll.getUser( null, function(d){
@@ -55,7 +58,6 @@ Dashboard.prototype._showWidget = function(data){
 	           console.log(result);
 	    });
     });
-
     $(".dashboard-home li#movies").on("click", function(e){
 	    console.log("Open movies dashboard");
         $("#movies-dashboard").slideToggle("slow");
@@ -66,12 +68,14 @@ Dashboard.prototype._showWidget = function(data){
         $("#photolinks-dashboard").slideToggle("slow");
     });
 
+    // open in a popup window
     $(".dashboard-home li#tags").on("click", function(e){
-	    console.log("Open user dashboard");
-        $("#tags-dashboard").slideToggle("slow");
+	console.log("Open tags dashboard");
+        me.tagEditor = new telllSDK.View.TagEditor(telll);
+	me.status = "tagging";
     });
 
-   $(".dashboard-home li#clicks").on("click", function(e){
+    $(".dashboard-home li#clicks").on("click", function(e){
 	    console.log("Open clicks dashboard");
         $("#clicks-dashboard").slideToggle("slow");
     });

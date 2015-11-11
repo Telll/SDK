@@ -36,6 +36,7 @@ telllSDK.View.TelllBtn = require('./TelllBtn.js').TelllBtn;
 telllSDK.View.Dashboard = require('./Dashboard.js').Dashboard;
 telllSDK.View.TelllPlayer = require('./TelllPlayer.js').TelllPlayer;
 telllSDK.View.MockPlayer = require('./MockPlayer.js').MockPlayer;
+telllSDK.View.TagEditor = require('./TagEditor.js').TagEditor;
 telllSDK.View.YoutubePlayer = require('./YoutubePlayer.js').YoutubePlayer;
 
 //console.log(telllSDK);
@@ -49,7 +50,7 @@ console.log('Loading example implementation ...');
 // load default css
 var tmpl = require('./templates/default.mtjs');
 if (tmpl.css)
-$('<style id="dashboard-css">'+tmpl.css+'</style>').appendTo('head');
+$('<style id="default-css">'+tmpl.css+'</style>').appendTo('head');
  
 myAdTest = new telllSDK.Telll();
 // We may do it for a simplest aproach

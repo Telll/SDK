@@ -190,6 +190,28 @@ Telll.prototype.logout = function(cb) {
 };
 
 /**
+* Telll.syncPlayer()
+* @param tagPlayer {} 
+* @param moviePlayer {} 
+* @return bool
+*/
+Telll.prototype.syncPlayer = function(t, m, cb) {
+    console.log(t);
+    console.log(m);
+    m.on('changeTime', function(time){
+        t.time = time;
+        t.emit( 'changeTime', t.time );
+        //console.log(m.time);
+    });
+    t.on('changeTime', function(time){
+         //console.log(t.time);
+    });
+    if(cb) cb(t.time);
+};
+
+
+
+/**
 * @param trkm {} 
 * @return {null}
 */

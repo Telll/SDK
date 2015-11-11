@@ -1,3 +1,5 @@
+const util = require('util');
+const EventEmitter = require('events');
 /**
   * class iPlayer
   * 
@@ -10,10 +12,11 @@ iPlayer = function ()
 
 iPlayer.prototype._init = function ()
 {
-   this.state = "STOPPED"; 
+    EventEmitter.call(this);
+    this.state = "STOPPED"; 
 }
 
-
+util.inherits(iPlayer, EventEmitter);
 
 /**
  * 
@@ -91,11 +94,11 @@ iPlayer.prototype.volume = function (new_volume)
  * @param event
  * @param callback
     *      
- */
 iPlayer.prototype.on = function (evt, callback)
 {
   this.me[0].addEventListener(evt, callback);
 }
+ */
 
 
 

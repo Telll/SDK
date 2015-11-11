@@ -14,6 +14,14 @@ max-width: 620px;
 width: 590px;
 margin-bottom:12px;
 }
+div#tags-dashboard.dashboard-panel {
+background: rgb(50, 50, 50);
+width: 90%;
+height: 90%;
+max-width:90%;
+border: solid 3px white;
+cursor:pointer;
+}
 #tell-dashboard-menu{
 margin-bottom:12px;
 clear: both;
@@ -31,6 +39,8 @@ color: #000000;
 margin: 0 0 0 0;
 }
 #tell-dashboard-titlebar{
+}
+.dashboard-titlebar{
 margin-bottom:12px;
 clear: both;
 font-size: 100%;
@@ -41,11 +51,14 @@ padding: 10px;
 margin: 0 0 0 0;
 background: black;
 }
-#tell-dashboard-titlebar .dashboard-title{
+.dashboard-titlebar .dashboard-title{
 color:grey;
 }
-#tell-dashboard-titlebar #close-button{
+.dashboard-titlebar #close-button,
+.dashboard-titlebar button
+{
 float:right;
+margin-right: 3px;
 }
 #tell-dashboard-menu li {
 list-style-type: none;
