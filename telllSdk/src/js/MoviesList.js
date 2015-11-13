@@ -1,3 +1,4 @@
+require ('./iView.js');
 /**
 * @param {Telll} t the telll object
 * @author Monsenhor filipo at kobkob.org
@@ -7,6 +8,7 @@ function MoviesList(t){
     this.t = t;
     this._showWidget(t.credentials);
 }
+MoviesList.prototype =Object.create(iView.prototype);
 
 /**
 * @param data {} 

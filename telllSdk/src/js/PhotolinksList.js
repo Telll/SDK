@@ -28,13 +28,28 @@ PhotolinksList.prototype._init = function(t){
 */
 PhotolinksList.prototype._showWidget = function(data){
     console.log('Showing the photolinks-list-widget');
-    var tmpl = require('./templates/panel_template.mtjs');
+    var tmpl = require('./templates/panel.mtjs');
     var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="panel-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
+    this.status = "open";
+    var telll = this.t;
+    var me = this;
+    $( "#close-button" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.status = "sent";
+	me.detach();
+    });
+
+    $("div#telll-controls").fadeIn();
+
+
     // Fill panel with photolinks
     //photolinks = myPhotolinks;
     //console.log(photolinks);
-    $("#panel-slider").html(""); // clean panel
+    //$("#panel-slider").html(""); // clean panel
 
     
     

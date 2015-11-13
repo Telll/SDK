@@ -3,6 +3,26 @@ color:grey;
 background:grey;
 font-family: Tahoma, Arial, sans-serif;
 }
+.widget-titlebar{
+margin-bottom:12px;
+clear: both;
+font-size: 100%;
+border-color: #000000;
+border-width: 1px 0 0 0;
+border-style: solid none none none;
+padding: 10px;
+margin: 0 0 0 0;
+background: black;
+}
+.widget-titlebar .wiget-title{
+color:grey;
+}
+.wiget-titlebar #close-button,
+.widget-titlebar button
+{
+float:right;
+margin-right: 3px;
+}
 
 .popup-overlay {
     width: 100%;
@@ -41,16 +61,22 @@ form {
   max-width: 620px;
   width: 590px;
 }
-form fieldset {
-  clear: both;
-  font-size: 100%;
-  border-color: #000000;
-  border-width: 1px 0 0 0;
-  border-style: solid none none none;
-  padding: 10px;
-  margin: 0 0 0 0;
+form fieldset, .telll-widget, .dashboard-widget {
+clear: both;
+font-size: 100%;
+border-color: #000000;
+border-width: 1px;
+border-style: solid;
+padding: 0 0 10px;
+margin: auto;
+width: 80%;
+max-width: 1096px;
+min-width: 480px;
+height: 80%;
+min-height: 200px;
+max-height: 1096px;
+margin-top: 20px;
 }
-
 form fieldset legend {
   font-size: 150%;
   font-weight: normal;

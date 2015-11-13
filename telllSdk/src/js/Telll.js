@@ -132,7 +132,9 @@ Telll.prototype.showDashboard = function(data){
         this.dashboardView.open();
         break;
         case 'open':
-        this.dashboardView.close();
+        console.log('hmmmm ... its suposed to be closed!');
+        this.dashboardView.detach();
+        this.dashboardView = new telllSDK.View.Dashboard ( this );
         break;
         case 'detached':
         this.dashboardView.attach();
@@ -240,12 +242,16 @@ Telll.prototype.showPhotolinksList = function(){
     var movie; 
     if (!this.movie) {
         alert('Please, select a movie first.');
-        this.showMoviesList();
+        this.showMoviesList(function(m){
+            console.log("Selected movie");
+            console.log(m);
+            //register movie
+            this.movie = m;
+            //get photolinks list
+            //this.photolinksListView = new telllSDK.View.PhotolinksList( this );
+        });
     }
     else this.photolinksListView = new telllSDK.View.PhotolinksList( this );
-    $("#panel-sensor").on( "some-event", function( e, data ) {
-	// Do some
-    });
     return true;
 };
 
@@ -300,6 +306,10 @@ Telll.prototype.showMoviesList = function(){
     this.movie = this.getMovie(0);
     this.store.movies = this.listMovies();
     this.moviesListView = new telllSDK.View.MoviesList( this );
+    this.moviesListView.on('sent', function(mid){
+        console.log('Movies list selected movie:');
+        console.log(mid);
+    });
 };
 
 
