@@ -60,7 +60,7 @@ myAdTest.login(null, function(){
     // create buttons
     $('<input type="button" value="Dashboard">').appendTo('body').on('click', function(){myAdTest.showDashboard()});
     $('<input type="button" value="Clickbox">').appendTo('body').on('click', function(){myAdTest.showClickbox()});
-    $('<input type="button" value="Movies List">').appendTo('body').on('click', function(){myAdTest.listMovies()});
+    $('<input type="button" value="Movies List">').appendTo('body').on('click', function(){myAdTest.showMoviesList()});
     $('<input type="button" value="Photolinks List">').appendTo('body').on('click', function(){myAdTest.showPhotolinksList()});
     $('<input type="button" value="Telll Button">').appendTo('body').on('click', function(){myAdTest.showTelllBtn()});
     $('<input type="button" value="Mock Player">').appendTo('body').on('click', function(){myAdTest.showMockPlayer()});

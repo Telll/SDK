@@ -3,10 +3,10 @@
 * Class: Movie
 */
 
-function Movie(){
+function Movie(a, m){
     //Constructor
     console.log('Telll Movie ...');
-
+    this.id = m;
 }
 
 

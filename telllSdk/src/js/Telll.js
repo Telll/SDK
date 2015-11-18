@@ -239,16 +239,15 @@ Telll.prototype.auth = function(data, cb){
 Telll.prototype.showPhotolinksList = function(){
     console.log('Showing the telll panel');
     // get movie and list of photolinks
-    var movie; 
     if (!this.movie) {
         alert('Please, select a movie first.');
         this.showMoviesList(function(m){
-            console.log("Selected movie");
+            console.log(" From Panel: my movie:");
             console.log(m);
             //register movie
-            this.movie = m;
+            //this.movie = m;
             //get photolinks list
-            //this.photolinksListView = new telllSDK.View.PhotolinksList( this );
+            this.photolinksListView = new telllSDK.View.PhotolinksList( this );
         });
     }
     else this.photolinksListView = new telllSDK.View.PhotolinksList( this );
@@ -300,17 +299,32 @@ Telll.prototype.showTagPlayer = function(trkm){
 /**
 * @return {null}
 */
-Telll.prototype.showMoviesList = function(){
+Telll.prototype.showMoviesList = function(cb){
     //TODO: Implement Me 
     console.log('Showing the Movies List');
     this.movie = this.getMovie(0);
     this.store.movies = this.listMovies();
     this.moviesListView = new telllSDK.View.MoviesList( this );
-    this.moviesListView.on('sent', function(mid){
-        console.log('Movies list selected movie:');
-        console.log(mid);
+    me = this;
+    this.moviesListView.on('sent', function(m){
+        console.log('Selected movie:');
+        console.log(m);
+        me.movie = me.getMovie(m.id);
+        if(cb) cb(me.movie);
     });
 };
+
+/**
+* @param data {} 
+* @return {null}
+*/
+Telll.prototype.listMovies = function(data){
+    //TODO: Implement Me 
+    //this.listMoviesView = new telllSDK.View.MoviesList ( this );
+    this.moviesList = [0,1,2,3,4];
+    return this.moviesList;
+};
+
 
 
 /**
@@ -332,6 +346,7 @@ Telll.prototype.getMovie = function(movieId){
     if (this.credentials.authKey){ 
         this.movie = new telllSDK.TWS.Movie(this.credentials.authKey, movieId);
     }
+    return this.movie;
 };
 
 /**
@@ -389,18 +404,6 @@ Telll.prototype.listPhotolinks = function(data){
     this.listPhotolinksView = new telllSDK.View.ListPhotolinks ( this );
 
 };
-
-
-/**
-* @param data {} 
-* @return {null}
-*/
-Telll.prototype.listMovies = function(data){
-    //TODO: Implement Me 
-    this.listMoviesView = new telllSDK.View.MoviesList ( this );
-
-};
-
 
 /**
 * @param data {} 

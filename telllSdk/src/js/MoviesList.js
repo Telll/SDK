@@ -6,9 +6,19 @@ require ('./iView.js');
 */
 function MoviesList(t){
     this.t = t;
-    this._showWidget(t.credentials);
+    this._init(t);
 }
 MoviesList.prototype =Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+MoviesList.prototype._init = function(t){
+    this.status = null;
+    this._showWidget(t.store);
+    return null;
+}
 
 /**
 * @param data {} 
@@ -29,8 +39,10 @@ MoviesList.prototype._showWidget = function(data){
            id:$("#select-movie").val(),
 	};
 	me.detach();
-        console.log('Movie selected');
-        console.log(data);
+        //console.log('Movie selected');
+        //console.log(data);
+        me.status = 'sent';
+        me.emit(me.status, data);
         telll.setCookie('movieId',data.id,telll.conf.extime);
     });
 
