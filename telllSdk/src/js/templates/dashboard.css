@@ -66,4 +66,20 @@ cursor:pointer;
 display: inline;
 margin-right: 12px;
 }
-
+fieldset.dashboard-fieldset{
+padding: 20px;
+margin-bottom: 20px;
+}
+div.time-dialog{
+color: white;
+position: absolute;
+top: 50%;
+left: 45%;
+padding: 5px;
+background: black;
+border: 2px solid grey;
+border-radius: 8px
+}
+img#movie-image {
+width:285px;
+}

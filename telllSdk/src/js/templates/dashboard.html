@@ -23,58 +23,42 @@
 <h4>Personal information</h4>
 <p class="last">Update your personal information on te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> account.</p>
 </div>
+{{#df.profile}}
 <div class="telll-dashboard-field">
-
- 
-				<label for="userid-field">Id:
-				<input type="text" name="userid" id="userid-field" value="{{user.id}}">
+	<label for="{{name}}-field">{{label}}:</label>
+	<input type="{{type}}" name="{{name}}" id="{{name}}-field" value="{{value}}" size="{{size}}">
 </div>
-<div class="telll-dashboard-field">
-				<label for="username-field">Username:
-				<input type="text" name="username" id="username-field" value="{{user.username}}">
-</div>
-<div class="telll-dashboard-field">
-				<label for="email-field">Email:
-				<input type="text" name="email" id="email-field" value="{{user.email}}">
-</div>
-<div class="telll-dashboard-field">
-				<label for="password-field">Password:
-				<input type="text" name="password" id="password-field" value="{{user.password}}">
-</div>
+{{/df.profile}}
 <div class="telll-dashboard-field submit">
-				<input type="button" value="Save" class="save-button"> 
+         <input type="button" value="Save" class="save-button"> 
+         <input type="button" value="Delete Account" class="delete-button"> 
 </div>
 </fieldset>
 		        </form> 
 		</div><!-- end user dashboard --> 
-
 		<div id="movies-dashboard" class="dashboard-panel"> 
+			<div class="dashboard-titlebar"><form>
+				<label class="dashboard-title" for="movie-select">Select movie:</label>
+				<select id="movie-select">
+<option value="0">Select a movie to update</option>
+				</select></form>
+</div>
+
 			<form id="dashboard_form_movie" class="telll-dashboard"> 
 <fieldset class="dashboard-fieldset">
 <legend>Movies</legend>
 <div class="notes">
 <h4>Update movies</h4>
-<p class="last">Select a movie you own and update that information on te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> account.</p>
+<p class="last">Create a new movie or select a movie you own and update that information on te<span class="red">l</span><span class="green">l</span><span class="blue">l</span> account.</p>
 </div>
+<input type="hidden" name="id" id="id-field" value="{{movie.id}}">
+{{#df.movies}}
 <div class="telll-dashboard-field">
-				<label for="movie-select">Select movie:</label>
-				<select name="select_movie" id="movie-select">
-<option value="0">Select a movie to update</option>
-                                </select>
-
+	<label for="{{name}}-field">{{label}}:</label>
+	<input type="{{type}}" name="{{name}}" id="{{name}}-field" value="{{value}}" size="{{size}}">
 </div>
-<div class="telll-dashboard-field">
-				<label for="name-field">Title:</label>
-				<input type="text" name="name" id="name-field">
-</div>
-<div class="telll-dashboard-field">
-				<label for="description-field">Description:</label>
-				<input type="text" name="descriptiom" id="description-field">
-</div>
-<div class="telll-dashboard-field">
-				<label for="url-field">Url:</label>
-				<input type="text" name="url" id="url-field">
-</div>
+{{/df.movies}}
+<!-- player will be implemented soon
 <div class="telll-dashboard-field">
 				<label for="player-select">Player:</label>
 <select name="select_movie" id="player-select">
@@ -83,15 +67,15 @@
 <option value="2">Youtube</option>
 <option value="3">Vimeo</option>
                                 </select>
-</div>
-
+			</div>
+			-->
 <div class="telll-dashboard-field submit">
 				<input type="button" value="Save" class="save-button"> 
+				<input type="button" value="Delete" class="delete-button"> 
 </div>
 </fieldset>
 		        </form> 
 		</div><!-- end movies dashboard --> 
-
 		<div id="clicks-dashboard" class="dashboard-panel"> 
 			<form id="dashboard_form_movie" class="telll-dashboard"> 
 <fieldset class="dashboard-fieldset">

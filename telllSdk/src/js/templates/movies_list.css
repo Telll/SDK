@@ -1,0 +1,51 @@
+div#popup-movies-list{
+}
+div.telll-movie-element{
+float: left;
+margin: 2px;
+width: 237px;
+height: 180px;
+background: white;
+border: 1px solid black;
+overflow: hidden;
+}
+div#telll-movies-list-frame{
+width: 989px;
+height: 600px;
+overflow: auto;
+}
+div.telll-movies-list-widget{
+border: 1px solid;
+width: 989px;
+height: 650px;
+overflow: hidden;
+margin:auto;
+background: white;
+}
+div.movie-label{
+position:absolute;
+/* z-index:80000 */;
+display: none;
+width: 232px;
+height: 74px;
+background: rgba(128, 128, 128, 0.4);
+margin-top: 100px;
+padding: 3px;
+overflow: hidden
+}
+span.movie-title{
+color: black;
+font-size: 22px;
+float: left;
+margin-right: 10px;
+}
+span.movie-description{
+color: black;
+display: table-column;
+float: left;
+}
+img.movie-thumb{
+width: 240px;
+height: 180px;
+cursor:pointer;
+}

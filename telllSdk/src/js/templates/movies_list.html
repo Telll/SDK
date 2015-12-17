@@ -1,21 +1,26 @@
 <div class="telll-movies-list-widget">
 
+<div class="movies-list-titlebar widget-titlebar">
+    <span class="widget-title">Movies on telll</span>
+    <div class="logo-86x86"></div>
+    <button class="close">Close</button> 
+</div>
 
-<div class="logo-86x86"></div>
+    <div id="telll-movies-list-frame">
 
-        <div id="telll-movies-list-frame">
+{{#movies}}
+<div class="telll-movie-element">
+   <div class="movie-label">
+	<span class="movie-title">{{title}}</span>
+	<span class="movie-description">{{description}}</span>
+   </div>
+   <img class="movie-thumb" src="{{image}}" data='{"id":"{{id}}","title":"{{title}}"}'/>
+</div>
+{{/movies}}
 
-<form name="list_form" id="telll-login">
-<select name="telll-select-movie" id="select-movie">
-<option value="0">007 Cassino Royalle</option>
-<option value="1">Rihanna</option>
-<option value="2">Ocean 13</option>
-<option value="3">Other ...</option>
-</select>
-</form>
-         </div> <!-- end telll-login-frame -->
+    </div> <!-- end telll-movies-list-frame -->
 
-         <div class="buttons">
-        </div> <!-- end buttons -->
+    <div class="buttons">
+    </div> <!-- end buttons -->
 <div id="list-ok"></div>
-</div><!-- telll-movies-list-widget -->
+</div>

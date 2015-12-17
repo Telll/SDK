@@ -23,6 +23,28 @@ color:grey;
 float:right;
 margin-right: 3px;
 }
+div.movies-list-titlebar.widget-titlebar div.logo-86x86 {
+position:relative;
+float:right;
+width: 30px;
+height: 30px;
+margin-bottom: 3px;
+margin-top: 3px;
+margin-right: 3px;
+right: 0px;
+top: -5px;
+}
+
+div.telll-dialog{
+color: white;
+position: absolute;
+top: 50%;
+left: 45%;
+padding: 5px;
+background: black;
+border: 2px solid grey;
+border-radius: 8px
+}
 
 .popup-overlay {
     width: 100%;
@@ -234,7 +256,7 @@ form div.error p.error {
 }
 
 form div select, form div textarea {
-  width: 200px;
+  width: 275px;
   padding: 1px 3px;
   margin: 0 0 0 0;
 }

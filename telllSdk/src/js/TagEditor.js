@@ -51,7 +51,10 @@ TagEditor.prototype._showWidget = function(data){
 
     // The player TODO: not the MockPlayer!!! How to use Youtube or Projekktor?
     var myPlayer = new telllSDK.View.MockPlayer(telll);
-    $('#movie-player').appendTo('#tags-dashboard');
+    myPlayer.on('loaded', function(){
+	    console.log('Loaded!!!');
+            $('#movie-player').appendTo('#tags-dashboard');
+    });
 
     // The popup 
     $('<div class="popup-overlay"></div>').appendTo('body');

@@ -1,6 +1,3 @@
-console.log('Loadind websockets support ...');
-// Load Websockets commands
-CommandWS = require("./CommandWS.js");
 /**
 * Implements the telll controler
 * @author Monsenhor filipo at kobkob.org
@@ -9,23 +6,23 @@ CommandWS = require("./CommandWS.js");
 function Telll(){
     this.VERSION = "0.15";
     //Constructor
-    console.log('Begin Telll controller '+this.VERSION+' ...');
+    //console.log('Begin Telll controller '+this.VERSION+' ...');
 
     this.conf = require('./conf.js');
     this.device = this.getDevice();
     // get credentials and device id
-    console.log('Device');
-    console.log(this.device);
+    //console.log('Device');
+    //console.log(this.device);
     this.credentials = {
-        username: this.getCookie('username'),
-        password: this.getCookie('password'),
+        //username: this.getCookie('username'),
+        //password: this.getCookie('password'),
         device: this.device.id,
         apiKey: '1234',
         authKey: this.getCookie('auth_key')
     };
-    console.log('Credentials');
-    console.log(this.credentials);
-    this.movie = this.getCookie('movieId');
+    //console.log('Credentials');
+    //console.log(this.credentials);
+    //this.movie = this.getMovie(this.getCookie('movieId'));
 
     // store var for views
     this.store = require('./store.js');
@@ -41,14 +38,14 @@ function Telll(){
 
     // the web server API 
     this.tws = new telllSDK.TWS(this.conf.host); 
-    this.cws = new CommandWS(this.conf.host);
-    this.device.model = "iPad";
+    this.cws = new telllSDK.CWS(this.conf.host);
+    this.device.model = "iPad"; //TODO use other models ... :)
     
     // setting states
     if (this.credentials.authKey)
         this.tws.headers = {"X-API-Key": 123, "X-Auth-Key": this.credentials.authKey}; 
     this.cws.on("open", function() {
-         console.log('CWS Opened!!!');
+         //console.log('CWS Opened!!!');
     });
 }
 
@@ -102,7 +99,7 @@ Telll.prototype.login = function(data, cb){
 */
 Telll.prototype.showClickbox = function(data){
     if (this.clickboxView.status) {
-        console.log(this.clickboxView.status);
+        //console.log(this.clickboxView.status);
         switch (this.clickboxView.status){
         case 'closed':
         this.clickboxView.open();
@@ -126,7 +123,7 @@ Telll.prototype.showClickbox = function(data){
 */
 Telll.prototype.showDashboard = function(data){
     if (this.dashboardView.status) {
-        console.log(this.dashboardView.status);
+        //console.log(this.dashboardView.status);
         switch (this.dashboardView.status){
         case 'closed':
         this.dashboardView.open();
@@ -151,8 +148,8 @@ Telll.prototype.showDashboard = function(data){
 * @return bool
 */
 Telll.prototype.wsAuth = function(data, cb) {
-	console.log("Contacting CWS");
-	console.log(data);
+	//console.log("Contacting CWS");
+	//console.log(data);
     var me = this;
     var ret = this.cws.cmd.login({
         api_key:    this.credentials.apiKey,
@@ -198,8 +195,8 @@ Telll.prototype.logout = function(cb) {
 * @return bool
 */
 Telll.prototype.syncPlayer = function(t, m, cb) {
-    console.log(t);
-    console.log(m);
+    //console.log(t);
+    //console.log(m);
     m.on('changeTime', function(time){
         t.time = time;
         t.emit( 'changeTime', t.time );
@@ -218,12 +215,12 @@ Telll.prototype.syncPlayer = function(t, m, cb) {
 * @return {null}
 */
 Telll.prototype.auth = function(data, cb){
-    console.log('Contacting TWS');
-    console.log(data);
+    //console.log('Contacting TWS');
+    //console.log(data);
     this.user = new telllSDK.TWS.User(data);
     var xhr = this.tws.login(this.user, this.device.model);
     xhr.addEventListener('load', function(){
-        console.log(this.responseText);
+        //console.log(this.responseText);
         var jsData = JSON.parse(this.responseText);
         console.log(jsData);
         $.extend(jsData,data,jsData);
@@ -237,13 +234,13 @@ Telll.prototype.auth = function(data, cb){
 * @return {null}
 */
 Telll.prototype.showPhotolinksList = function(){
-    console.log('Showing the telll panel');
+    //console.log('Showing the telll panel');
     // get movie and list of photolinks
     if (!this.movie) {
         alert('Please, select a movie first.');
         this.showMoviesList(function(m){
-            console.log(" From Panel: my movie:");
-            console.log(m);
+            //console.log(" From Panel: my movie:");
+            //console.log(m);
             //register movie
             //this.movie = m;
             //get photolinks list
@@ -258,8 +255,6 @@ Telll.prototype.showPhotolinksList = function(){
 * @return {null}
 */
 Telll.prototype.showMockPlayer = function(){
-    //TODO: Implement Me 
-    console.log('Showing the Mock player');
     this.moviePlayerView = new telllSDK.View.MockPlayer ( this );
 
 };
@@ -268,8 +263,6 @@ Telll.prototype.showMockPlayer = function(){
 * @return {null}
 */
 Telll.prototype.showMoviePlayer = function(){
-    //TODO: Implement Me 
-    console.log('Showing the Telll player');
     this.moviePlayerView = new telllSDK.View.TelllPlayer ( this );
 
 };
@@ -278,8 +271,6 @@ Telll.prototype.showMoviePlayer = function(){
 * @return {null}
 */
 Telll.prototype.showYoutubePlayer = function(){
-    //TODO: Implement Me 
-    console.log('Showing the Youtube player');
     this.moviePlayerView = new telllSDK.View.YoutubePlayer ( this );
 
 };
@@ -290,27 +281,30 @@ Telll.prototype.showYoutubePlayer = function(){
 * @return {null}
 */
 Telll.prototype.showTagPlayer = function(trkm){
-    //TODO: Implement Me 
-    console.log('Showing the tag player');
     this.tagPlayerView = new telllSDK.View.TagPlayer ( this );
 
 };
 
 /**
+* MoviesList is a modal widget showing a mosaic of movie thumbnails
+* with title and description. 
+* When a movie is selected it is assigned to telll.movie and is sent to the callback
+* 
 * @return {null}
 */
 Telll.prototype.showMoviesList = function(cb){
-    //TODO: Implement Me 
-    console.log('Showing the Movies List');
+    //console.log('Showing the Movies List');
     this.movie = this.getMovie(0);
-    this.store.movies = this.listMovies();
-    this.moviesListView = new telllSDK.View.MoviesList( this );
     me = this;
-    this.moviesListView.on('sent', function(m){
-        console.log('Selected movie:');
-        console.log(m);
-        me.movie = me.getMovie(m.id);
-        if(cb) cb(me.movie);
+    this.listMovies(null, function(ml){
+        me.store.movies = ml;
+        me.moviesListView = new telllSDK.View.MoviesList( me );
+        me.moviesListView.on('selected', function(m){
+            // TODO it produces a bug, fix please!
+            me.movie = me.getMovie(m.id, function (){
+               if(cb) cb(me.movie);
+            });
+        });
     });
 };
 
@@ -318,11 +312,21 @@ Telll.prototype.showMoviesList = function(cb){
 * @param data {} 
 * @return {null}
 */
-Telll.prototype.listMovies = function(data){
-    //TODO: Implement Me 
-    //this.listMoviesView = new telllSDK.View.MoviesList ( this );
-    this.moviesList = [0,1,2,3,4];
-    return this.moviesList;
+Telll.prototype.listMovies = function(data, cb){
+    var me = this;
+    if (this.credentials.authKey){ 
+	var xhr = this.tws.moviesList();
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.error) alert(jsData.error);
+            else {
+		me.moviesList = jsData.movies;
+	        if(cb) cb(jsData.movies);
+	    } 
+        });	
+    }
+    //if (cb) cb(this.moviesList);
+    return null;
 };
 
 
@@ -333,47 +337,100 @@ Telll.prototype.listMovies = function(data){
 */
 Telll.prototype.showTelllBtn = function(trkm){
     //TODO: Implement Me 
-    console.log('Showing the telll button');
+    //console.log('Showing the telll button');
     this.telllBtnView = new telllSDK.View.TelllBtn ( this );
 
 };
 
 /**
-* @param movieId {} 
+* @param movieId {}
+* @param cb callback
 * @return bool
 */
-Telll.prototype.getMovie = function(movieId){
+Telll.prototype.getMovie = function(movieId, cb){
     if (this.credentials.authKey){ 
-        this.movie = new telllSDK.TWS.Movie(this.credentials.authKey, movieId);
+        this.movie = new telllSDK.TWS.Movie(this);
+	this.movie.read(movieId, cb);
     }
     return this.movie;
 };
+
+/**
+ * Save movie data from form
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.saveMovie = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.movie = new telllSDK.TWS.Movie(this);
+    this.movie.save(result, cb);
+};
+
+/**
+ * Delete movie
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deleteMovie = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.movie = new telllSDK.TWS.Movie(this);
+    this.movie.delete(result, cb);
+};
+
 
 /**
 * @param userId {} 
 * @return bool
 */
 Telll.prototype.getUser = function(userId, cb){
+    var me = this;
+    this.user = new telllSDK.TWS.User(this);
     if (this.credentials.authKey){ 
-	    if (!userId){
-		    var xhr = this.tws.self();
-                    xhr.addEventListener('load', function(){
-                        var jsData = JSON.parse(this.responseText);
-                        if (jsData.error) alert(jsData.error);
-                        else {
-			    if(cb) cb.call(this, jsData);
-	                    //this.user = new telllSDK.TWS.User(
-			    //    this.credentials.authKey, 
-			    //    jsData.userId
-			    //);
-
-			} 
-                    });	
-	    } else
-	    this.user = new telllSDK.TWS.User(this.credentials.authKey, userId);
-    }
+        if (!userId){
+	    this.user.self(cb);
+            console.log(this.user);
+        } else this.user.read(userId);
+    } 
+    return this.user;
 };
 
+/**
+ * Save user data from form
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.saveUser = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.user = new telllSDK.TWS.User(this);
+    this.user.save(result, cb);
+};
+
+/**
+ * Delete user
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deleteUser = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.user = new telllSDK.TWS.User(this);
+    this.user.delete(result, cb);
+};
 
 /**
 * @param plId {} 

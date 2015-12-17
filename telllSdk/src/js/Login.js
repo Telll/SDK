@@ -1,13 +1,14 @@
 const util = require('util');
 const EventEmitter = require('events');
 /**
-* View Login, implements the login widget using the mustache template login_template.mtjs
+* View Login, implements the login widget 
 * It has 3 states: 
 * - "loginWait" - The widget was shown
 * - "LoginDone" - The user filled fields and clicked login button
 * - "authOk"    - User authenticated
 * 
 * The view emits an event with the same name of status when reached.
+* It uses the mustache template login_template.mtjs
 *
 * @param {Telll} t the telll object
 * @author Monsenhor filipo at kobkob.org
@@ -27,8 +28,6 @@ Login.prototype._init = function () {
     EventEmitter.call(this);
     this.state = "loginWait";
     this.emit(this.state);
-    //console.log(this.state);
-    //console.log((new Date()).getTime());
 }
 
 /**
@@ -37,7 +36,6 @@ Login.prototype._init = function () {
 */
 Login.prototype._showLoginWidget = function(data){
     // Create widget
-    //console.log('Showing the login widget');
     var tmpl = require('./templates/login_template.mtjs');
     var html = Mustache.render(tmpl.html, data);
     $('<style id="login-css">'+tmpl.css+'</style>').appendTo('head');
@@ -48,10 +46,8 @@ Login.prototype._showLoginWidget = function(data){
     var me = this;
     this.on( "authOk", function( data ) {
 	me.detach();
-        //console.log('Setting cookies');
-        //console.log(data);
-        telll.setCookie('username',data.username,telll.conf.extime);
-        telll.setCookie('password',data.password,telll.conf.extime);
+        //telll.setCookie('username',data.username,telll.conf.extime);
+        //telll.setCookie('password',data.password,telll.conf.extime);
         telll.setCookie('auth_key',data.auth_key,telll.conf.extime);
         telll.setCookie('device',data.device,telll.conf.extime);
     });
@@ -62,19 +58,12 @@ Login.prototype._showLoginWidget = function(data){
             for (var a in data) { d[a] = data[a]; }
             data = d;
 	    me.emit(me.state, data);
-	    //console.log(me.state);
-            //console.log((new Date()).getTime());
-            //console.log(me);
-            //console.log(data);
-
     }; 
     this.on( "loginDone", function( data ) {
-	    //console.log('Clicked on Login ... ');
         // Authenticate device via ws or rest
         via = window.WebSocket != undefined ? "ws" : "lp";
         if (via == 'ws') {
-            //console.log('Login via WS ...');
-            //console.log('Websocket opened, initating login ...');
+            //Websocket opened, initating login
             telll.wsAuth( data, authOk );
         }
 	else {
@@ -90,8 +79,6 @@ Login.prototype._showLoginWidget = function(data){
 	    password: $('#password').val()
 	};
 	me.state = 'loginDone';
-	//console.log(me.state);
-        //console.log((new Date()).getTime());
         me.emit( me.state, dataAuth );
     });
     return true;

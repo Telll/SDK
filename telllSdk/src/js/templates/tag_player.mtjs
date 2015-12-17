@@ -1,1 +1,1 @@
-module.exports={"name":"tag_player","html":"<div id=\"pl-{{plId}}\" class=\"tag tag-none\">\t<div class=\"clkbl\">\t\t<div class=\"tag-label\">{{title}}</div>\t\t<p>implement-me!!!</p></div></div>"}
+module.exports={"html":"<div id=\"pl-{{plId}}\" class=\"tag tag-none\">\t<div class=\"clkbl\">\t\t<div class=\"tag-label\">{{title}}</div>\t\t<p>implement-me!!!</p></div></div>","name":"tag_player"}

@@ -1,4 +1,4 @@
-require('./iData.js');
+//require('./iData.js');
 /**
   * class Tws
   * 
@@ -8,7 +8,7 @@ Tws = function (server)
   this._init (server);
 }
 
-Tws.prototype = new iData ();
+//Tws.prototype = new iData ();
 /*
 Tws.prototype = {
     user: new telllSDK.TWS.User(),
@@ -54,7 +54,7 @@ Tws.prototype.user = function (data)
         // call Tws to create a new user
 
         var send = JSON.stringify(data);
-        console.log(send);
+        //console.log(send);
         var xhr = new XMLHttpRequest();
         xhr.addEventListener('load', function(){
             console.log('Response');
@@ -91,6 +91,139 @@ Tws.prototype.self = function ()
             xhr.setRequestHeader(key, this.headers[key]);
     }
     xhr.send();
+    return xhr;
+}
+
+/**
+ * getMovie 
+ * 
+ */
+Tws.prototype.getMovie = function (id)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie/'+id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+
+/**
+ * moviesList 
+ * 
+ */
+Tws.prototype.moviesList = function ()
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+/**
+ * saveMovie 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.saveMovie = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/movie', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * deleteMovie 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deleteMovie = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/movie/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * saveUser 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.saveUser = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/user/self', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * deleteUser 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deleteUser = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/user/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
     return xhr;
 }
 
