@@ -16,7 +16,7 @@ TelllBtn.prototype =Object.create(iView.prototype);
 * @return bool
 */
 TelllBtn.prototype._init = function(t){
-    this.status = null;
+    this.state = null;
     this._showWidget(t.store);
     return null;
 }
@@ -32,13 +32,13 @@ TelllBtn.prototype._showWidget = function(data){
     if (tmpl.css)
     $('<style id="telll_btn-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
-    this.status = "open";
+    this.state = "open";
     var telll = this.t;
     var me = this;
     $( "#close-button" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
-	me.status = "sent";
+	me.state = "sent";
 	me.detach();
     });
 
@@ -57,7 +57,7 @@ TelllBtn.prototype.attach = function(){
 */
 TelllBtn.prototype.detach = function(){
     $('.telll-telll_btn-widget').detach();
-    this.status = "detached";
+    this.state = "detached";
 };
 
 /**
@@ -65,7 +65,7 @@ TelllBtn.prototype.detach = function(){
 */
 TelllBtn.prototype.close = function(){
     $('.telll-telll_btn-widget').fadeOut();
-    this.status = "closed";
+    this.state = "closed";
 };
 
 /**
@@ -73,7 +73,7 @@ TelllBtn.prototype.close = function(){
 */
 TelllBtn.prototype.open = function(){
     $('.telll-telll_btn-widget').fadeIn();
-    this.status = "open";
+    this.state = "open";
 };
 
 module.exports = {TelllBtn:TelllBtn};

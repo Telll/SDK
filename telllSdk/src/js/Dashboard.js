@@ -16,7 +16,7 @@ Dashboard.prototype =Object.create(iView.prototype);
 * @return bool
 */
 Dashboard.prototype._init = function(t){
-    this.status = null;
+    this.state = null;
     this.tagEditor = null;
     this.metricsPanel = null;
     t.store.df = t.conf.dashboardFields;
@@ -29,19 +29,18 @@ Dashboard.prototype._init = function(t){
 * @return bool
 */
 Dashboard.prototype._showWidget = function(data){
-    console.log('Showing the dashboard widget');
     var tmpl = require('./templates/dashboard.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
     $('<style id="dashboard-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
-    this.status = "open";
+    this.state = "open";
     var telll = this.t;
     var me = this;
     $( "#close-button" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
-	me.status = "sent";
+	me.state = "sent";
 	me.detach();
     });
 
@@ -183,9 +182,8 @@ Dashboard.prototype._showWidget = function(data){
     // Tags dashboard
     // open in a popup window
     $(".dashboard-home li#tags").on("click", function(e){
-	console.log("Open tags dashboard");
         me.tagEditor = new telllSDK.View.TagEditor(telll);
-	me.status = "tagging";
+	me.state = "tagging";
     });
 
      ////////////////////////////
@@ -242,7 +240,7 @@ Dashboard.prototype.loadUser = function(){
 */
 Dashboard.prototype.detach = function(){
     $('.telll-dashboard-widget').detach();
-    this.status = "detached";
+    this.state = "detached";
 };
 
 /**
@@ -250,7 +248,7 @@ Dashboard.prototype.detach = function(){
 */
 Dashboard.prototype.close = function(){
     $('.telll-dashboard-widget').fadeOut();
-    this.status = "closed";
+    this.state = "closed";
 };
 
 /**
@@ -258,7 +256,7 @@ Dashboard.prototype.close = function(){
 */
 Dashboard.prototype.open = function(){
     $('.telll-dashboard-widget').fadeIn();
-    this.status = "open";
+    this.state = "open";
 };
 
 /**

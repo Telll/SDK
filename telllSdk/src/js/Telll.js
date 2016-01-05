@@ -4,7 +4,7 @@
 * @constructor
 */
 function Telll(){
-    this.VERSION = "0.15";
+    this.VERSION = "0.16.0";
     //Constructor
     //console.log('Begin Telll controller '+this.VERSION+' ...');
 
@@ -27,14 +27,14 @@ function Telll(){
     // store var for views
     this.store = require('./store.js');
     // views
-    this.loginView = {status:null};
-    this.dashboardView = {status:null};
-    this.clickboxView = {status:null};
-    this.moviesListView = {status:null};
-    this.photolinksListView = {status:null};
-    this.telllBtnView = {status:null};
-    this.tagPlayerView = {status:null};
-    this.moviePlayerView = {status:null};
+    this.loginView = {state:null};
+    this.dashboardView = {state:null};
+    this.clickboxView = {state:null};
+    this.moviesListView = {state:null};
+    this.photolinksListView = {state:null};
+    this.telllBtnView = {state:null};
+    this.tagPlayerView = {state:null};
+    this.moviePlayerView = {state:null};
 
     // the web server API 
     this.tws = new telllSDK.TWS(this.conf.host); 
@@ -98,9 +98,9 @@ Telll.prototype.login = function(data, cb){
 * @return bool
 */
 Telll.prototype.showClickbox = function(data){
-    if (this.clickboxView.status) {
-        //console.log(this.clickboxView.status);
-        switch (this.clickboxView.status){
+    if (this.clickboxView.state) {
+        //console.log(this.clickboxView.state);
+        switch (this.clickboxView.state){
         case 'closed':
         this.clickboxView.open();
         break;
@@ -122,9 +122,9 @@ Telll.prototype.showClickbox = function(data){
 * @return bool
 */
 Telll.prototype.showDashboard = function(data){
-    if (this.dashboardView.status) {
-        //console.log(this.dashboardView.status);
-        switch (this.dashboardView.status){
+    if (this.dashboardView.state) {
+        //console.log(this.dashboardView.state);
+        switch (this.dashboardView.state){
         case 'closed':
         this.dashboardView.open();
         break;
@@ -180,7 +180,7 @@ Telll.prototype.wsAuth = function(data, cb) {
 * @return bool
 */
 Telll.prototype.logout = function(cb) {
-    var ret = cws.cmd.logout({
+    var ret = this.cws.cmd.logout({
         api_key:    this.credentials.apiKey,
         auth_key:   this.credentials.authKey,
     }, function(response) {
@@ -197,12 +197,12 @@ Telll.prototype.logout = function(cb) {
 Telll.prototype.syncPlayer = function(t, m, cb) {
     //console.log(t);
     //console.log(m);
-    m.on('changeTime', function(time){
+    m.on('timeupdate', function(time){
         t.time = time;
         t.emit( 'changeTime', t.time );
         //console.log(m.time);
     });
-    t.on('changeTime', function(time){
+    t.on('timeupdate', function(time){
          //console.log(t.time);
     });
     if(cb) cb(t.time);
@@ -253,10 +253,13 @@ Telll.prototype.showPhotolinksList = function(){
 
 /**
 * @return {null}
+* @listens MockPlayer
 */
-Telll.prototype.showMockPlayer = function(){
+Telll.prototype.showMockPlayer = function(cb){
     this.moviePlayerView = new telllSDK.View.MockPlayer ( this );
-
+    this.moviePlayerView.on("loaded", function(){
+        if (cb) cb(this);
+    });
 };
 
 /**
@@ -277,12 +280,16 @@ Telll.prototype.showYoutubePlayer = function(){
 
 
 /**
-* @param trkm {} 
+* @param player {iPlayer} The movie Player must be a iPlayer 
 * @return {null}
 */
-Telll.prototype.showTagPlayer = function(trkm){
-    this.tagPlayerView = new telllSDK.View.TagPlayer ( this );
-
+Telll.prototype.showTagPlayer = function(player, cb){
+	var me = this;
+    this.tagPlayerView = new telllSDK.View.TagPlayer ( this, player );
+    this.tagPlayerView.on("showing", function(){
+	    //console.log('from telll.showTagPlayer ...');
+	    if (cb) cb( me.tagPlayerView );
+    });
 };
 
 /**
@@ -295,7 +302,7 @@ Telll.prototype.showTagPlayer = function(trkm){
 Telll.prototype.showMoviesList = function(cb){
     //console.log('Showing the Movies List');
     this.movie = this.getMovie(0);
-    me = this;
+    var me = this;
     this.listMovies(null, function(ml){
         me.store.movies = ml;
         me.moviesListView = new telllSDK.View.MoviesList( me );
@@ -451,6 +458,22 @@ Telll.prototype.getTrackms = function(trkId){
 
 };
 
+/**
+* @param m {Movie} 
+* @param cb {} Callback 
+* @return {null}
+*/
+Telll.prototype.getTracks = function(m, cb){
+    var ret = this.cws.cmd.trackmotions_from_movie({
+        api_key:    this.credentials.apiKey,
+        auth_key:   this.credentials.authKey,
+	movie: parseInt(m.id)
+    }, function(response) {
+        if(cb) cb(response.error, response.data);
+    });
+};
+
+
 
 /**
 * @param data {} 
@@ -536,7 +559,5 @@ Telll.prototype.getDevice = function () {
 };
     return device;
 };
-
-
 
 module.exports = {Telll:Telll};

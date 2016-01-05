@@ -2,7 +2,7 @@ const util = require('util');
 const EventEmitter = require('events');
 /**
   * class iView
-  * @constructor
+  * @interface 
   */
 iView = function (t)
 {
@@ -16,7 +16,8 @@ iView = function (t)
 */
 iView.prototype._init = function (t)
 {
-  throw('Implement method _init');
+    EventEmitter.call(this);
+  //throw('Implement method _init');
 };
 
 util.inherits(iView, EventEmitter);

@@ -1,9 +1,8 @@
 // telll SDK
 // by Monsenhor filipo@kobkob.org
 // license GPL Affero 3.0
-// TODO: add native suport out of webview or browser
 
-var VERSION = "0.15";
+VERSION = "0.16.0";
 //console.log('telllSDK javascript by Monsenhor, Version: '+VERSION);
 var devMode = true;
 
@@ -15,17 +14,19 @@ $ = require('jquery');
 // Load mustache
 Mustache = require('mustache');
 
-//console.log('Loadind websockets support ...');
-// Load Websockets commands
-//CommandWS = require("./CommandWS.js");
-
-//console.log('Loadind Telll classes ...');
 // create the object telllSDK
+/**
+ * The main Telll module object
+ * @module telllSDK
+ */
 telllSDK = {};
 telllSDK = require('./Telll.js');
+/**
+ * The main TWS module object
+ * @module telllSDK.TWS
+ */
 telllSDK.TWS = {};
 telllSDK.TWS = require('./Tws.js').TWS;
-//telllSDK.CWS = CommandWS;
 telllSDK.CWS = require("./CommandWS.js");
 telllSDK.View = {};
 telllSDK.TWS.User = require('./User.js').User;
@@ -45,13 +46,24 @@ telllSDK.View.MockPlayer = require('./MockPlayer.js').MockPlayer;
 telllSDK.View.TagEditor = require('./TagEditor.js').TagEditor;
 telllSDK.View.YoutubePlayer = require('./YoutubePlayer.js').YoutubePlayer;
 
-//console.log(telllSDK);
-//console.log(CommandWS);
+// load default css
+var tmpl = require('./templates/default.mtjs');
+if (tmpl.css)
+$('<style id="default-css">'+tmpl.css+'</style>').appendTo('head');
 
 ///////////////////////////
-// Util widgets and plugins
+/**
+ * Util widgets and plugins
+ * @ module telllSDK.util
+ */
 
-// Telll Dialog
+/**
+ * Telll Dialog
+ * @function telllDialog
+ * @param msg {String} The message
+ * @param delay {integer} The delay
+ * @global
+ */
 telllDialog = function(msg, delay){
     $("<div class='telll-dialog'>"+msg+"</div>").appendTo("body").fadeIn(function(){
         setTimeout(function(){
@@ -60,7 +72,13 @@ telllDialog = function(msg, delay){
     });
 };
 
-// Telll Modal Popup
+/** 
+ * Telll Modal Popup
+ * @function telllPopup
+ * @param element {JQuery} The Jquery object to embbed in popup
+ * @param title {string} The popup title, defaults to "telll"
+ * @global
+ */
 telllPopup = function(element, title){
 	if (!title) title = "telll";
     $('<div class="popup-overlay"></div>').appendTo('body');
@@ -78,15 +96,10 @@ if (devMode) exampleImplementation();
 /* Example */
 function exampleImplementation (){
 console.log('Loading example implementation ...');
-// load default css
-var tmpl = require('./templates/default.mtjs');
-if (tmpl.css)
-$('<style id="default-css">'+tmpl.css+'</style>').appendTo('head');
- 
+
 myAdTest = new telllSDK.Telll();
 // We may do it for a simplest aproach
 // myAdTest.start();
-// or to have more control
 
 // Detect if local machine is off line each 3600 seconds
 setInterval( function(){
@@ -99,18 +112,40 @@ setInterval( function(){
  });
 },3600000);
 
+
+
+// After login create the buttons
 myAdTest.login(null, function(){
+    // define the instance player
+    var myPlayer = {"error":"Player not loaded!!!"};
     // create buttons
     $('<input type="button" value="Dashboard">').appendTo('body').on('click', function(){myAdTest.showDashboard()});
     $('<input type="button" value="Clickbox">').appendTo('body').on('click', function(){myAdTest.showClickbox()});
-    $('<input type="button" value="Movies List">').appendTo('body').on('click', function(){myAdTest.showMoviesList(function(m){
-    console.log("Movie selected: "+m.getTitle());
-    console.log(m);
-})});
-   $('<input type="button" value="Mock Player">').appendTo('body').on('click', function(){myAdTest.showMockPlayer()});
+    $('<input type="button" value="Movies List">').appendTo('body').on('click', 
+	    function(){
+            // showMoviesList runs the callback after a movie is selected
+		    myAdTest.showMoviesList(function(m){
+                        console.log("Movie selected: "+m.getTitle());
+                        console.log(m);
+                    })
+	    });
+   $('<input type="button" value="Mock Player">').appendTo('body').on('click', 
+	   function(){
+            // showMockPlayer runs the callback after load
+		   myAdTest.showMockPlayer( function(m){
+                       myPlayer = m;       
+		       console.log(m); 
+		   })
+	   });
     $('<input type="button" value="Telll Movie Player">').appendTo('body').on('click', function(){myAdTest.showMoviePlayer()});
     $('<input type="button" value="Youtube Player">').appendTo('body').on('click', function(){myAdTest.showYoutubePlayer()});
-    $('<input type="button" value="Tag Player">').appendTo('body').on('click', function(){myAdTest.showTagPlayer()});
+    $('<input type="button" value="Tag Player">').appendTo('body').on('click', 
+	   function(){
+            // showTagPlayer runs the callback after load
+	           myAdTest.showTagPlayer( myPlayer, function(tp){ 
+                           console.log(tp);
+	           }) 
+	   });
     $('<input type="button" value="Photolinks List">').appendTo('body').on('click', function(){myAdTest.showPhotolinksList()});
     $('<input type="button" value="Telll Button">').appendTo('body').on('click', function(){myAdTest.showTelllBtn()});
  

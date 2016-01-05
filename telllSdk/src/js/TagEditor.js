@@ -1,7 +1,8 @@
 require ('./iView.js');
 /**
-  * class TagEditor
-  * 
+  * TagEditor
+  * Implements a functional player (movie, photolinks, tags) and tools to edit it
+  * @constructor 
   */
 TagEditor = function (t)
 {
@@ -19,7 +20,6 @@ TagEditor.prototype._init = function (t)
     this.t = t;
     this.time = 0; 
     this._showWidget(t.store);
-    var me = this;
 }
 
 /**
@@ -45,14 +45,18 @@ TagEditor.prototype._showWidget = function(data){
     $('<style id="tageditor-css">'+tmpl.css+'</style>').appendTo('head');
     $("div#telll-tageditor").css({'width':'100%','height':'100%'}); 
     $(html).appendTo('body');
-    this.status = "open";
+    this.state = "open";
     var telll = this.t;
     var me = this;
 
-    // The player TODO: not the MockPlayer!!! How to use Youtube or Projekktor?
-    var myPlayer = new telllSDK.View.MockPlayer(telll);
-    myPlayer.on('loaded', function(){
-	    console.log('Loaded!!!');
+    // The player 
+    //TODO: not the MockPlayer!!! How to use Youtube or Projekktor?
+    var mvPlayer = new telllSDK.View.MockPlayer(telll);
+    var tgPlayer = new telllSDK.View.TagPlayer(telll, mvPlayer);
+    me.sync(mvPlayer);
+    //tgPlayer.sync(mvPlayer); // its already done
+    mvPlayer.on('loaded', function(){
+	    console.log('appending movie player to tag editor');
             $('#movie-player').appendTo('#tags-dashboard');
     });
 
@@ -62,27 +66,25 @@ TagEditor.prototype._showWidget = function(data){
     $("#tags-dashboard").appendTo('#popup-tags').fadeIn();
     $('#popup-tags').css('z-index','999');
     $('html').addClass('overlay');
-    me.sync(myPlayer);
-
     // other buttons
     $( ".tag-titlebar button.trackms" ).on("click", function(e) {
         e.preventDefault();
         // The draggable pointer
         me.drgPointer();
-	me.status = "tracking";
+	me.state = "tracking";
 	
     });
     $( ".tag-titlebar button.tag" ).on("click", function(e) {
         e.preventDefault();
         // The tag editor
         me.tagEditor();
-	me.status = "tagging";
+	me.state = "tagging";
 	
     });
     $( ".tag-titlebar button.close" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
-	me.status = "sent";
+	me.state = "sent";
 	me.detach();
     });
 }
@@ -91,9 +93,9 @@ TagEditor.prototype._showWidget = function(data){
 * @return null
 */
 TagEditor.prototype.drgPointer = function(){
-    // TODO: test if have a movie loaded
     alert('Click and draw to capture the movement!');
     var mouseX, mouseY, pntOfs, trackms;
+    var me = this;
     $(document).on("mousemove", function (e) {
     if ($('#popup-tags').length){
         mouseX = e.pageX;
@@ -155,7 +157,7 @@ TagEditor.prototype.detach = function(){
     //$('div#tags-dashboard').detach();
     $('div.popup-overlay').detach();
     $('div#popup-tags').detach();
-    this.status = "detached";
+    this.state = "detached";
 };
 
 /**
@@ -163,7 +165,7 @@ TagEditor.prototype.detach = function(){
 */
 TagEditor.prototype.close = function(){
     $('.telll-tag-editor-widget').fadeOut();
-    this.status = "closed";
+    this.state = "closed";
 };
 
 /**
@@ -171,7 +173,7 @@ TagEditor.prototype.close = function(){
 */
 TagEditor.prototype.open = function(){
     $('.telll-tag-editor-widget').fadeIn();
-    this.status = "open";
+    this.state = "open";
 };
 
 

@@ -16,7 +16,7 @@ Clickbox.prototype = Object.create(iView.prototype);
 * @return bool
 */
 Clickbox.prototype._init = function(t){
-    this.status = null;
+    this.state = null;
     this._showWidget(t.store);
     return null;
 }
@@ -35,7 +35,7 @@ Clickbox.prototype._showWidget = function(data){
     $(html).appendTo('body');
     var telll = this.t;
     var me = this;
-    this.status = "open";
+    this.state = "open";
     $(".telll-clickbox-widget .close").on( "click", function( e, data ) {
 	me.detach();
         console.log('Clickbox closing ...');
@@ -59,7 +59,7 @@ Clickbox.prototype.detach = function(){
     $('.telll-clickbox-widget').detach();
     $('.popup').detach();
     $('div.popup-overlay').detach();
-    this.status = "detached";
+    this.state = "detached";
 };
 
 /**

@@ -1,9 +1,29 @@
 .telll-login-widget{
 font-size: 100%;
+background: #000;
+margin: auto;
+background: #000;
+}
+span.red{
+color:#ff0000;
+}
+span.green{
+color:#00FF00;
+}
+span.blue{
+color:#0000FF;
+}
+.welcome{
+font-size:28px;
+}
+
+/* desktops */
+@media screen and (min-width: 1024px){
+.telll-login-widget{
+font-size: 100%;
 min-width: 560px;
 max-width: 620px;
 width: 590px;
-background: #000;
 margin: auto;
 padding: 10px;
 background: #000;
@@ -21,5 +41,85 @@ color:#0000FF;
 margin-top:20px;
 margin-bottom:50px;
 font-size:28px;
+}
+}
+/* 800x600 screen */
+@media (min-device-width: 768px) and (max-device-width: 1024px){
+.telll-login-widget{
+font-size: 100%;
+min-width: 400px;
+max-width: 780px;
+width: 720px;
+background: #000;
+margin: auto;
+padding: 5px;
+}
+span.red{
+color:#ff0000;
+}
+span.green{
+color:#00FF00;
+}
+span.blue{
+color:#0000FF;
+}
+.welcome{
+margin-top:10px;
+margin-bottom:20px;
+font-size:18px;
+}
+}
+
+/* mobiles */
+@media screen and (max-device-width: 640px){
+.telll-login-widget{
+font-size: 100%;
+min-width: 200px;
+max-width: 620px;
+width: 320px;
+background: #000;
+margin: auto;
+padding: 5px;
+}
+span.red{
+color:#ff0000;
+}
+span.green{
+color:#00FF00;
+}
+span.blue{
+color:#0000FF;
+}
+.welcome{
+margin-top:10px;
+margin-bottom:30px;
+font-size:18px;
+}
+}
+/* #### iPhone 5 Portrait or Landscape #### */
+@media (device-height: 568px) and (device-width: 320px) and (-webkit-min-device-pixel-ratio: 2){
+.telll-login-widget{
+font-size: 100%;
+min-width: 200px;
+max-width: 310px;
+width: 310px;
+background: #000;
+margin: auto;
+padding: 5px;
+}
+span.red{
+color:#ff0000;
+}
+span.green{
+color:#00FF00;
+}
+span.blue{
+color:#0000FF;
+}
+.welcome{
+margin-top:10px;
+margin-bottom:20px;
+font-size:18px;
+}
 }
 

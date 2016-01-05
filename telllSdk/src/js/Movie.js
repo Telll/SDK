@@ -4,8 +4,6 @@ require('./iData.js');
 * @constructor
 */
 function Movie(t){
-    //Constructor
-    console.log('Telll Movie ...');
     this._init (t);
 }
 Movie.prototype =Object.create(iData.prototype);
@@ -110,28 +108,5 @@ Movie.prototype.delete = function (data, cb)
         });	
     }
 };
-
-
-/** 
- * merge one or more objects to this
- * @param list of objects
-Movie.prototype.merge = function (data)
-{
-    console.log(data);
-    var i = 0,
-        il = arguments.length,
-        key;
-    for (; i < il; i++) {
-        for (key in arguments[i]) {
-            if (arguments[i].hasOwnProperty(key)) {
-                this[key] = arguments[i][key];
-            }
-        }
-    }
-    return this;
-};  
- * */
-
-
 
 module.exports = {Movie:Movie};

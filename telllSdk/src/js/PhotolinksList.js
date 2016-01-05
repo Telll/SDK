@@ -2,6 +2,8 @@ require ('./iView.js');
 /**
 * Generated On: 2015-10-8
 * Class: PhotolinksList
+* @param t {Telll} The telll object
+* @constructor
 */
 function PhotolinksList(t){
     this.t = t;
@@ -15,7 +17,7 @@ PhotolinksList.prototype =Object.create(iView.prototype);
 * @return bool
 */
 PhotolinksList.prototype._init = function(t){
-    this.status = null;
+    this.state = null;
     this._showWidget(t.store);
     return null;
 };
@@ -33,13 +35,13 @@ PhotolinksList.prototype._showWidget = function(data){
     if (tmpl.css)
     $('<style id="panel-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
-    this.status = "open";
+    this.state = "open";
     var telll = this.t;
     var me = this;
     $( "#close-button" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
-	me.status = "sent";
+	me.state = "sent";
 	me.detach();
     });
 

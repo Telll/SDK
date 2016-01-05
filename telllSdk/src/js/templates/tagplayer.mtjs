@@ -1,0 +1,1 @@
+module.exports={"name":"tagplayer","css":"div.tag {display:none;}","html":"{{#tags}}<div id=\"pl-{{id}}\" class=\"tag tag-none\">\t<div class=\"clkbl\">\t\t<div class=\"tag-label\">{{title}}</div>\t\t<p>implement-me!!!</p></div></div>{{/tags}}"}

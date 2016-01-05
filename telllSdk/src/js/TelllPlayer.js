@@ -1,6 +1,7 @@
 require('./iPlayer.js');
 /**
   * class TelllPlayer
+  * @constructor
   * 
   */
 TelllPlayer = function (t)
@@ -20,18 +21,6 @@ TelllPlayer.prototype._init = function (t)
   //iPlayer.prototype._init.call(this, $div, data);
   $('body').append("<h1>TelllPlayer - implement me!!!!</h1>");
 }
-
-/**
- * 
- * @param event
- * @param callback
-    *      
-TelllPlayer.prototype.on = function (evt, callback)
-{
-  this.me[0].addEventListener(evt, callback);
-}
- */
-
 
 module.exports = {TelllPlayer:TelllPlayer};
 

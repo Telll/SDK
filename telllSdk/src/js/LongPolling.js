@@ -1,6 +1,10 @@
 /** Class LongPolling
- * by SmokeMachine
- *
+ * @author SmokeMachine
+ * @param method
+ * @param url
+ * @param delimiter
+ * @param headers
+ * @constructor
 **/
 function LongPolling(method, url, delimiter, headers) {
         this.method     = method;

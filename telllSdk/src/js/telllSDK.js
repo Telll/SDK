@@ -11518,21 +11518,81 @@ return tv4; // used by _header.js to globalise.
 
 }));
 },{}],4:[function(require,module,exports){
+require ('./iView.js');
 /**
-* Generated On: 2015-10-8
-* Class: Clickbox
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* @constructor
 */
+function Clickbox(t){
+    this.t = t;
+    this._init(t);
+}
 
-function Clickbox(){
-    //Constructor
+Clickbox.prototype = Object.create(iView.prototype);
 
-
+/**
+* @param t {} 
+* @return bool
+*/
+Clickbox.prototype._init = function(t){
+    this.state = null;
+    this._showWidget(t.store);
+    return null;
 }
 
 
+/**
+* @param data {} 
+* @return bool
+*/
+Clickbox.prototype._showWidget = function(data){
+    console.log('Showing the clickbox');
+    var tmpl = require('./templates/clickbox.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="clickbox-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    var telll = this.t;
+    var me = this;
+    this.state = "open";
+    $(".telll-clickbox-widget .close").on( "click", function( e, data ) {
+	me.detach();
+        console.log('Clickbox closing ...');
+    });
+
+    // The popup 
+    $('<div class="popup-overlay"></div>').appendTo('body');
+    $('<div id="popup-clickbox" class="popup"></div>').appendTo('body');
+    $("#clickbox-widget").appendTo('#popup-clickbox').fadeIn();
+    $('#popup-clickbox').css('z-index','999');
+    $('html').addClass('overlay');
+
+
+    return true;
+};
+
+/**
+* @return null
+*/
+Clickbox.prototype.detach = function(){
+    $('.telll-clickbox-widget').detach();
+    $('.popup').detach();
+    $('div.popup-overlay').detach();
+    this.state = "detached";
+};
+
+/**
+* @return null
+*/
+Clickbox.prototype.attach = function(){
+    this._showWidget(this.t.store);
+};
+
 
 module.exports = {Clickbox:Clickbox};
-},{}],5:[function(require,module,exports){
+
+},{"./iView.js":27,"./templates/clickbox.mtjs":30}],5:[function(require,module,exports){
 // msg:
 // {
 // 	lp		=> "1234567890123456789012345678901234567890",
@@ -11598,7 +11658,7 @@ Command.prototype = {
 			this.msg.trans_id = this.createTransId();
 
 		this.msg.checksum = this.generateChecksum();
-		if(this.msg.lp == null)
+		if(this.msg.lp === null)
 			this.sock._ws.send(JSON.stringify(this.msg));
 		else {
 			var xhr = new XMLHttpRequest();
@@ -11614,7 +11674,7 @@ Command.prototype = {
 		var reply = this.clone();
 		reply.msg.type	= Command.flow[this.msg.type];
 		reply.msg.data	= data;
-		reply.send()
+		reply.send();
 	},
 	createTransId:	function() {
 		var shasum = crypto.createHash('sha1');
@@ -11624,9 +11684,9 @@ Command.prototype = {
 	generateChecksum: function() {
 		var shasum = crypto.createHash('sha1');
 		var seed = this.fields2check.map(function(field) {
-			return this.msg[field]
-		}.bind(this)).join("\n")
-		console.log("seed", seed);
+			return this.msg[field];
+		}.bind(this)).join("\n");
+		//console.log("seed", seed);
 		shasum.update(seed);
 		return shasum.digest('hex');
 	}
@@ -11634,14 +11694,14 @@ Command.prototype = {
 
 module.exports = Command;
 
-},{"crypto":23}],6:[function(require,module,exports){
+},{"crypto":45}],6:[function(require,module,exports){
 var Command = require("./Command.js");
 const util = require('util');
 const EventEmitter = require('events');
 const tv4 = require("tv4");
 
 module.exports = CommandWS;
-function CommandWS(path, via) {
+function CommandWS(url, path, via) {
 	EventEmitter.call(this);
 	if(via == null) {
 		via = window.WebSocket != undefined ? "ws" : "lp";
@@ -11649,6 +11709,7 @@ function CommandWS(path, via) {
 	this.via = via;
 	this.cmd = {};
 	this._path = path;
+        this._url = url;
 	this._init();
 }
 
@@ -11656,7 +11717,7 @@ util.inherits(CommandWS, EventEmitter);
 
 CommandWS.prototype.__defineGetter__("url", function() {
 	if(this.via == "ws")
-		return "ws://" + location.host + "/ws";
+		return "ws://" + this._url + "/ws";
 	else if(this.via == "lp")
 		return "/ws";
 	else
@@ -11738,7 +11799,7 @@ CommandWS.prototype._onListCommands	= function(command) {
 				for(var i = 0; i < schema.length; i++) {
 					var sch = schema[i];
 					var valid = tv4.validate(data, sch);
-					console.log("result:", valid);
+					//console.log("result:", valid);
 					if(!valid) {
 						console.warn("local_validation fail:", tv4.error);
 						return cb({error: tv4.error});
@@ -11759,26 +11820,811 @@ CommandWS.prototype._onListCommands	= function(command) {
 };
 
 
-},{"./Command.js":5,"events":164,"tv4":3,"util":184}],7:[function(require,module,exports){
+},{"./Command.js":5,"events":186,"tv4":3,"util":206}],7:[function(require,module,exports){
+require ('./iView.js');
 /**
-* Generated On: 2015-10-8
-* Class: Movie
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* @constructor
 */
+function Dashboard(t){
+    this.t = t;
+    this._init(t);
+}
 
-function Movie(){
+Dashboard.prototype =Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+Dashboard.prototype._init = function(t){
+    this.state = null;
+    this.tagEditor = null;
+    this.metricsPanel = null;
+    t.store.df = t.conf.dashboardFields;
+    this._showWidget(t.store);
+    return null;
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+Dashboard.prototype._showWidget = function(data){
+    var tmpl = require('./templates/dashboard.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="dashboard-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    this.state = "open";
+    var telll = this.t;
+    var me = this;
+    $( "#close-button" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "sent";
+	me.detach();
+    });
+
+    // open dashboard forms
+    // setup behaviors
+    // TODO create functions or classes for each dashboard form
+
+    ///////////////////////
+    // user form
+    $(".dashboard-home li#user-profile").on("click", function(e){
+	// load user data
+        me.loadUser();
+        $('.dashboard-panel').hide();
+        $("#user-dashboard").slideToggle("slow");
+    });
+    // user form behaviors
+    $('#user-dashboard input.save-button').on('click', function(e){
+        telll.saveUser($('#user-dashboard form#dashboard_form_user').serializeArray(), function(e,d){
+             me.loadUser();
+             me.timeDialog("User data saved ...", 1600);
+	});
+
+    });
+    $('#user-dashboard input.delete-button').on('click', function(e){
+        console.log(confirm("Do you really want to delete your account? It can't de undone"));
+    });
+    ////////////////////////
+    // movies form
+    $(".dashboard-home li#movies").on("click", function(e){
+        $('.dashboard-panel').hide();
+        // load description input onto textarea and limit length
+        var $input    = $('#description-field');
+        var $textarea = $('<textarea maxlength=255 id="decription-field" cols=40 rows=10 name="description"></textarea>');
+        $textarea.attr('id', $input.attr('id'));
+        $textarea.val($input.val());
+        $input.replaceWith($textarea);
+	$textarea.on('keyup blur', function() {
+	    var maxlength = $(this).attr('maxlength');
+	    var val = $(this).val();
+	    if (val.length > maxlength) {
+		$(this).val(val.slice(0, maxlength)); // limit field length
+	    }
+	});
+        // create image field
+        if (!$('img#movie-image').length){
+        $("<img id='movie-image'>").insertBefore("#image-field");
+        $("#movie-image").attr('src',$("#image-field").val());
+        }
+        // create the file upload field
+        if (!$('input#movie-image-upload').length){
+        $("<input type='file' id='movie-image-upload'>").insertAfter("#image-field");
+        $("#movie-image-upload").on("change", function(e){
+            console.log($(this));
+            console.log(telll.user);
+            var username = telll.credentials.username;
+            var file = this.files[0];
+            var fd = new FormData();
+            fd.append("imagefile", file);
+            fd.append("username", username);
+            $.ajax({
+              url: telll.conf.upload,
+              type: "POST",
+              data: fd,
+              enctype: 'multipart/form-data',
+              processData: false, 
+              contentType: false 
+            }).done(function( data ) {
+                console.log("Upload output:");
+                var json = JSON.parse(data);
+                console.log( json );
+                if (json.error){ 
+                    me.timeDialog("Error: "+json.error+" ...<br> Contact the telll administrator.", 8000);
+                } else {
+                    // Change image field
+                    $("#image-field").val(telll.conf.home+json.url);
+                    $("#movie-image").attr('src',$("#image-field").val());
+                    me.timeDialog("Image uploaded: "+json.url, 1600);
+                }
+            });
+        });
+        }
+        me.reloadSelectMovies();
+        $("#movies-dashboard").slideToggle("slow");
+    });
+    // movies form behaviors
+    $('#movies-dashboard input.save-button').on('click', function(e){
+        if ($("#description-field").val().length > 255) {
+            alert ("Description field has "+$("#description-field").val().length+" caracters. It must have less than 256 caracters. Fix it please!");
+            return;
+        }
+        telll.saveMovie($('#movies-dashboard form#dashboard_form_movie').serializeArray(), function(e,d){
+             me.reloadSelectMovies();
+             me.timeDialog("Movie saved ...", 1600);
+	});
+    });
+    $('#movies-dashboard input.delete-button').on('click', function(e){
+        if(confirm('Do you really want to delete this movie? It can\'t be undone.'))
+            telll.deleteMovie($('#movies-dashboard form#dashboard_form_movie').serializeArray(), function(e,d){
+                me.reloadSelectMovies();
+		//Clear all fields
+		$("#movies-dashboard fieldset input:text").val("");
+		$("#movies-dashboard fieldset #player-select").val(0);
+                me.timeDialog("Movie deleted ...", 1600);
+	});
+    });
+
+    $("#movies-dashboard #movie-select").on('change', function(e){
+	$( "#movies-dashboard #movie-select option:selected" ).each(function() {
+            if ($(this).val() == 'clear' ){
+		//Clear all fields
+		$("#movies-dashboard fieldset input:text").val("");
+		$("#movies-dashboard fieldset #player-select").val(0);
+		//$("#movies-dashboard fieldset #movie-select").val('clear');
+	    } else if ($(this).val() != 'none') {
+		// Get movie data
+		var myVal = $(this).val();
+		var selMv = $.grep(telll.moviesList, function(e){
+			return e.id == myVal; 
+		});
+		// Load the movie data into form fields
+		$.each(selMv[0], function (name,value){
+                    $("#movies-dashboard fieldset #"+name+"-field").val(value);
+		});
+                // load image
+                $("#movie-image").attr('src',$("#image-field").val());
+	    }
+        });
+    });
+
+
+    ////////////////////////////
+    // photolinks form
+    $(".dashboard-home li#photolinks").on("click", function(e){
+        $('.dashboard-panel').hide();
+        $("#photolinks-dashboard").slideToggle("slow");
+    });
+
+    ////////////////////////////
+    // Tags dashboard
+    // open in a popup window
+    $(".dashboard-home li#tags").on("click", function(e){
+        me.tagEditor = new telllSDK.View.TagEditor(telll);
+	me.state = "tagging";
+    });
+
+     ////////////////////////////
+    // Metrics dashbard
+    $(".dashboard-home li#clicks").on("click", function(e){
+        $('.dashboard-panel').hide();
+        $("#clicks-dashboard").slideToggle("slow");
+    });
+
+    return true;
+};
+
+/**
+* @return null
+*/
+Dashboard.prototype.attach = function(){
+    this._showWidget(this.t.store);
+};
+
+/**
+* @return null
+*/
+Dashboard.prototype.reloadSelectMovies = function(){
+        var telll = this.t;
+        // Reload select widget	
+        $("#movies-dashboard #movie-select").html('');
+        $("#movies-dashboard #movie-select").append($('<option value="none">Select a movie:</option>'));
+        $("#movies-dashboard #movie-select").append($('<option value="clear">[Create new movie]</option>'));
+	// Load movies list from telll server
+	telll.listMovies( null, function(d){
+		$.each(d, function(i,j){
+	            $("#movies-dashboard #movie-select").append(
+			    $('<option value="'+j.id+'">'+j.title+'</option>'));
+		});
+	});
+
+};
+
+/**
+* @return null
+*/
+Dashboard.prototype.loadUser = function(){
+        var telll = this.t;
+	telll.getUser( null, function(d){
+	        $("#user-dashboard #userid-field").val(d.id);
+	        $("#user-dashboard #username-field").val(d.username);
+	        $("#user-dashboard #email-field").val(d.email);
+	        $("#user-dashboard #password-field").val(d.password);
+	});
+};
+
+/**
+* @return null
+*/
+Dashboard.prototype.detach = function(){
+    $('.telll-dashboard-widget').detach();
+    this.state = "detached";
+};
+
+/**
+* @return null
+*/
+Dashboard.prototype.close = function(){
+    $('.telll-dashboard-widget').fadeOut();
+    this.state = "closed";
+};
+
+/**
+* @return null
+*/
+Dashboard.prototype.open = function(){
+    $('.telll-dashboard-widget').fadeIn();
+    this.state = "open";
+};
+
+/**
+* @return null
+* @param msg
+*/
+Dashboard.prototype.timeDialog = function(msg, delay){
+    $("<div class='time-dialog'>"+msg+"</div>").appendTo("body").fadeIn(function(){
+        setTimeout(function(){
+             $(".time-dialog").fadeOut(function(){$(".time-dialog").detach();})
+        }, delay);
+    });
+};
+
+
+module.exports = {Dashboard:Dashboard};
+
+},{"./iView.js":27,"./templates/dashboard.mtjs":31}],8:[function(require,module,exports){
+/**
+* Class: Device
+* @constructor
+*/
+function Device(){
     //Constructor
-    console.log('Telll Movie ...');
+
 
 }
 
 
 
+module.exports = {Device:Device};
+
+},{}],9:[function(require,module,exports){
+const util = require('util');
+const EventEmitter = require('events');
+/**
+* View Login, implements the login widget 
+* It has 3 states: 
+* - "loginWait" - The widget was shown
+* - "LoginDone" - The user filled fields and clicked login button
+* - "authOk"    - User authenticated
+* 
+* The view emits an event with the same name of status when reached.
+* It uses the mustache template login_template.mtjs
+*
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* @constructor
+*/
+function Login(t){
+    this.t = t;
+    this._init();
+}
+util.inherits(Login, EventEmitter);
+
+/**
+ * Init widget
+ */
+Login.prototype._init = function () {
+    this._showLoginWidget(this.t.credentials);
+    EventEmitter.call(this);
+    this.state = "loginWait";
+    this.emit(this.state);
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+Login.prototype._showLoginWidget = function(data){
+    // Create widget
+    var tmpl = require('./templates/login_template.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    $('<style id="login-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    // As a popup    
+    $('<div class="popup-overlay"></div>').appendTo('body');
+    $('<div id="popup-login" class="popup"></div>').appendTo('body');
+    $(".telll-login-widget").appendTo('#popup-login').fadeIn();
+    //$('#popup-movies-list').css('z-index','999');
+    $('html').addClass('overlay');
+
+    // Behaviors
+    var telll = this.t;
+    var me = this;
+    this.on( "authOk", function( data ) {
+	me.detach();
+        //telll.setCookie('username',data.username,telll.conf.extime);
+        //telll.setCookie('password',data.password,telll.conf.extime);
+        telll.setCookie('auth_key',data.auth_key,telll.conf.extime);
+        telll.setCookie('device',data.device,telll.conf.extime);
+    });
+    var authOk = function ( error, data ){ 
+            if (error) return alert(error);
+	    me.state = 'authOk';
+            var d = telll.credentials;
+            for (var a in data) { d[a] = data[a]; }
+            data = d;
+	    me.emit(me.state, data);
+    }; 
+    this.on( "loginDone", function( data ) {
+        // Authenticate device via ws or rest
+        via = window.WebSocket != undefined ? "ws" : "lp";
+        if (via == 'ws') {
+            //Websocket opened, initating login
+            telll.wsAuth( data, authOk );
+        }
+	else {
+            telll.auth(data, authOk);
+        }
+    });
+
+    // Listen user action
+    $( "#login-ok-button" ).click(function(e) {
+        e.preventDefault();
+	var dataAuth = {
+	    username: $('#email').val(),
+	    password: $('#password').val()
+	};
+	me.state = 'loginDone';
+        me.emit( me.state, dataAuth );
+    });
+    return true;
+};
+
+/**
+* @return null
+*/
+Login.prototype.detach = function(){
+    $('.telll-login-widget').detach();
+    $('div.popup-overlay').detach();
+    $('div#popup-login').detach();
+
+};
+
+module.exports = {Login:Login};
+
+},{"./templates/login_template.mtjs":33,"events":186,"util":206}],10:[function(require,module,exports){
+require('./iPlayer.js');
+/**
+  * Use it as a basic player mockup to begin your own player 
+  * Rewrite the methods you need.
+  *
+  * Enjoy!
+  *
+  * @param t {Telll} The Telll object
+  * @class
+  * @implements {iPlayer}
+  */
+MockPlayer = function (t)
+{
+  this._init (t);
+}
+
+MockPlayer.prototype =Object.create(iPlayer.prototype);
+
+/**
+ * Event loaded
+ * Movie loaded in player
+ *
+ * @event MockPlayer#loaded
+ * @type {Movie}
+ */
+
+/**
+ * Event timeupdate
+ * Time is updated
+ *
+ * @event MockPlayer#timeupdate
+ * @type {integer}
+ */
+
+/**
+ * Event playing
+ * Movie is playing
+ *
+ * @event MockPlayer#playing
+ * @type {integer}
+ */
+
+/**
+ * Event paused
+ * Movie is paused
+ *
+ * @event MockPlayer#paused
+ * @type {integer}
+ */
+
+
+
+/**
+ * _init 
+ */
+MockPlayer.prototype._init = function (t)
+{
+    this.t = t;
+    this.time = 0;
+    if (!this.t.movie) {
+        // is this a good feature? Please, comment it if you don't like :)
+        telllDialog("Error: movie not selected. Sorry.", 3000);
+        this.selectMovie();
+    }
+    else
+    this._showWidget(t);
+}
+
+/**
+ * Private method
+ * @param t {Telll} The Telll object
+ * @fires MockPlayer#loaded
+ */
+MockPlayer.prototype._showWidget = function (t)
+{
+    var me = this;
+    var telll = t;
+    var movie = t.movie;
+    $("<div id='movie-player' style='display:none'><video src="+movie.url+" id='telll-movie' style='width:100%;height:100%;display:none'/><button class='movie'>Select Movie</button><button class='play'>Play</button><button class='pause'>Pause</button><button class='stop'>Stop</button><div id='title-pos'>telll MockPlayer: "+t.movie.title+"- <b>pos:</b><input id='pos'></div>").appendTo('body');
+    $('#movie-player .movie').on('click', function (e){me.selectMovie()});
+    $('#movie-player .play').on('click', function (e){me.play()});
+    $('#movie-player .pause').on('click', function (e){me.pause()});
+    $('#movie-player .stop').on('click', function (e){me.stop()});
+    this.video = document.getElementById('telll-movie');
+    this.video.preload = "auto";
+    this.video.controls = true;
+    this.video.onloadstart = function() {
+        me.state = "loaded";
+        me.emit('loaded', movie );
+        $('#movie-player').fadeIn();
+        $('#telll-movie').fadeIn();
+    };
+    this.video.oncanplaythrough = function() {
+       telllDialog("Playing: "+movie.url, 2000);
+       me.state = "canplaythrough";
+       me.emit(me.state, movie );
+       me.play();
+    }; 
+    this.video.ontimeupdate = function(){
+        me.time = me.video.currentTime;
+        me.emit( 'timeupdate', me.time );
+        $('#pos').val(me.time);
+    };
+}
+ 
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.play = function (e, callback)
+{
+    this.video.play();
+    this.state = "playing";
+    this.emit("playing", this.time);
+}
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.pause = function (evt, callback)
+{
+    this.video.pause();
+    this.state = "paused";
+    this.emit("paused", this.time);
+}
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.stop = function (evt, callback)
+{
+    this.time = 0;
+    this.state = "stoped";
+    this.emit("stop", this.time);
+    this.video.pause();
+    this.video.currentTime = 0;
+}
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.seek = function (pos, callback)
+{
+    this.time = pos;
+    this.video.currentTime = pos;
+}
+
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.selectMovie = function (e, callback)
+{
+    var me = this;
+    var t = me.t;
+    this.t.showMoviesList(function (m){
+        me.detach();
+        me._showWidget(t);
+    });
+}
+
+/**
+* @return null
+*/
+MockPlayer.prototype.detach = function(){
+    //$('div.popup-overlay').detach();
+    //$('div.popup').detach();
+    $('#movie-player').detach();
+    this.state = "detached";
+    this.emit("detach", this.time);
+};
+
+
+
+
+module.exports = {MockPlayer:MockPlayer};
+
+},{"./iPlayer.js":26}],11:[function(require,module,exports){
+require('./iData.js');
+/**
+* Class: Movie
+* @constructor
+*/
+function Movie(t){
+    this._init (t);
+}
+Movie.prototype =Object.create(iData.prototype);
+/**
+* @param t {} 
+* @return bool
+*/
+Movie.prototype._init = function(t){
+    this.t = t;
+    this.title = "none";
+};
+
+/** 
+ * getTitle
+  * */
+Movie.prototype.getTitle = function ()
+{
+   return this.title;
+};
+
+
+/** 
+ * Create
+ * @param data {}
+ * @param cb function(){}
+  * */
+Movie.prototype.create = function (data, cb)
+{
+   this.save(data, cb);
+};
+
+/** 
+ * Update
+ * @param data {}
+ * @param cb function(){}
+  * */
+Movie.prototype.update = function (data, cb)
+{
+   this.save(data, cb);
+};
+
+/** 
+ * Read
+ * @param id integer
+ * */
+Movie.prototype.read = function (id, cb)
+{
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.getMovie(id);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert("Error: "+JSON.stringify(jsData.errors[0].message));
+            else {
+                me.merge(jsData);
+	        if(cb) cb(jsData);
+	    } 
+        });	
+    }
+};
+
+/** 
+ * Save
+ * @param data {}
+ * @param cb function(){}
+ * */
+Movie.prototype.save = function (data, cb)
+{
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.saveMovie(data);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert("Error: "+JSON.stringify(jsData.errors[0].message));
+            else {
+                me.merge(data);
+	        if(cb) cb(jsData);
+	    } 
+        });	
+    }
+};
+
+/** 
+ * Delete
+ * @param data {}
+ * @param cb function(){}
+ * */
+Movie.prototype.delete = function (data, cb)
+{
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.deleteMovie(data);
+        xhr.addEventListener('load', function(){
+            console.log('loaded ...');
+            console.log(this.responseText);
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert(jsData.errors);
+            else {
+	        if(cb) cb(jsData);
+                me = {};
+	    } 
+        });	
+    }
+};
+
 module.exports = {Movie:Movie};
 
-},{}],8:[function(require,module,exports){
+},{"./iData.js":25}],12:[function(require,module,exports){
+require ('./iView.js');
+/**
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* @constructor
+*/
+function MoviesList(t){
+    this.t = t;
+    this._init(t);
+}
+MoviesList.prototype =Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+MoviesList.prototype._init = function(t){
+    this.state = null;
+    this._showWidget(t.store);
+    return null;
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+MoviesList.prototype._showWidget = function(data){
+    var tmpl = require('./templates/movies_list.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="movies-list-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    var telll = this.t;
+    var me = this;
+
+    // The popup 
+    $('<div class="popup-overlay"></div>').appendTo('body');
+    $('<div id="popup-movies-list" class="popup"></div>').appendTo('body');
+    $(".telll-movies-list-widget").appendTo('#popup-movies-list').fadeIn();
+    //$('#popup-movies-list').css('z-index','999');
+    $('html').addClass('overlay');
+
+    /* // other buttons
+    $( ".tag-titlebar button.trackms" ).on("click", function(e) {
+        e.preventDefault();
+        // The draggable pointer
+        me.drgPointer();
+	me.state = "tracking";
+	
+    });
+    $( ".tag-titlebar button.tag" ).on("click", function(e) {
+        e.preventDefault();
+        // The tag editor
+        me.tagEditor();
+	me.state = "tagging";
+	
+    });
+    */
+    $( ".movies-list-titlebar button.close" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "selected";
+	me.detach();
+    });
+
+    $( ".movie-thumb" ).on("click", function(e) {
+        e.preventDefault();
+        var movie = JSON.parse($(this).attr('data'));
+        me.state = 'selected';
+        me.emit(me.state, movie);
+        telll.setCookie('movieId',movie.id,telll.conf.extime);
+	me.detach();
+    });
+    
+    // Movie labels
+    $(".telll-movie-element").on("mouseenter", function () {
+        $(this).find('.movie-label').fadeIn();
+        $(this).find('.movie-label').css('cursor','pointer');
+        var element = this;
+        $(this).find('.movie-label').on('click',function(){
+            $(element).find('img').trigger('click');
+        });
+    });
+    $(".telll-movie-element").on("mouseleave", function () {
+        $(this).find('.movie-label').fadeOut();
+    });
+
+    return true;
+};
+
+/**
+* @return null
+*/
+MoviesList.prototype.detach = function(){
+    $('.telll-movies-list-widget').detach();
+    $('div.popup-overlay').detach();
+    $('div#popup-movies-list').detach();
+};
+
+module.exports = {MoviesList:MoviesList};
+
+},{"./iView.js":27,"./templates/movies_list.mtjs":34}],13:[function(require,module,exports){
 /**
 * Generated On: 2015-10-8
 * Class: Photolink
+* @constructor
 */
 
 function Photolink(){
@@ -11790,110 +12636,740 @@ function Photolink(){
 
 
 module.exports = {Photolink:Photolink};
-},{}],9:[function(require,module,exports){
+
+},{}],14:[function(require,module,exports){
+require ('./iView.js');
 /**
 * Generated On: 2015-10-8
 * Class: PhotolinksList
+* @param t {Telll} The telll object
+* @constructor
+*/
+function PhotolinksList(t){
+    this.t = t;
+    this._init(t);
+}
+
+PhotolinksList.prototype =Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+PhotolinksList.prototype._init = function(t){
+    this.state = null;
+    this._showWidget(t.store);
+    return null;
+};
+
+
+/**
+* Create the widget
+* @param data {} 
+* @return bool
+*/
+PhotolinksList.prototype._showWidget = function(data){
+    console.log('Showing the photolinks-list-widget');
+    var tmpl = require('./templates/panel.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="panel-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    this.state = "open";
+    var telll = this.t;
+    var me = this;
+    $( "#close-button" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "sent";
+	me.detach();
+    });
+
+    $("div#telll-controls").fadeIn();
+
+
+    // Fill panel with photolinks
+    //photolinks = myPhotolinks;
+    //console.log(photolinks);
+    //$("#panel-slider").html(""); // clean panel
+
+    
+    
+    
+    /*	    for (i = 0; i < photolinks.length; ++i) {
+	       //console.log(photolinks[i]);
+	       $("#panel-slider").append('<div class="frame-icon"><img class="photolink-icon" id="icon_'+photolinks[i].id+'" src="'+photolinks[i].thumb+'" id_photolink='+photolinks[i].id+'><label for="icon_'+photolinks[i].id+'">'+photolinks[i].links[0].title+'<label></div>');
+	    }
+            // mouse out : labels
+            $(".frame-icon *").on("mouseover",function(e){
+                 var thisid=$( this ).attr('id');
+                 //console.log(thisid);
+                 $('label[for='+thisid+']' ).css("display","inline");
+            });
+            $(".frame-icon *").on("mouseleave",function(e){
+                 $('label').css("display","none");
+            });
+            // touch : labels
+            $(".frame-icon *").on("touchstart",function(e){
+                 var thisid=$( this ).attr('id');
+                 //console.log(thisid);
+                 $('label[for='+thisid+']' ).css("display","inline");
+            });
+            $(".frame-icon *").on("touchend",function(e){
+                 $('label').css("display","none");
+            });
+/*
+            $(".frame-icon *").click(function() {
+                sendPhotolink($(this).attr('id_photolink'));
+            });
+            //$('.frame-icon *').dblclick(function (e) {
 */
 
-function PhotolinksList(){
-    //Constructor
+/*            $('.frame-icon *').doubletap( function (e) {
+                console.log('Double Click!!!');
+                thePlayer.setPause();
+                var ap = parseInt($(e.srcElement).attr('id_photolink'));
+                // show dialog with photolinked webpage
+                $('body').append('<div id="ph-dialog-'+ap+'"><iframe width="100%" height="100%" src="js/projekktor/themes/maccaco/buffering.gif"/></div>');
+                //path = '/cgi-bin/mirror.pl?url='+myPhotolinks[ap].links[0].url;
+                path = myPhotolinks[ap].links[0].url;
+                $( "#ph-dialog-"+ap+" iframe" ).attr('src', path);
+                $( "#ph-dialog-"+ap ).dialog({
+                       modal: true,
+                       width: '80%',
+                       height: theHeight - 5,
+                       title: myPhotolinks[ap].links[0].title,
+                       buttons: {
+                	 "See in the movie": function() {
+                           var position = trackms[ap].points[0].t;
+                	   $( this ).dialog( "close" );
+                           thePlayer.setPlay();
+                           setTimeout(function(){
+                           thePlayer.setPlayhead(Number(position.toString()));
+                           actualPhotolink = ap;
+                           },500);
+                           $("<div data-role='popup' class='telll-popup'>Searching tag on movie ...</div>").appendTo('body');
+                           $( ".telll-popup" ).popup();
+                           $( ".telll-popup" ).popup( "open", null );
+                           setTimeout(function(){
+                               $( ".telll-popup" ).popup('close');
+                               $( ".telll-popup" ).detach();
+                           },2000);
+
+                	 }
+                       }
+                });
+                $( "#ph-dialog-"+ap ).dialog( "open" );
+            }, function(e){
+              console.log('Single Click!!!');
+              var ap = parseInt($(e.srcElement).attr('id_photolink'));
+              console.log('Sendind Photolink ');
+              console.log(this);
+              sendPhotolink(ap);
+            },400);
+            //highlightPhotolink(0);
+    }
+    function scrollPhotolinksPanel(n){
+            //console.log("Scrolled by:");
+            //console.log(n);
+            highlightedPhotolink += n;
+            //console.log("Highlighted Photolink:");
+            //console.log(highlightedPhotolink);
+	    pls = $("#panel").find('.frame-icon img');
+            //console.log(pls);
+            // Catching some errors
+            if (highlightedPhotolink > pls.length-1){
+                highlightedPhotolink = parseInt(pls.length)-1;
+            }
+            if (highlightedPhotolink < 0){
+                highlightedPhotolink = 0; 
+            }
+            
+            highlightPhotolink(highlightedPhotolink);
+
+            // Scroll panel to position
+            // claculate offset
+            var ml = 0;
+            pls.each(function(i){
+                if (parseInt(pls.eq(i).attr('id_photolink')) < highlightedPhotolink - Math.round(phListSize/2) 
+                //   && highlightedPhotolink < parseInt(pls.length) - Math.round(phListSize/2)
+                ){
+                    ml ++; 
+                }
+            });
+            var of = ml * phListElementWidth * -1;
+            $('#panel-slider').animate({
+                 'margin-left' : of+"px" 
+            }, 400, function(){
+	        //pls.eq(0).insertAfter(pls.eq(pls.length-1));
+	        //pls.eq(0).css('margin-left',ml);
+                //panelSliding = 0;
+                console.log('Panel scrolled by: '+of);
+            });
+
+            /*
+            if (highlightedPhotolink == 0){ highlightPhotolink(0); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == 1){ highlightPhotolink(1); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == 2){ highlightPhotolink(2); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == 3 && n === 1){ highlightPhotolink(3); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-1){
+                    highlightPhotolink(6); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-2 ){
+                    highlightPhotolink(5); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-3){
+                    highlightPhotolink(4); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-4 && n === -1){
+                    highlightPhotolink(3); panelSliding = 0;return 0; }
+            ml = pls.css('margin-left');
+            mwidth = '-120px';
+            if (n === -1){
+	        pls.eq(pls.length-1).insertBefore(pls.eq(0));
+	        pls.eq(pls.length-1).css('margin-left',mwidth);
+                pls.eq(pls.length-1).animate({
+                            'margin-left': ml,
+                            'transparency' : 0
+                       }, 400, function(){
+                           //panelSliding = 0;
+                });
+	    } else if (n === 1){
+                pls.eq(0).animate({
+                        'margin-left': mwidth,
+                        'transparency' : 0
+                   }, 400, function(){
+	               pls.eq(0).insertAfter(pls.eq(pls.length-1));
+	               pls.eq(0).css('margin-left',ml);
+                       //panelSliding = 0;
+                });
+	    } else if (Math.abs(n) > 1) {
+                for (i=0; i<Math.abs(n) ; i++){
+                    setTimeout(function(){
+                        scrollPhotolinksPanel(n/Math.abs(n));
+                    },(i+1)*451);
+                }
+            }
+            // done
+           // restore photolinks
+           setTimeout(function(){
+               highlightPhotolink(3); panelSliding = 0;
+           },450);
+           */
 
 
-}
+    return true;
+};
+
+/**
+ *
+ */
+PhotolinksList.prototype.highlightPhotolink = function(n){
+    pls = $("#panel").find('.frame-icon img');
+    console.log('---> '+n);
+    console.log(pls.eq(n));
+    pls.each(function(i){
+        //console.log(pls.eq(i).attr('id_photolink'));
+        //newSrc = pls.eq(i).find('img').attr('src').replace("_green.jpg", ".jpg");
+        //pls.eq(i).find('img').attr('src', newSrc);
+        if (parseInt(pls.eq(i).attr('id_photolink')) != n ){
+            pls.eq(i).css('opacity', '0.3');
+        } else {
+            pls.eq(n).css('opacity', '1');
+            console.log('highlighting '+n);
+        }
+    });
+    // highlight actual photolink
+    //newSrc = pls.eq(n).find('img').attr('src').replace(".jpg", "_green.jpg");
+    //pls.eq(n).find('img').attr('src', newSrc);
+    //pls.eq(n).css({'width':'96px','height':'52px'});
+};
 
 
 
 module.exports = {PhotolinksList:PhotolinksList};
-},{}],10:[function(require,module,exports){
+
+},{"./iView.js":27,"./templates/panel.mtjs":35}],15:[function(require,module,exports){
+require ('./iView.js');
 /**
-* Generated On: 2015-10-8
-* Class: TagPlayer
-*/
-
-function TagPlayer(){
-    //Constructor
-
-
+  * TagEditor
+  * Implements a functional player (movie, photolinks, tags) and tools to edit it
+  * @constructor 
+  */
+TagEditor = function (t)
+{
+  this._init (t);
 }
 
+TagEditor.prototype =Object.create(iView.prototype);
 
-
-module.exports = {TagPlayer:TagPlayer};
-},{}],11:[function(require,module,exports){
-(function (Buffer){
 /**
-* Generated On: 2015-10-8
-* Class: Telll
-*/
-
-function Telll(){
-    //Constructor
-    console.log('Telll SDK - Telll, the controller ...');
-    this.movie = new telllSDK.TWS.Movie();
+ * _init 
+ * @param t Telll object 
+ */
+TagEditor.prototype._init = function (t)
+{
+    this.t = t;
+    this.time = 0; 
+    this._showWidget(t.store);
 }
 
+/**
+ * 
+ * @param player
+ * @param callback
+    *      
+ */
+TagEditor.prototype.sync = function (p, callback)
+{
+  this.t.syncPlayer(this, p, callback);
+}
 
 /**
 * @param data {} 
 * @return bool
 */
-Telll.prototype.login = function(data){
-    var auth = false;
-    if (!data) auth = this._showLoginWidget({'none':'none'});
-    else auth = this._doLogin(data);
-    return auth;
+TagEditor.prototype._showWidget = function(data){
+    console.log('Showing the tag editor widget');
+    var tmpl = require('./templates/tageditor.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="tageditor-css">'+tmpl.css+'</style>').appendTo('head');
+    $("div#telll-tageditor").css({'width':'100%','height':'100%'}); 
+    $(html).appendTo('body');
+    this.state = "open";
+    var telll = this.t;
+    var me = this;
+
+    // The player 
+    //TODO: not the MockPlayer!!! How to use Youtube or Projekktor?
+    var mvPlayer = new telllSDK.View.MockPlayer(telll);
+    var tgPlayer = new telllSDK.View.TagPlayer(telll, mvPlayer);
+    me.sync(mvPlayer);
+    //tgPlayer.sync(mvPlayer); // its already done
+    mvPlayer.on('loaded', function(){
+	    console.log('appending movie player to tag editor');
+            $('#movie-player').appendTo('#tags-dashboard');
+    });
+
+    // The popup 
+    $('<div class="popup-overlay"></div>').appendTo('body');
+    $('<div id="popup-tags" class="popup"></div>').appendTo('body');
+    $("#tags-dashboard").appendTo('#popup-tags').fadeIn();
+    $('#popup-tags').css('z-index','999');
+    $('html').addClass('overlay');
+    // other buttons
+    $( ".tag-titlebar button.trackms" ).on("click", function(e) {
+        e.preventDefault();
+        // The draggable pointer
+        me.drgPointer();
+	me.state = "tracking";
+	
+    });
+    $( ".tag-titlebar button.tag" ).on("click", function(e) {
+        e.preventDefault();
+        // The tag editor
+        me.tagEditor();
+	me.state = "tagging";
+	
+    });
+    $( ".tag-titlebar button.close" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "sent";
+	me.detach();
+    });
+}
+
+/**
+* @return null
+*/
+TagEditor.prototype.drgPointer = function(){
+    alert('Click and draw to capture the movement!');
+    var mouseX, mouseY, pntOfs, trackms;
+    var me = this;
+    $(document).on("mousemove", function (e) {
+    if ($('#popup-tags').length){
+        mouseX = e.pageX;
+        mouseY = e.pageY;
+        pntOfs = $('#popup-tags').offset(); //TODO fix it, have an error of some pixels
+        $('div.tag-pointer').css({
+           left:  mouseX - pntOfs.left - 15,
+           top:   mouseY - pntOfs.top - 15
+        });
+    }}); 
+    var frameRate = 12; // the number of frames per second 
+    var timeInterval = Math.round( 1000 / frameRate ); 
+    var atimer = null;
+    $("div.tag-pointer").on('mouseup', function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        clearTimeout(atimer);
+        $("div.tag-pointer").fadeOut(function(){
+            alert('Captured!');
+            console.log(trackms);
+            // Save data on tws
+        });
+    });
+    $("div.tag-pointer").fadeIn();
+    $("div.tag-pointer").on('mousedown', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        trackms = []; 
+        atimer = setInterval( function (t){
+            // get the mouse data each time period
+            trackms.push({
+                  x: mouseX - pntOfs.left - 15,
+                  y: mouseY - pntOfs.top - 15,
+                  t: me.time
+            });
+        }, timeInterval ); 
+    });
 };
 
+/**
+* @return null
+*/
+TagEditor.prototype.attach = function(){
+    this._showWidget(this.t.store);
+};
+
+/**
+* @return null
+*/
+TagEditor.prototype.tagEditor = function(){
+    console.log('Implement tag editor!!!!');
+};
+
+
+/**
+* @return null
+*/
+TagEditor.prototype.detach = function(){
+    //$('div#tags-dashboard').detach();
+    $('div.popup-overlay').detach();
+    $('div#popup-tags').detach();
+    this.state = "detached";
+};
+
+/**
+* @return null
+*/
+TagEditor.prototype.close = function(){
+    $('.telll-tag-editor-widget').fadeOut();
+    this.state = "closed";
+};
+
+/**
+* @return null
+*/
+TagEditor.prototype.open = function(){
+    $('.telll-tag-editor-widget').fadeIn();
+    this.state = "open";
+};
+
+
+module.exports = {TagEditor:TagEditor};
+
+},{"./iView.js":27,"./templates/tageditor.mtjs":36}],16:[function(require,module,exports){
+require ('./iView.js');
+/**
+* Class: TagPlayer
+* 
+* It inherits the iView abstract class
+*
+* @param t {Telll} The Telll object
+* @param mp {iPlayer} The movie player as a iPlayer instance
+* @listens iPlayer 
+* @constructor
+*/
+function TagPlayer(t, mp){
+	if (! mp || mp.error) {
+		alert ('Error: TagPlayer not working. Talk with the system administrator, please. '+mp.error)} else {
+    this.t = t;
+    this.mp = mp;
+    this.state = null;
+    this._init(t);
+	}
+}
+
+TagPlayer.prototype =Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+* @private
+*/
+TagPlayer.prototype._init = function(t){
+    var me = this;
+    this.state = "init";
+    this.emit(this.state);
+    this._showWidget(t.store);
+    this.sync(this.mp);
+    return null;
+}
+
+/**
+ *
+ * @param data {} 
+ * @return bool
+ */
+TagPlayer.prototype._showWidget = function(data){
+    var tmpl = require('./templates/tagplayer.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="tag_player-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    var telll = this.t;
+    var me = this;
+    this.state = "showing";
+    this.emit(this.state,html );
+    return true;
+};
+
+/**
+* @param mp {iPlayer} The movie player to sync 
+* @param cb {} The callback
+* @return bool
+*/
+TagPlayer.prototype.sync = function(mp,cb){
+        this.t.syncPlayer(this, mp, cb);
+	var telll = this.t;
+	var me = this;
+	mp.on('loaded', function(m){
+		console.log('Loaded', m);
+		// get trackms for this movie
+	//	telll.getTracks(m);
+		telll.getTracks(m, function(e, d){
+			console.log(e);
+			console.log(d);
+                     this.state = "loaded";
+		});
+	});
+	mp.on('playing', function(t){
+		console.log('Playing',t);
+	});
+	mp.on('timeupdate', function(t){
+		console.log('timeupdate', t);
+	});
+	mp.on('paused', function(t){
+		console.log('Paused', t);
+	});
+	mp.on('stoped', function(t){
+		console.log('Stoped', t);
+	});
+        return null;
+}
+
+
+module.exports = {TagPlayer:TagPlayer};
+
+},{"./iView.js":27,"./templates/tagplayer.mtjs":37}],17:[function(require,module,exports){
+/**
+* Implements the telll controler
+* @author Monsenhor filipo at kobkob.org
+* @constructor
+*/
+function Telll(){
+    this.VERSION = "0.16.0";
+    //Constructor
+    //console.log('Begin Telll controller '+this.VERSION+' ...');
+
+    this.conf = require('./conf.js');
+    this.device = this.getDevice();
+    // get credentials and device id
+    //console.log('Device');
+    //console.log(this.device);
+    this.credentials = {
+        //username: this.getCookie('username'),
+        //password: this.getCookie('password'),
+        device: this.device.id,
+        apiKey: '1234',
+        authKey: this.getCookie('auth_key')
+    };
+    //console.log('Credentials');
+    //console.log(this.credentials);
+    //this.movie = this.getMovie(this.getCookie('movieId'));
+
+    // store var for views
+    this.store = require('./store.js');
+    // views
+    this.loginView = {state:null};
+    this.dashboardView = {state:null};
+    this.clickboxView = {state:null};
+    this.moviesListView = {state:null};
+    this.photolinksListView = {state:null};
+    this.telllBtnView = {state:null};
+    this.tagPlayerView = {state:null};
+    this.moviePlayerView = {state:null};
+
+    // the web server API 
+    this.tws = new telllSDK.TWS(this.conf.host); 
+    this.cws = new telllSDK.CWS(this.conf.host);
+    this.device.model = "iPad"; //TODO use other models ... :)
+    
+    // setting states
+    if (this.credentials.authKey)
+        this.tws.headers = {"X-API-Key": 123, "X-Auth-Key": this.credentials.authKey}; 
+    this.cws.on("open", function() {
+         //console.log('CWS Opened!!!');
+    });
+}
 
 /**
 * @return {null}
 */
 Telll.prototype.start = function(){
-    console.log('Starting telll ...'); 
-    console.log('Login ...'); 
-    if (this.login()) {
-        myMovie = this.getMovie();
-        myTrackms = this.getTrackms(myMovie);
-        // Load widgets
-        myPanel = this.showPanel(myTrackms);
-        myTagPlayer = this.showTagPlayer(myTrackms);
-        myTelllBtn = this.showTelllBtn(myTrackms);
-    }
+    console.log('Starting telll ...');
+    this.getDevice(); 
+    this.login(this.loadWidgets);
 
 };
 
 /**
-* @param data {} 
+* Telll.loadWidgets()
 * @return bool
 */
-Telll.prototype._showLoginWidget = function(data){
-    console.log('Showing the login widget');
+Telll.prototype.loadWidgets = function(){
+   // Load widgets
+   this.showDashboard();
+   this.showClickbox();
+   this.showPhotolinksList();
+   this.showTagPlayer();
+   this.showTelllBtn();
+};
 
-console.log('Loading fs ...');
-// Load fs
+/**
+* Telll.login()
+* @param data {} 
+* @return bool
+Construct the login machine.
+- login widget
+- donut if still authorized 
+*/
+Telll.prototype.login = function(data, cb){
+    var loginView;
+    // Creates the Login view object if dont have authKey
+    if (!this.credentials.authKey) {
+	    loginView = new telllSDK.View.Login( this );
+            loginView.on('authOk', function(){if(cb) cb(null, data);});
+            this.loginView = loginView;
+    } else {if(cb) cb(null, data);}
 
-
-
-    // Load template from file, compile template, and render against data
-    //$.get('./templates/login_template.html', function(tmpl) {
-    //var tmpl = require('./templates/login_template.html');
-    var tmpl = Buffer("PCFET0NUWVBFIGh0bWw+CjxodG1sPgo8aGVhZD4KCTx0aXRsZT5Kc1JlbmRlciBOb2RlIFN0YXJ0ZXI8L3RpdGxlPgo8L2hlYWQ+Cjxib2R5PgoKPGgyPkhlbGxvOiAie3s6ZGF0YX19IjwvaDI+Cgo8L2JvZHk+CjwvaHRtbD4K","base64");
-        console.log(tmpl);
-        //var html = Mustache.render(tmpl, data);
-        //var html = tmpl(data);
-        //$(html).appendTo('body');
-    //});
     return true;
 };
 
 /**
-* @param trkm {} 
-* @return {null}
+* Telll.showClickbox()
+* @param data {} 
+* @return bool
 */
-Telll.prototype._doLogin = function(data){
-    console.log('Contacting TWS');
+Telll.prototype.showClickbox = function(data){
+    if (this.clickboxView.state) {
+        //console.log(this.clickboxView.state);
+        switch (this.clickboxView.state){
+        case 'closed':
+        this.clickboxView.open();
+        break;
+        case 'open':
+        this.clickboxView.close();
+        break;
+        case 'detached':
+        this.clickboxView.attach();
+        break;
+        }
+     } else this.clickboxView = new telllSDK.View.Clickbox ( this );
+    return true;
 
+};
+
+/**
+* Telll.showDashboard()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.showDashboard = function(data){
+    if (this.dashboardView.state) {
+        //console.log(this.dashboardView.state);
+        switch (this.dashboardView.state){
+        case 'closed':
+        this.dashboardView.open();
+        break;
+        case 'open':
+        console.log('hmmmm ... its suposed to be closed!');
+        this.dashboardView.detach();
+        this.dashboardView = new telllSDK.View.Dashboard ( this );
+        break;
+        case 'detached':
+        this.dashboardView.attach();
+        break;
+        }
+     } else this.dashboardView = new telllSDK.View.Dashboard ( this );
+    return true;
+};
+
+
+/**
+* Telll.wsAuth()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.wsAuth = function(data, cb) {
+	//console.log("Contacting CWS");
+	//console.log(data);
+    var me = this;
+    var ret = this.cws.cmd.login({
+        api_key:    this.credentials.apiKey,
+        user_name:  data.user_name ? data.user_name : data.username,
+        password:   data.password,
+        model:      this.device.model
+    }, function(response) {
+        //response = response.msg;
+        //console.log('Response:');
+        //console.log(response);
+        //console.log('Callback:');
+        //console.log(cb);
+        if("auth_key" in response.data) {
+            me.credentials.authKey = response.data.auth_key;
+            me.credentials.username = data.username;
+            me.credentials.password = data.password;
+	    me.tws.headers = {"X-API-Key": 123, "X-Auth-Key": response.data.auth_key}; 
+            if(cb) cb(null, response.data);
+        } else cb(response.error, response.data);
+    });
+    //console.log(ret);
+    return ret;
+};
+
+/**
+* Telll.logout()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.logout = function(cb) {
+    var ret = this.cws.cmd.logout({
+        api_key:    this.credentials.apiKey,
+        auth_key:   this.credentials.authKey,
+    }, function(response) {
+        if(cb) cb(response.error, response.data);
+    });
+};
+
+/**
+* Telll.syncPlayer()
+* @param tagPlayer {} 
+* @param moviePlayer {} 
+* @return bool
+*/
+Telll.prototype.syncPlayer = function(t, m, cb) {
+    //console.log(t);
+    //console.log(m);
+    m.on('timeupdate', function(time){
+        t.time = time;
+        t.emit( 'changeTime', t.time );
+        //console.log(m.time);
+    });
+    t.on('timeupdate', function(time){
+         //console.log(t.time);
+    });
+    if(cb) cb(t.time);
 };
 
 
@@ -11902,20 +13378,129 @@ Telll.prototype._doLogin = function(data){
 * @param trkm {} 
 * @return {null}
 */
-Telll.prototype.showPanel = function(trkm){
-    console.log('Showing the telll panel');
+Telll.prototype.auth = function(data, cb){
+    //console.log('Contacting TWS');
+    //console.log(data);
+    this.user = new telllSDK.TWS.User(data);
+    var xhr = this.tws.login(this.user, this.device.model);
+    xhr.addEventListener('load', function(){
+        //console.log(this.responseText);
+        var jsData = JSON.parse(this.responseText);
+        console.log(jsData);
+        $.extend(jsData,data,jsData);
+        if (jsData.error) alert(jsData.error);
+	else if(cb) cb.call(this, jsData);
+    });	 
+    return xhr;
+};
+
+/**
+* @return {null}
+*/
+Telll.prototype.showPhotolinksList = function(){
+    //console.log('Showing the telll panel');
+    // get movie and list of photolinks
+    if (!this.movie) {
+        alert('Please, select a movie first.');
+        this.showMoviesList(function(m){
+            //console.log(" From Panel: my movie:");
+            //console.log(m);
+            //register movie
+            //this.movie = m;
+            //get photolinks list
+            this.photolinksListView = new telllSDK.View.PhotolinksList( this );
+        });
+    }
+    else this.photolinksListView = new telllSDK.View.PhotolinksList( this );
+    return true;
+};
+
+/**
+* @return {null}
+* @listens MockPlayer
+*/
+Telll.prototype.showMockPlayer = function(cb){
+    this.moviePlayerView = new telllSDK.View.MockPlayer ( this );
+    this.moviePlayerView.on("loaded", function(){
+        if (cb) cb(this);
+    });
+};
+
+/**
+* @return {null}
+*/
+Telll.prototype.showMoviePlayer = function(){
+    this.moviePlayerView = new telllSDK.View.TelllPlayer ( this );
 
 };
 
 /**
-* @param trkm {} 
 * @return {null}
 */
-Telll.prototype.showTagPlayer = function(trkm){
-    //TODO: Implement Me 
-    console.log('Showing the tag player');
+Telll.prototype.showYoutubePlayer = function(){
+    this.moviePlayerView = new telllSDK.View.YoutubePlayer ( this );
 
 };
+
+
+/**
+* @param player {iPlayer} The movie Player must be a iPlayer 
+* @return {null}
+*/
+Telll.prototype.showTagPlayer = function(player, cb){
+	var me = this;
+    this.tagPlayerView = new telllSDK.View.TagPlayer ( this, player );
+    this.tagPlayerView.on("showing", function(){
+	    //console.log('from telll.showTagPlayer ...');
+	    if (cb) cb( me.tagPlayerView );
+    });
+};
+
+/**
+* MoviesList is a modal widget showing a mosaic of movie thumbnails
+* with title and description. 
+* When a movie is selected it is assigned to telll.movie and is sent to the callback
+* 
+* @return {null}
+*/
+Telll.prototype.showMoviesList = function(cb){
+    //console.log('Showing the Movies List');
+    this.movie = this.getMovie(0);
+    var me = this;
+    this.listMovies(null, function(ml){
+        me.store.movies = ml;
+        me.moviesListView = new telllSDK.View.MoviesList( me );
+        me.moviesListView.on('selected', function(m){
+            // TODO it produces a bug, fix please!
+            me.movie = me.getMovie(m.id, function (){
+               if(cb) cb(me.movie);
+            });
+        });
+    });
+};
+
+/**
+* @param data {} 
+* @return {null}
+*/
+Telll.prototype.listMovies = function(data, cb){
+    var me = this;
+    if (this.credentials.authKey){ 
+	var xhr = this.tws.moviesList();
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.error) alert(jsData.error);
+            else {
+		me.moviesList = jsData.movies;
+	        if(cb) cb(jsData.movies);
+	    } 
+        });	
+    }
+    //if (cb) cb(this.moviesList);
+    return null;
+};
+
+
 
 /**
 * @param trkm {} 
@@ -11923,19 +13508,100 @@ Telll.prototype.showTagPlayer = function(trkm){
 */
 Telll.prototype.showTelllBtn = function(trkm){
     //TODO: Implement Me 
-    console.log('Showing the telll button');
+    //console.log('Showing the telll button');
+    this.telllBtnView = new telllSDK.View.TelllBtn ( this );
 
 };
 
 /**
-* @param movieId {} 
-* @return {null}
+* @param movieId {}
+* @param cb callback
+* @return bool
 */
-Telll.prototype.getMovie = function(movieId){
-    //TODO: Implement Me 
-
+Telll.prototype.getMovie = function(movieId, cb){
+    if (this.credentials.authKey){ 
+        this.movie = new telllSDK.TWS.Movie(this);
+	this.movie.read(movieId, cb);
+    }
+    return this.movie;
 };
 
+/**
+ * Save movie data from form
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.saveMovie = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.movie = new telllSDK.TWS.Movie(this);
+    this.movie.save(result, cb);
+};
+
+/**
+ * Delete movie
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deleteMovie = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.movie = new telllSDK.TWS.Movie(this);
+    this.movie.delete(result, cb);
+};
+
+
+/**
+* @param userId {} 
+* @return bool
+*/
+Telll.prototype.getUser = function(userId, cb){
+    var me = this;
+    this.user = new telllSDK.TWS.User(this);
+    if (this.credentials.authKey){ 
+        if (!userId){
+	    this.user.self(cb);
+            console.log(this.user);
+        } else this.user.read(userId);
+    } 
+    return this.user;
+};
+
+/**
+ * Save user data from form
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.saveUser = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.user = new telllSDK.TWS.User(this);
+    this.user.save(result, cb);
+};
+
+/**
+ * Delete user
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deleteUser = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.user = new telllSDK.TWS.User(this);
+    this.user.delete(result, cb);
+};
 
 /**
 * @param plId {} 
@@ -11956,6 +13622,22 @@ Telll.prototype.getTrackms = function(trkId){
 
 };
 
+/**
+* @param m {Movie} 
+* @param cb {} Callback 
+* @return {null}
+*/
+Telll.prototype.getTracks = function(m, cb){
+    var ret = this.cws.cmd.trackmotions_from_movie({
+        api_key:    this.credentials.apiKey,
+        auth_key:   this.credentials.authKey,
+	movie: parseInt(m.id)
+    }, function(response) {
+        if(cb) cb(response.error, response.data);
+    });
+};
+
+
 
 /**
 * @param data {} 
@@ -11963,19 +13645,9 @@ Telll.prototype.getTrackms = function(trkId){
 */
 Telll.prototype.listPhotolinks = function(data){
     //TODO: Implement Me 
+    this.listPhotolinksView = new telllSDK.View.ListPhotolinks ( this );
 
 };
-
-
-/**
-* @param data {} 
-* @return {null}
-*/
-Telll.prototype.listMovies = function(data){
-    //TODO: Implement Me 
-
-};
-
 
 /**
 * @param data {} 
@@ -11988,43 +13660,186 @@ Telll.prototype.sendPhotolink = function(data){
 
 
 
+/**
+* @param cname 
+* @param cvalue 
+* @param extime
+* @return string
+*/
+Telll.prototype.setCookie = function (cname, cvalue, extime) {
+    var d = new Date();
+    d.setTime(d.getTime() + extime);
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+};
+
+/**
+* @param cname 
+* @return {null}
+*/
+Telll.prototype.getCookie = function (cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i<ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) === 0) return c.substring(name.length,c.length);
+    }
+    return "";
+};
+
+/**
+* Retrieve the device.
+* If  
+* @return {null}
+*/
+Telll.prototype.getDevice = function () {
+    var device = this.device || {id:null};
+    if (device.id){return device;}
+    device.id = this.getCookie('device');
+    // TODO: connect with TWS to retrieve device data
+    //device.model = navigator.userAgent; TODO: retrieve model from environment
+    device.model = 'iPad'; // default model
+    // TODO: it bellow is better to be in some view ... we want node.js compatibility
+    device.isMobile = {
+    Android: function() {
+        return navigator.userAgent.match(/Android/i);
+    },
+    BlackBerry: function() {
+        return navigator.userAgent.match(/BlackBerry/i);
+    },
+    iOS: function() {
+        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+    },
+    Opera: function() {
+        return navigator.userAgent.match(/Opera Mini/i);
+    },
+    Windows: function() {
+        return navigator.userAgent.match(/IEMobile/i);
+    },
+    any: function() {
+        return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+    }
+};
+    return device;
+};
+
 module.exports = {Telll:Telll};
 
-}).call(this,require("buffer").Buffer)
-},{"buffer":19}],12:[function(require,module,exports){
+},{"./conf.js":24,"./store.js":29}],18:[function(require,module,exports){
+require ('./iView.js');
 /**
-* Generated On: 2015-10-8
-* Class: TelllBtn
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* @constructor
 */
-
-function TelllBtn(){
-    //Constructor
-
-
+function TelllBtn(t){
+    this.t = t;
+    this._init(t);
 }
 
+TelllBtn.prototype =Object.create(iView.prototype);
 
+/**
+* @param t {} 
+* @return bool
+*/
+TelllBtn.prototype._init = function(t){
+    this.state = null;
+    this._showWidget(t.store);
+    return null;
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+TelllBtn.prototype._showWidget = function(data){
+    console.log('Showing the telll_btn widget');
+    var tmpl = require('./templates/telll_btn.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="telll_btn-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    this.state = "open";
+    var telll = this.t;
+    var me = this;
+    $( "#close-button" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "sent";
+	me.detach();
+    });
+
+    return true;
+};
+
+/**
+* @return null
+*/
+TelllBtn.prototype.attach = function(){
+    this._showWidget(this.t.store);
+};
+
+/**
+* @return null
+*/
+TelllBtn.prototype.detach = function(){
+    $('.telll-telll_btn-widget').detach();
+    this.state = "detached";
+};
+
+/**
+* @return null
+*/
+TelllBtn.prototype.close = function(){
+    $('.telll-telll_btn-widget').fadeOut();
+    this.state = "closed";
+};
+
+/**
+* @return null
+*/
+TelllBtn.prototype.open = function(){
+    $('.telll-telll_btn-widget').fadeIn();
+    this.state = "open";
+};
 
 module.exports = {TelllBtn:TelllBtn};
-},{}],13:[function(require,module,exports){
+
+},{"./iView.js":27,"./templates/telll_btn.mtjs":38}],19:[function(require,module,exports){
+require('./iPlayer.js');
 /**
-* Generated On: 2015-10-8
-* Class: TelllPlayer
-*/
-
-function TelllPlayer(){
-    //Constructor
-
-
+  * class TelllPlayer
+  * @constructor
+  * 
+  */
+TelllPlayer = function (t)
+{
+  this._init (t);
 }
 
+TelllPlayer.prototype =Object.create(iPlayer.prototype);
 
+/**
+ * _init sets all TelllPlayer attributes to their default value. Make sure to call
+ * this method within your class constructor
+ */
+TelllPlayer.prototype._init = function (t)
+{
+  this.t = t; 
+  //iPlayer.prototype._init.call(this, $div, data);
+  $('body').append("<h1>TelllPlayer - implement me!!!!</h1>");
+}
 
 module.exports = {TelllPlayer:TelllPlayer};
-},{}],14:[function(require,module,exports){
+
+
+},{"./iPlayer.js":26}],20:[function(require,module,exports){
 /**
 * Generated On: 2015-10-8
 * Class: Trackms
+* @constructor
 */
 
 function Trackms(){
@@ -12036,85 +13851,993 @@ function Trackms(){
 
 
 module.exports = {Trackms:Trackms};
-},{}],15:[function(require,module,exports){
+
+},{}],21:[function(require,module,exports){
+//require('./iData.js');
+/**
+  * class Tws
+* @constructor
+  * 
+  */
+Tws = function (server)
+{
+  this._init (server);
+}
+
+//Tws.prototype = new iData ();
+/*
+Tws.prototype = {
+    user: new telllSDK.TWS.User(),
+    device: new telllSDK.TWS.Device(),
+    movie: new telllSDK.TWS.Movie(),
+    trackms: new telllSDK.TWS.Trackms(),
+    photolink: new telllSDK.TWS.Photolink()
+};*/ 
+
+/**
+ * Init
+ */
+Tws.prototype._init = function (server)
+{
+
+this.m_server = server;
+this.method;
+this.url;
+this.delimiter;
+//this.headers = {"X-API-Key": 123, "X-Auth-Key": "395fb7b657db2fb5656f34de3840e73c90b79c31"}; 
+this.headers;
+this.xhr;
+
+}
+/**
+ * setHeaders
+ */
+Tws.prototype.setHeaders = function (h)
+{
+this.headers = h;
+}
+
+
+/**
+ * user 
+ * 
+ */
+Tws.prototype.user = function (data)
+{
+    console.log('Creating new user on Tws');
+    console.log(data);
+    if (data.username && data.email && data.password){
+        // call Tws to create a new user
+
+        var send = JSON.stringify(data);
+        //console.log(send);
+        var xhr = new XMLHttpRequest();
+        xhr.addEventListener('load', function(){
+            console.log('Response');
+            console.log(this.responseText);
+        });
+        xhr.open('POST', 'http://52.3.72.192:3000/app/user', true);
+        for(var key in this.headers) {
+                xhr.setRequestHeader(key, this.headers[key]);
+        }
+        xhr.send(send);
+        return xhr;
+
+
+    } else {
+        console.log ("{error:'wrong user data'}");
+        return "{error:'wrong user data'}";
+    }
+}
+
+/**
+ * self 
+ * 
+ */
+Tws.prototype.self = function ()
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/user/self', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+/**
+ * getMovie 
+ * 
+ */
+Tws.prototype.getMovie = function (id)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie/'+id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+
+/**
+ * moviesList 
+ * 
+ */
+Tws.prototype.moviesList = function ()
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+/**
+ * saveMovie 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.saveMovie = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/movie', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * deleteMovie 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deleteMovie = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/movie/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * saveUser 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.saveUser = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/user/self', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * deleteUser 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deleteUser = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/user/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+
+
+
+/**
+ * login 
+ * 
+ */
+Tws.prototype.login = function (data, model)
+{
+    var url = 'http://'+this.m_server+'/login';
+    var ptype = "POST";
+    this.headers = {"X-API-Key": 123}; 
+    var msg = "Login on Tws ...";
+    data.user_name = data.username;
+    data.model = model;
+    //console.log(msg);
+    //console.log(data);
+    if (data.username && data.password){
+        // call Tws to login
+        var strSend = JSON.stringify(data);
+        //console.log(send);
+        var xhr = new XMLHttpRequest();
+        xhr.addEventListener('load', function(){
+            //console.log('Response');
+            //console.log(this.responseText);
+            loginData = JSON.parse(this.responseText);
+            this.headers = {"X-API-Key": 123, "X-Auth-Key": loginData.auth_key}; 
+        });
+        xhr.open(ptype , url, true);
+        for(var key in this.headers) {
+                xhr.setRequestHeader(key, this.headers[key]);
+        }
+        xhr.send(strSend);
+        return xhr;
+    } else {
+        console.log ("{error:'wrong user data'}");
+        return "{error:'wrong user data'}";
+    }
+}
+
+/**
+ * 
+ * 
+ */
+Tws.prototype.getPhotolink = function ()
+{
+	this.url = this.m_server+'/app/photolink/lp';
+        var lp = new LongPolling("GET", this.m_server+"/app/photolink/lp", "\n//----------//", this.headers);
+        //var lp = new LongPolling("GET", "http://52.3.72.192:3000/app/photolink/lp", "\n//----------//", {"X-Api-Key": 1234, "X-Auth-Key": "4574eb62ff5337ce17f3d657f3b74cbcf3f9cc42"});
+        lp.create();
+	return lp;
+}
+
+/**
+ * 
+ * 
+ */
+Tws.prototype.sendPhotolink = function (str)
+{
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', this.m_server+'/app/photolink/send/0/0', true);
+        for(var key in this.headers) {
+                xhr.setRequestHeader(key, this.headers[key]);
+        }
+
+        xhr.send(str);
+}
+
+
+
+module.exports = {TWS:Tws};
+
+},{}],22:[function(require,module,exports){
+require('./iData.js');
 /**
 * Generated On: 2015-10-8
 * Class: User
+* @constructor
 */
 
-function User(){
+function User(t){
     //Constructor
-
-
+    console.log('Telll User ...');
+    this._init (t);
 }
+User.prototype =Object.create(iData.prototype);
+/**
+* @param t {} 
+* @return bool
+*/
+User.prototype._init = function(t){
+    this.t = t;
+};
+
+/** 
+ * Create
+ * @param data {}
+ * @param cb function(){}
+  * */
+User.prototype.create = function (data, cb)
+{
+   this.save(data, cb);
+};
+
+/** 
+ * Update
+ * @param data {}
+ * @param cb function(){}
+  * */
+User.prototype.update = function (data, cb)
+{
+   this.save(data, cb);
+};
+
+/** 
+ * Read
+ * @param id integer
+ * */
+User.prototype.read = function (id)
+{
+};
+
+/** 
+ * self
+ * @param cb function(){}
+ * */
+User.prototype.self = function (cb)
+{
+    var me = this;
+    var t = this.t;
+    if (this.t.credentials.authKey){ 
+            var xhr = t.tws.self();
+            xhr.addEventListener('load', function(){
+                var jsData = JSON.parse(this.responseText);
+                if (jsData.error) alert(jsData.error);
+                else {
+                    me.merge(jsData);
+                    if(cb) cb.call(this, jsData);
+                } 
+            });	
+    }
+};
+
+
+/** 
+ * Save
+ * @param data {}
+ * @param cb function(){}
+ * */
+User.prototype.save = function (data, cb)
+{
+    me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.saveUser(data);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) { 
+                if (jsData.errors[0].path == "\/password") alert ("Please, you need to enter your password to edit your profile.");
+                else alert("Error: "+JSON.stringify(jsData.errors[0].message));
+            }
+            else {
+                me.merge(data);
+	        if(cb) cb(jsData);
+	    } 
+        });	
+    }
+};
+
+/** 
+ * Delete
+ * @param data {}
+ * @param cb function(){}
+ * */
+User.prototype.delete = function (data, cb)
+{
+    me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.deleteUser(data);
+        xhr.addEventListener('load', function(){
+            console.log('loaded ...');
+            console.log(this.responseText);
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert(jsData.errors);
+            else {
+	        if(cb) cb(jsData);
+                me = {};
+	    } 
+        });	
+    }
+};
+
+
 
 
 
 module.exports = {User:User};
-},{}],16:[function(require,module,exports){
+
+},{"./iData.js":25}],23:[function(require,module,exports){
+require ('./iPlayer.js');
 /**
 * Generated On: 2015-10-8
 * Class: YoutubePlayer
+* @constructor
 */
 
-function YoutubePlayer(){
+function YoutubePlayer(t){
     //Constructor
+    this.t = t;
+    this._init(t);
+}
+
+YoutubePlayer.prototype =Object.create(iPlayer.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+YoutubePlayer.prototype._init = function(t){
+    this.state = null;
+    this._showWidget(t.store);
+    return null;
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+YoutubePlayer.prototype._showWidget = function(data){
+    console.log('Showing the youtube_player widget');
+    var tmpl = require('./templates/youtube_player.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('<style id="youtube_player-css">'+tmpl.css+'</style>').appendTo('head');
+    $(html).appendTo('body');
+    this.state = "open";
+    var telll = this.t;
+    var me = this;
+    $( "#close-button" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "sent";
+	me.detach();
+    });
+
+    return true;
+};
+
+module.exports = {YoutubePlayer:YoutubePlayer};
+
+},{"./iPlayer.js":26,"./templates/youtube_player.mtjs":39}],24:[function(require,module,exports){
+// conf.js
+// put all global var configuration here
+module.exports = {
+    host:'52.3.72.192:3000',
+    home:'http://52.20.194.143',
+    upload: "http://52.20.194.143/cgi-bin/telll_upload.pl",
+    extime: 3000000,
+    dashboardFields: {
+       profile: [{
+           name:"username",
+           value:"",
+	   type:"text",
+	   size:"30",
+           label:"Username",
+       },{
+           name:"email",
+           value:"",
+	   type:"text",
+	   size:"30",
+           label:"E-Mail",
+       },{
+           name:"password",
+           value:"",
+	   type:"password",
+	   size:"30",
+           label:"Password",
+       }],
+       movies: [{
+	   name:"title",
+           value:"",
+	   type:"text",
+	   size:"30",
+           label:"Title",
+       },{
+	   name:"description",
+           value:"",
+	   type:"hidden",
+	   size:"255",
+           label:"Description",
+       },{
+	   name:"url",
+           value:"http://",
+	   type:"text",
+	   size:"30",
+           label:"Url",
+       },{
+	   name:"image",
+           value:"http://",
+	   type:"text",
+	   size:"30",
+           label:"Image",
+       }],
+       tags: [{},{}],
+       photolinks: [{},{}],
+       clicks: [{},{}],
+    },
+//
+}
+
+},{}],25:[function(require,module,exports){
+/**
+  * Abstract class iData
+  * @interface 
+  */
+iData = function (t)
+{
+  this._init (t);
+};
+
+/** 
+ * Init
+ * */
+iData.prototype._init = function (t)
+{
+  
+};
+
+/** 
+ * Create
+ * */
+iData.prototype.create = function (t)
+{
+  alert('Implement method create!!!');
+};
+
+/** 
+ * Update
+ * */
+iData.prototype.update = function (t)
+{
+  alert('Implement method update!!!');
+  
+};
+
+/** 
+ * Read
+ * @param id integer
+ * */
+iData.prototype.read = function (id)
+{
+  alert('Implement method read!!!');
+};
+
+/** 
+ * Delete
+ * */
+iData.prototype.delete = function (t)
+{
+  alert('Implement method delete!!!');
+};
+
+/** 
+ * merge one or more objects to this
+ * @param list of objects
+ * */
+iData.prototype.merge = function ()
+{
+    var i = 0,
+        il = arguments.length,
+        key;
+    for (; i < il; i++) {
+        for (key in arguments[i]) {
+            if (arguments[i].hasOwnProperty(key)) {
+                this[key] = arguments[i][key];
+            }
+        }
+    }
+    return this;
+};  
 
 
+
+
+},{}],26:[function(require,module,exports){
+const util = require('util');
+const EventEmitter = require('events');
+/**
+  * class iPlayer
+  * @interface 
+  */
+iPlayer = function ()
+{
+  this._init ();
+}
+/**
+ * Event loaded
+ * Movie loaded in player
+ *
+ * @event iPlayer#loaded
+ * @type {Movie}
+ */
+
+/**
+ * Event timeupdate
+ * Time is updated
+ *
+ * @event iPlayer#timeupdate
+ * @type {integer}
+ */
+
+/**
+ * Event playing
+ * Movie is playing
+ *
+ * @event iPlayer#playing
+ * @type {integer}
+ */
+
+/**
+ * Event paused
+ * Movie is paused
+ *
+ * @event iPlayer#paused
+ * @type {integer}
+ */
+
+
+
+iPlayer.prototype._init = function ()
+{
+    EventEmitter.call(this);
+    this.state = "stoped"; 
+}
+
+util.inherits(iPlayer, EventEmitter);
+
+/**
+ * 
+ * @param movie
+    *      
+ */
+iPlayer.prototype.play = function (movie)
+{
+   this.state = "playing"; 
+}
+
+
+/**
+ * 
+ */
+iPlayer.prototype.stop = function ()
+{
+   this.state = "stoped"; 
+}
+
+/**
+ * 
+ */
+iPlayer.prototype.pause = function ()
+{
+   this.state = "paused"; 
 }
 
 
 
-module.exports = {YoutubePlayer:YoutubePlayer};
-},{}],17:[function(require,module,exports){
+/**
+ * 
+ * @param movie
+    *      
+ */
+iPlayer.prototype.load = function (movie)
+{
+    this.movie = movie;
+    this.loaded = true; 
+}
+
+
+/**
+ * 
+ * @param go_to_seconds
+    *      
+ */
+iPlayer.prototype.seek = function (go_to_seconds)
+{
+ this._actualSeconds = go_to_seconds; 
+}
+
+
+/**
+ * 
+ */
+iPlayer.prototype.actualSeconds = function ()
+{
+  return this._actualSeconds;
+}
+
+
+/**
+ * 
+ * @param new_volume
+    *      
+ */
+iPlayer.prototype.volume = function (new_volume)
+{
+  
+}
+
+
+},{"events":186,"util":206}],27:[function(require,module,exports){
+const util = require('util');
+const EventEmitter = require('events');
+/**
+  * class iView
+  * @interface 
+  */
+iView = function (t)
+{
+  this._init (t);
+  this.t = t;
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+iView.prototype._init = function (t)
+{
+    EventEmitter.call(this);
+  //throw('Implement method _init');
+};
+
+util.inherits(iView, EventEmitter);
+
+/**
+* @param data {} 
+* @return bool
+*/
+iView.prototype._showWidget = function(templateName){
+  throw('Implement method _showWidget');
+};
+
+/**
+* @return null
+*/
+iView.prototype.detach = function(){
+  throw('Implement method detach');
+};
+
+/**
+* @return null
+*/
+
+iView.prototype.attach = function(){
+  throw('Implement method attach');
+};
+/**
+* @return null
+*/
+iView.prototype.open = function(){
+  throw('Implement method open');
+};
+
+/**
+* @return null
+*/
+iView.prototype.close = function(){
+  throw('Implement method close');
+};
+
+
+},{"events":186,"util":206}],28:[function(require,module,exports){
 // telll SDK
 // by Monsenhor filipo@kobkob.org
 // license GPL Affero 3.0
 
-console.log('telllSDK javascript by Monsenhor');
+VERSION = "0.16.0";
+//console.log('telllSDK javascript by Monsenhor, Version: '+VERSION);
+var devMode = true;
 
-console.log('Loadind websockets ...');
-// Load Websockets commands
-CommandWS = require("./CommandWS.js");
-
-console.log('Loadind jquery ...');
+// telll requires websockets, jquery and mustache
+//console.log('Loadind jquery ...');
 // Load jQuery
 $ = require('jquery');
-
-console.log('Loadind mustache ...');
+//console.log('Loadind mustache ...');
 // Load mustache
 Mustache = require('mustache');
 
-console.log('Loadind Telll classes ...');
 // create the object telllSDK
+/**
+ * The main Telll module object
+ * @module telllSDK
+ */
 telllSDK = {};
 telllSDK = require('./Telll.js');
+/**
+ * The main TWS module object
+ * @module telllSDK.TWS
+ */
 telllSDK.TWS = {};
+telllSDK.TWS = require('./Tws.js').TWS;
+telllSDK.CWS = require("./CommandWS.js");
 telllSDK.View = {};
-telllSDK.TWS.Movie = require('./Movie.js').Movie;
 telllSDK.TWS.User = require('./User.js').User;
+telllSDK.TWS.Device = require('./Device.js').Device;
+telllSDK.TWS.Movie = require('./Movie.js').Movie;
 telllSDK.TWS.Trackms = require('./Trackms.js').Trackms;
 telllSDK.TWS.Photolink = require('./Photolink.js').Photolink;
+telllSDK.View.Login = require('./Login.js').Login;
 telllSDK.View.TagPlayer = require('./TagPlayer.js').TagPlayer;
-telllSDK.View.PhotolinkList = require('./PhotolinksList.js').PhotolinksList;
+telllSDK.View.PhotolinksList = require('./PhotolinksList.js').PhotolinksList;
+telllSDK.View.MoviesList = require('./MoviesList.js').MoviesList;
 telllSDK.View.Clickbox = require('./Clickbox.js').Clickbox;
 telllSDK.View.TelllBtn = require('./TelllBtn.js').TelllBtn;
+telllSDK.View.Dashboard = require('./Dashboard.js').Dashboard;
 telllSDK.View.TelllPlayer = require('./TelllPlayer.js').TelllPlayer;
+telllSDK.View.MockPlayer = require('./MockPlayer.js').MockPlayer;
+telllSDK.View.TagEditor = require('./TagEditor.js').TagEditor;
 telllSDK.View.YoutubePlayer = require('./YoutubePlayer.js').YoutubePlayer;
 
-//console.log(telllSDK);
-//console.log(CommandWS);
+// load default css
+var tmpl = require('./templates/default.mtjs');
+if (tmpl.css)
+$('<style id="default-css">'+tmpl.css+'</style>').appendTo('head');
+
+///////////////////////////
+/**
+ * Util widgets and plugins
+ * @ module telllSDK.util
+ */
+
+/**
+ * Telll Dialog
+ * @function telllDialog
+ * @param msg {String} The message
+ * @param delay {integer} The delay
+ * @global
+ */
+telllDialog = function(msg, delay){
+    $("<div class='telll-dialog'>"+msg+"</div>").appendTo("body").fadeIn(function(){
+        setTimeout(function(){
+             $(".telll-dialog").fadeOut(function(){$(".telll-dialog").detach();})
+        }, delay);
+    });
+};
+
+/** 
+ * Telll Modal Popup
+ * @function telllPopup
+ * @param element {JQuery} The Jquery object to embbed in popup
+ * @param title {string} The popup title, defaults to "telll"
+ * @global
+ */
+telllPopup = function(element, title){
+	if (!title) title = "telll";
+    $('<div class="popup-overlay"></div>').appendTo('body');
+    $('<div class="telll-popup popup"><div class="popup-titlebar widget-titlebar"><span class="title">'+title+'</span><button class="close">Close</button></div></div>').append(element).appendTo('body').fadeIn();
+    $('.telll-popup').css('z-index','999');
+    $('html').addClass('overlay');
+    $('div.popup-titlebar .close').on('click', function(){
+        $('.popup-overlay').detach();
+        $('.popup').detach();
+    });
+}
+
+if (devMode) exampleImplementation();
 
 /* Example */
+function exampleImplementation (){
+console.log('Loading example implementation ...');
 
-console.log('Example implementation ...');
 myAdTest = new telllSDK.Telll();
-myAdTest.start();
+// We may do it for a simplest aproach
+// myAdTest.start();
+
+// Detect if local machine is off line each 3600 seconds
+setInterval( function(){
+ $.ajax({
+   type: "GET",
+   cache: null,
+   url: "http://"+myAdTest.conf.host+"/ws"
+ }).fail( function() {
+   alert('Connection seems down! Please check your Internet.');
+ });
+},3600000);
 
 
-},{"./Clickbox.js":4,"./CommandWS.js":6,"./Movie.js":7,"./Photolink.js":8,"./PhotolinksList.js":9,"./TagPlayer.js":10,"./Telll.js":11,"./TelllBtn.js":12,"./TelllPlayer.js":13,"./Trackms.js":14,"./User.js":15,"./YoutubePlayer.js":16,"jquery":1,"mustache":2}],18:[function(require,module,exports){
 
-},{}],19:[function(require,module,exports){
+// After login create the buttons
+myAdTest.login(null, function(){
+    // define the instance player
+    var myPlayer = {"error":"Player not loaded!!!"};
+    // create buttons
+    $('<input type="button" value="Dashboard">').appendTo('body').on('click', function(){myAdTest.showDashboard()});
+    $('<input type="button" value="Clickbox">').appendTo('body').on('click', function(){myAdTest.showClickbox()});
+    $('<input type="button" value="Movies List">').appendTo('body').on('click', 
+	    function(){
+            // showMoviesList runs the callback after a movie is selected
+		    myAdTest.showMoviesList(function(m){
+                        console.log("Movie selected: "+m.getTitle());
+                        console.log(m);
+                    })
+	    });
+   $('<input type="button" value="Mock Player">').appendTo('body').on('click', 
+	   function(){
+            // showMockPlayer runs the callback after load
+		   myAdTest.showMockPlayer( function(m){
+                       myPlayer = m;       
+		       console.log(m); 
+		   })
+	   });
+    $('<input type="button" value="Telll Movie Player">').appendTo('body').on('click', function(){myAdTest.showMoviePlayer()});
+    $('<input type="button" value="Youtube Player">').appendTo('body').on('click', function(){myAdTest.showYoutubePlayer()});
+    $('<input type="button" value="Tag Player">').appendTo('body').on('click', 
+	   function(){
+            // showTagPlayer runs the callback after load
+	           myAdTest.showTagPlayer( myPlayer, function(tp){ 
+                           console.log(tp);
+	           }) 
+	   });
+    $('<input type="button" value="Photolinks List">').appendTo('body').on('click', function(){myAdTest.showPhotolinksList()});
+    $('<input type="button" value="Telll Button">').appendTo('body').on('click', function(){myAdTest.showTelllBtn()});
+ 
+});
+
+}
+
+},{"./Clickbox.js":4,"./CommandWS.js":6,"./Dashboard.js":7,"./Device.js":8,"./Login.js":9,"./MockPlayer.js":10,"./Movie.js":11,"./MoviesList.js":12,"./Photolink.js":13,"./PhotolinksList.js":14,"./TagEditor.js":15,"./TagPlayer.js":16,"./Telll.js":17,"./TelllBtn.js":18,"./TelllPlayer.js":19,"./Trackms.js":20,"./Tws.js":21,"./User.js":22,"./YoutubePlayer.js":23,"./templates/default.mtjs":32,"jquery":1,"mustache":2}],29:[function(require,module,exports){
+module.exports = {
+    appName:'telll version 0.15',
+    author: 'Monsenhor filipo@telll.me'
+}
+
+},{}],30:[function(require,module,exports){
+module.exports={"html":"<div id=\"clickbox-widget\" class=\"telll-clickbox-widget telll-widget\"><div class=\"clickbox-titlebar widget-titlebar\"><span class=\"dashboard-title\">Clickbox</span><button class=\"close\">Close</button> </div><div id=\"clickbox\">\t<p>This device didn't receive any photolink yet. To send a photolink click on the labels at movie screen. You can send clicking on flashiing logo at right down or at photolinks list on the bottom of screen. The photolinks will be sent to this dialog and to any device connected to telll also. Enjoy!</div></div><!-- end clickbox-widget -->","css":"p { color:white }.clickbox, div#clickbox {/*width:100%;height:100%;*/min-width: 260px;max-width:1080px;min-height: 260px;max-height:1080px;padding:10px;}.telll-clickbox-widget{background: rgb(50, 50, 50);}#telll-clickbox-frame{width:100%;position:relative;background:#000;z-index:800000;}#telll-photolink{width:100%;height:800px;position:relative;background: #000;}#photolink-list {  width: 100%;  height: 100%;/*  display: none; */}.photolink-icon{border:1px solid #fff;max-width: 100%;}.photolink-list-element{width: 100%;border: 1px solid rgba(146, 146, 146, 0.73);height: 100px;margin: 3px;}.photolink-thumb{float:left;clear:left}.photolink-thumb-image{height: 97px;}.photolink-title{float:left;width:30%;margin:10px;font-size: 24px}.photolink-description{float:left;clear:right;width:40%;}#photolink-image {height:100%;margin: auto;background-repeat: no-repeat;background-position: center;display:none;background-image: url('../img/photolinks/photolinks_ocean_13.10.jpg');}#photolink-image img {width:100%;height:100%;}.ttc-element {width:26px;margin-left: 5px;margin-top: 2px;}.social-nw {float: left;position: relative;left: 10%;}#telll-bottom-controls{position: absolute;bottom:0px;height: 120px;width:100%;background-color:rgba(254,254,254,0.7);z-index: 800000;display:none;}.pl-title{font-size: 24px;margin-right: 3px;}.pl-description{font-size: 16px;}.title-post{display:none;}","name":"clickbox"}
+},{}],31:[function(require,module,exports){
+module.exports={"html":"<div class=\"telll-dashboard-widget\"> \t<div class=\"logo-86x86\"></div>         <small>{{appName}} by {{author}}</small>\t<div id=\"telll-dashboard-frame\">\t\t<div id=\"tell-dashboard-titlebar\" class=\"dashboard-home dashboard-titlebar\"> \t            <span class=\"dashboard-title\">Telll Dashboard</span>\t\t    <input type=\"button\" value=\"Close\" id=\"close-button\">                 </div>\t        <div class=\"buttons\"> </div> <!-- end buttons --> \t\t<div id=\"tell-dashboard-menu\" class=\"dashboard-home\"> \t\t<li id=\"user-profile\">User profile</li> \t\t\t<li id=\"movies\">Movies</li>\t\t\t<li id=\"tags\">Tags</li>\t\t\t<li id=\"photolinks\">Photolinks</li>\t\t\t<li id=\"clicks\">Clicks</li>\t\t</div>\t\t<div id=\"user-dashboard\" class=\"dashboard-panel\">\t\t\t<form id=\"dashboard_form_user\" class=\"telll-dashboard\"><fieldset class=\"dashboard-fieldset\"><legend>User profile</legend><div class=\"notes\"><h4>Personal information</h4><p class=\"last\">Update your personal information on te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div>{{#df.profile}}<div class=\"telll-dashboard-field\">\t<label for=\"{{name}}-field\">{{label}}:</label>\t<input type=\"{{type}}\" name=\"{{name}}\" id=\"{{name}}-field\" value=\"{{value}}\" size=\"{{size}}\"></div>{{/df.profile}}<div class=\"telll-dashboard-field submit\">         <input type=\"button\" value=\"Save\" class=\"save-button\">          <input type=\"button\" value=\"Delete Account\" class=\"delete-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end user dashboard --> \t\t<div id=\"movies-dashboard\" class=\"dashboard-panel\"> \t\t\t<div class=\"dashboard-titlebar\"><form>\t\t\t\t<label class=\"dashboard-title\" for=\"movie-select\">Select movie:</label>\t\t\t\t<select id=\"movie-select\"><option value=\"0\">Select a movie to update</option>\t\t\t\t</select></form></div>\t\t\t<form id=\"dashboard_form_movie\" class=\"telll-dashboard\"> <fieldset class=\"dashboard-fieldset\"><legend>Movies</legend><div class=\"notes\"><h4>Update movies</h4><p class=\"last\">Create a new movie or select a movie you own and update that information on te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div><input type=\"hidden\" name=\"id\" id=\"id-field\" value=\"{{movie.id}}\">{{#df.movies}}<div class=\"telll-dashboard-field\">\t<label for=\"{{name}}-field\">{{label}}:</label>\t<input type=\"{{type}}\" name=\"{{name}}\" id=\"{{name}}-field\" value=\"{{value}}\" size=\"{{size}}\"></div>{{/df.movies}}<!-- player will be implemented soon<div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"player-select\">Player:</label><select name=\"select_movie\" id=\"player-select\"><option value=\"0\">Select the player for this movie</option><option value=\"1\">Telll</option><option value=\"2\">Youtube</option><option value=\"3\">Vimeo</option>                                </select>\t\t\t</div>\t\t\t--><div class=\"telll-dashboard-field submit\">\t\t\t\t<input type=\"button\" value=\"Save\" class=\"save-button\"> \t\t\t\t<input type=\"button\" value=\"Delete\" class=\"delete-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end movies dashboard --> \t\t<div id=\"clicks-dashboard\" class=\"dashboard-panel\"> \t\t\t<form id=\"dashboard_form_movie\" class=\"telll-dashboard\"> <fieldset class=\"dashboard-fieldset\"><legend>Clicks & Metrics</legend><div class=\"notes\"><h4>Control photolinks click and monetization</h4><p class=\"last\">Te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> photolinks generates extra revenue. Follow how your tags are trending.</p></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Title:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Email:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Name:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field submit\">\t\t\t\t<input type=\"button\" value=\"Save\" class=\"save-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end user dashboard -->         </div> <!-- end telll-dashboard-frame --> </div><!-- telll-dashboard-widget -->","css":"#telll-dashboard-frame{border: solid 1px black;width: 80%;background: white;color: black;margin: auto;}.dashboard-panel{display:none;border: solid 1px black;margin: auto;min-width: 560px;max-width: 620px;width: 590px;margin-bottom:12px;}div#tags-dashboard.dashboard-panel {background: rgb(50, 50, 50);width: 90%;height: 90%;max-width:90%;border: solid 3px white;cursor:pointer;}#tell-dashboard-menu{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;}.dashboard-title{font-size: 130%;font-weight: normal;color: #000000;margin: 0 0 0 0;}#tell-dashboard-titlebar{}.dashboard-titlebar{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;background: black;}.dashboard-titlebar .dashboard-title{color:grey;}.dashboard-titlebar #close-button,.dashboard-titlebar button{float:right;margin-right: 3px;}#tell-dashboard-menu li {list-style-type: none;cursor:pointer;display: inline;margin-right: 12px;}fieldset.dashboard-fieldset{padding: 20px;margin-bottom: 20px;}div.time-dialog{color: white;position: absolute;top: 50%;left: 45%;padding: 5px;background: black;border: 2px solid grey;border-radius: 8px}img#movie-image {width:285px;}","name":"dashboard"}
+},{}],32:[function(require,module,exports){
+module.exports={"css":"body{color:grey;background:grey;font-family: Tahoma, Arial, sans-serif;}.widget-titlebar{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;background: black;}.widget-titlebar .wiget-title{color:grey;}.wiget-titlebar #close-button,.widget-titlebar button{float:right;margin-right: 3px;}div.movies-list-titlebar.widget-titlebar div.logo-86x86 {position:relative;float:right;width: 30px;height: 30px;margin-bottom: 3px;margin-top: 3px;margin-right: 3px;right: 0px;top: -5px;}div.telll-dialog{color: white;position: absolute;top: 50%;left: 45%;padding: 5px;background: black;border: 2px solid grey;border-radius: 8px}.popup-overlay {    width: 100%;    height: 100%;    position: fixed;    background: rgba(196, 196, 196, .85);    top: 0;    left: 100%;    opacity: 0;    -ms-filter:\"progid:DXImageTransform.Microsoft.Alpha(Opacity=0)\";    -webkit-transition: opacity .2s ease-out;    -moz-transition: opacity .2s ease-out;    -ms-transition: opacity .2s ease-out;    -o-transition: opacity .2s ease-out;    transition: opacity .2s ease-out;}.overlay .popup-overlay {    opacity: 1;    left: 0}.popup {position: fixed;top: 5%;left: 5%;z-index: 9999;width: 90%;height: 90%;}form {  margin: 0;  padding: 0;  font-size: 100%;}form fieldset, .telll-widget, .dashboard-widget {clear: both;font-size: 100%;border-color: #000000;border-width: 1px;border-style: solid;padding: 0 0 10px;margin: auto;width: 80%;height: 80%;}form fieldset legend {  font-size: 150%;  font-weight: normal;  color: #000000;  margin: 0 0 0 0;  padding: 0 5px;}label {  font-size: 100%;}label u {  font-style: normal;  text-decoration: underline;}input, select, textarea, button {  font-size: 100%;  color: #000000;}textarea {  overflow: auto;}form div {  clear: left;  display: block;  zoom: 1;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  float: right;  height: auto;  margin: 0 0 10px 10px;  padding: 5px;  border: 1px solid #666666;  background-color: #fff;  color: #666666;  font-size: 88%;}form fieldset div.notes h4 {  background-repeat: no-repeat;  background-position: top left;  padding: 3px 0 3px 27px;  border-width: 0 0 1px 0;  border-style: solid;  border-color: #666666;  color: #666666;  font-size: 110%;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;  color: #666666;}form fieldset div.notes p.last {  margin: 0em;}form div fieldset {  clear: none;  border-width: 1px;  border-style: solid;  border-color: #666666;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  font-size: 100%;  padding: 0 3px 0 9px;}form div.required fieldset legend {  font-weight: bold;}form div label {  display: block;  float: left;  padding: 3px 5px;  margin: 0 0 5px 0;  text-align: right;}form div.optional label, label.optional {  font-weight: normal;}form div.required label, label.required {  font-weight: bold;}form div label.labelCheckbox, form div label.labelRadio {  float: none;  display: block;  width: 200px;  zoom: 1;  padding: 0;  text-align: left;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;}form div img {  float: left;  border: 1px solid #000000;  margin: 0 0 5px 0;}p.error {  background-color: #ff0000;  background-image: url(/images/icon_error.gif);  background-repeat: no-repeat;  background-position: 3px 3px;  color: #ffffff;  padding: 3px 3px 5px 27px;  border: 1px solid #000000;  margin: auto 100px;}form div.error {  background-color: #ffffe1;  background-image: url(/images/required_bg.gif);  background-repeat: no-repeat;  background-position: top left;  color: #666666;  border: 1px solid #ff0000;}form div.error p.error {  background-image: url(/images/icon_error.gif);  background-position: top left;  background-color: transparent;  border-style: none;  font-size: 88%;  font-weight: bold;  margin: 0 0 0 118px;  width: 200px;  color: #ff0000;}form div select, form div textarea {  padding: 1px 3px;  margin: 0 0 0 0;}form div input.inputText, form div input.inputPassword {  padding: 1px 3px;  margin: 0 0 0 0;}form div input.inputFile {}form div select.selectOne, form div select.selectMultiple {  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  display: inline;  height: auto;  width: auto;  background-color: transparent;  border-width: 0;  padding: 0;}form div.submit {}form div.submit div {  display: inline;  float: left;  text-align: left;  width: auto;  padding: 0;  margin: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  background-color: #cccccc;  color: #000000;  width: auto;  padding: 0 6px;  margin: 0;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  float: right;  margin: 0 0 0 5px;}form div small {  display: block;  padding: 1px 3px;  font-size: 88%;  zoom: 1;}div.logo-86x86{background-size: 30px;position: absolute;right: 5px;top: 23px;width: 30px;}.logo-86x86{background-size: 86px 86px;background-repeat: no-repeat;width: 86px;height: 86px;margin-bottom: 20px;margin-top: -20px;cursor: pointer;background-image: url(\"data:image/png;base64,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\");}/* desktops */@media screen and (min-width: 1024px){form {  min-width: 560px;  max-width: 620px;  width: 590px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 1096px;min-width: 480px;min-height: 200px;max-height: 1096px;margin-top: 20px;}form fieldset legend {  padding: 0 5px;}form div {  width: 354px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}}/* 800x600 screen */@media (min-device-width: 768px) and (max-device-width: 1024px){form {  max-width: 580px;  width: 500px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 580px;min-width: 300px;min-height: 200px;max-height: 560px;margin-top: 8px;}form fieldset legend {  padding: 0 3px;}form div {  width: 580px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} /* mobiles */@media screen and (max-device-width: 640px){form {  min-width: 280px;  max-width: 320px;  width: 320px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 640px;min-width: 200px;min-height: 200px;max-height: 640px;margin-top: 8px;}form fieldset legend {  padding: 0 5px;}form div {  width: 300px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} /* #### iPhone 5 Portrait or Landscape #### */@media (device-height: 568px) and (device-width: 320px) and (-webkit-min-device-pixel-ratio: 2){form {  max-width: 310px;  width: 310px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 310px;min-width: 200px;min-height: 200px;max-height: 560px;margin-top: 8px;}form fieldset legend {  padding: 0 3px;}form div {  width: 310px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} ","name":"default"}
+},{}],33:[function(require,module,exports){
+module.exports={"name":"login_template","css":".telll-login-widget{font-size: 100%;background: #000;margin: auto;background: #000;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{font-size:28px;}/* desktops */@media screen and (min-width: 1024px){.telll-login-widget{font-size: 100%;min-width: 560px;max-width: 620px;width: 590px;margin: auto;padding: 10px;background: #000;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:20px;margin-bottom:50px;font-size:28px;}}/* 800x600 screen */@media (min-device-width: 768px) and (max-device-width: 1024px){.telll-login-widget{font-size: 100%;min-width: 400px;max-width: 780px;width: 720px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:20px;font-size:18px;}}/* mobiles */@media screen and (max-device-width: 640px){.telll-login-widget{font-size: 100%;min-width: 200px;max-width: 620px;width: 320px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:30px;font-size:18px;}}/* #### iPhone 5 Portrait or Landscape #### */@media (device-height: 568px) and (device-width: 320px) and (-webkit-min-device-pixel-ratio: 2){.telll-login-widget{font-size: 100%;min-width: 200px;max-width: 310px;width: 310px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:20px;font-size:18px;}}","html":"<div class=\"telll-login-widget\">\t<div class=\"welcome\">Welcome to <span class=\"telll\">te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span></span></div><div class=\"logo-86x86\"></div>        <div id=\"telll-login-frame\"><form name=\"login_form\" id=\"telll-login\"><fieldset><legend>Login on telll.me</legend><div class=\"notes\"><h4>Login Information</h4><p class=\"last\">Please enter your username and password to access your  te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div><div class=\"telll-login-field\"><label for=\"email\">Username</label><input type=\"text\" id=\"email\" name=\"email\"/></div><div class=\"telll-login-field\"><label for=\"password\">Password</label><input type=\"password\" id=\"password\" name=\"password\"/></div><div class=\"telll-login-field submit\"><button id=\"login-ok-button\" value=\"Login\">Login</button></div></fieldset></form>         </div> <!-- end telll-login-frame -->         <div class=\"buttons\"><!--    <span class=\"forgot\"><a href=\"forgot.html\" data-role=\"button\">I forgot my login</a></span>    <span class=\"google\"><a href=\"google.html\" data-role=\"button\">Login with Google+</a></span>    <span class=\"facebook\"><a href=\"facebook.html\" data-role=\"button\">Login with Facebook</a></span>-->         </div> <!-- end buttons --><div id=\"login-ok\"></div></div><!-- telll-login-widget -->"}
+},{}],34:[function(require,module,exports){
+module.exports={"html":"<div class=\"telll-movies-list-widget\"><div class=\"movies-list-titlebar widget-titlebar\">    <span class=\"widget-title\">Movies on telll</span>    <div class=\"logo-86x86\"></div>    <button class=\"close\">Close</button> </div>    <div id=\"telll-movies-list-frame\">{{#movies}}<div class=\"telll-movie-element\">   <div class=\"movie-label\">\t<span class=\"movie-title\">{{title}}</span>\t<span class=\"movie-description\">{{description}}</span>   </div>   <img class=\"movie-thumb\" src=\"{{image}}\" data='{\"id\":\"{{id}}\",\"title\":\"{{title}}\"}'/></div>{{/movies}}    </div> <!-- end telll-movies-list-frame -->    <div class=\"buttons\">    </div> <!-- end buttons --><div id=\"list-ok\"></div></div>","css":"div#popup-movies-list{}div.telll-movie-element{float: left;margin: 2px;width: 237px;height: 180px;background: white;border: 1px solid black;overflow: hidden;}div#telll-movies-list-frame{width: 989px;height: 600px;overflow: auto;}div.telll-movies-list-widget{border: 1px solid;width: 989px;height: 650px;overflow: hidden;margin:auto;background: white;}div.movie-label{position:absolute;/* z-index:80000 */;display: none;width: 232px;height: 74px;background: rgba(128, 128, 128, 0.4);margin-top: 100px;padding: 3px;overflow: hidden}span.movie-title{color: black;font-size: 22px;float: left;margin-right: 10px;}span.movie-description{color: black;display: table-column;float: left;}img.movie-thumb{width: 240px;height: 180px;cursor:pointer;}","name":"movies_list"}
+},{}],35:[function(require,module,exports){
+module.exports={"html":"<div id=\"photolinks-list-widget\">    <!-- panel -->    <div id=\"telll-controls\">     <div id=telll-panel-frame><div id=\"telll-panel\"      class=\"panel\"><div id=\"panel-frame\"><!-- disabled         <div id=\"rgb-buttons\" class=\"panel\">            <div class=\"rbtn\"></div>            <div class=\"gbtn\"></div>            <div class=\"bbtn\"></div>        </div>-->        <div id=\"return-button\" class=\"panel\"></div>        <div id=\"panel\" class=\"panel\"><div id=\"panel-slider\"><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_0\" src=\"img/photolinks/photolinks_ocean_13.00_180x90.jpg\" id_photolink=\"0\"><label for=\"icon_0\">Brad Pitt - IMDB<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_1\" src=\"img/photolinks/photolinks_ocean_13.01_180x90.jpg\" id_photolink=\"1\"><label for=\"icon_1\">Ted Baker suit - Nordstrom<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_2\" src=\"img/photolinks/photolinks_ocean_13.02_180x90.jpg\" id_photolink=\"2\"><label for=\"icon_2\">George Clooney -  IMDB<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_3\" src=\"img/photolinks/photolinks_ocean_13.03_180x90.jpg\" id_photolink=\"3\"><label for=\"icon_3\">Armani suit - Celebrity Suit Shop<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_4\" src=\"img/photolinks/photolinks_ocean_13.04_180x90.jpg\" id_photolink=\"4\"><label for=\"icon_4\">Las Vegas Travel<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_5\" src=\"img/photolinks/photolinks_ocean_13.05_180x90.jpg\" id_photolink=\"5\"><label for=\"icon_5\">Bellagio<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_6\" src=\"img/photolinks/photolinks_ocean_13.06_180x90.jpg\" id_photolink=\"6\"><label for=\"icon_6\">MGM Grand<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_7\" src=\"img/photolinks/photolinks_ocean_13.07_180x90.jpg\" id_photolink=\"7\"><label for=\"icon_7\">Luxor<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_8\" src=\"img/photolinks/photolinks_ocean_13.08_180x90.jpg\" id_photolink=\"8\"><label for=\"icon_8\">Ghurka vintage bag <label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_9\" src=\"img/photolinks/photolinks_ocean_13.09_180x90.jpg\" id_photolink=\"9\"><label for=\"icon_9\">John Varvatos bag <label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_10\" src=\"img/photolinks/photolinks_ocean_13.10_180x90.jpg\" id_photolink=\"10\"><label for=\"icon_10\">Ford Taurus <label></label></label></div></div></div>        <div id=\"forward-button\" class=\"panel\"></div><!-- disabled         <div id=\"settings-button\" href=\"#settingspanel\" class=\"panel\"></div>        <div id=\"telll-button\"     class=\"panel\"></div>-->    </div></div>        <div id=\"settings-button\"  class=\"panel\"></div>    </div><!-- panel frame -->   </div><!-- telll-controls --></div><!-- photolinks-list-widget -->","css":"#telll-controls{position: absolute;bottom:40px;height: 50px;width:100%;/*background-color:#000;*/z-index: 800000;display:none;}#panel-frame{   width: 590px;   height: 40px;   margin: 0 auto;}#panel{width:525px;height:39px;overflow: hidden;float: left;}#return-button {    background: url(\"../img/telll.png\") no-repeat -276px -66px transparent;    width:31px;    height:38px;    float:left;    cursor:pointer;}#forward-button {    background: url(\"../img/telll.png\") no-repeat -310px -66px transparent;    width:31px;    height:38px;    float:left;    cursor:pointer;}.photolink-icon {border: 1px solid #fff;max-width: 100%;}div.frame-icon {overflow: hide;width: 64px;height: 39px;float: left;margin-left: 10px;cursor: pointer;}div.frame-icon label {position:absolute;display:none;}.photolink-icon{border:1px solid #fff;max-width: 100%;}.photolink-list-element{width: 100%;border: 1px solid rgba(146, 146, 146, 0.73);height: 100px;margin: 3px;}.photolink-thumb{float:left;clear:left}.photolink-thumb-image{height: 97px;}.photolink-title{float:left;width:30%;margin:10px;font-size: 24px}.photolink-description{float:left;clear:right;width:40%;}","name":"panel"}
+},{}],36:[function(require,module,exports){
+module.exports={"html":"\t\t<div id=\"tags-dashboard\" class=\"dashboard-panel\"> <div id=\"telll-tageditor\" class='telll-tag-editor-widget'><div class=\"tag-titlebar dashboard-titlebar\"><span class=\"dashboard-title\">Tags and Track-Motions</span><button class=\"close\">Close</button> <button class=\"trackms\">New Track-motion</button><button class=\"tag\">New Photolink</button></div><div class=\"tag-pointer\"></div></div>\t\t</div><!-- end tags dashboard --> ","css":"div#telll-tageditor{width:'100%',height:'100%'}div.tag-pointer{display:none;width: 48px;height: 48px;position: absolute;left: 50%;top: 50%;cursor:pointer;background-image: url(\"data:image/png;base64,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\");}","name":"tageditor"}
+},{}],37:[function(require,module,exports){
+module.exports={"name":"tagplayer","css":"div.tag {display:none;}","html":"{{#tags}}<div id=\"pl-{{id}}\" class=\"tag tag-none\">\t<div class=\"clkbl\">\t\t<div class=\"tag-label\">{{title}}</div>\t\t<p>implement-me!!!</p></div></div>{{/tags}}"}
+},{}],38:[function(require,module,exports){
+module.exports={"html":"<!-- telll button --><div id=\"telll-warn\" class=\"telll-btn\">\t<p>Implement-me!!!\t{{:appName}}\t{{:author}}\t</p></div><!-- end telll-btn -->","name":"telll_btn"}
+},{}],39:[function(require,module,exports){
+module.exports={"name":"youtube_player","html":"<div style=\"text-align: center; margin: auto\"><object type=\"application/x-shockwave-flash\" style=\"width:450px; height:366px;\" data=\"//www.youtube.com/v/8SMu8QtfyOg?color2=FBE9EC&amp;rel=0&amp;autoplay=1&amp;showsearch=0&amp;version=3&amp;modestbranding=1\">        <param name=\"movie\" value=\"//www.youtube.com/v/8SMu8QtfyOg?color2=FBE9EC&amp;rel=0&amp;autoplay=1&amp;showsearch=0&amp;version=3&amp;modestbranding=1\" />        <param name=\"allowFullScreen\" value=\"true\" />        <param name=\"allowscriptaccess\" value=\"always\" />        </object></div>"}
+},{}],40:[function(require,module,exports){
+
+},{}],41:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -13553,7 +16276,7 @@ function decodeUtf8Char (str) {
   }
 }
 
-},{"base64-js":20,"ieee754":21,"is-array":22}],20:[function(require,module,exports){
+},{"base64-js":42,"ieee754":43,"is-array":44}],42:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -13679,7 +16402,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],21:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -13765,7 +16488,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],22:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 
 /**
  * isArray
@@ -13800,7 +16523,7 @@ module.exports = isArray || function (val) {
   return !! val && '[object Array]' == str.call(val);
 };
 
-},{}],23:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 'use strict';
 
 exports.randomBytes = exports.rng = exports.pseudoRandomBytes = exports.prng = require('randombytes')
@@ -13881,7 +16604,7 @@ var publicEncrypt = require('public-encrypt');
   }
 })
 
-},{"browserify-aes":27,"browserify-sign":43,"browserify-sign/algos":42,"create-ecdh":91,"create-hash":114,"create-hmac":126,"diffie-hellman":127,"pbkdf2":134,"public-encrypt":135,"randombytes":163}],24:[function(require,module,exports){
+},{"browserify-aes":49,"browserify-sign":65,"browserify-sign/algos":64,"create-ecdh":113,"create-hash":136,"create-hmac":148,"diffie-hellman":149,"pbkdf2":156,"public-encrypt":157,"randombytes":185}],46:[function(require,module,exports){
 (function (Buffer){
 var md5 = require('create-hash/md5')
 module.exports = EVP_BytesToKey
@@ -13947,7 +16670,7 @@ function EVP_BytesToKey (password, keyLen, ivLen) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"create-hash/md5":116}],25:[function(require,module,exports){
+},{"buffer":41,"create-hash/md5":138}],47:[function(require,module,exports){
 (function (Buffer){
 // based on the aes implimentation in triple sec
 // https://github.com/keybase/triplesec
@@ -14128,7 +16851,7 @@ AES.prototype._doCryptBlock = function (M, keySchedule, SUB_MIX, SBOX) {
 exports.AES = AES
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],26:[function(require,module,exports){
+},{"buffer":41}],48:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('./cipherBase')
@@ -14229,7 +16952,7 @@ function xorTest (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":25,"./cipherBase":28,"./ghash":31,"buffer":19,"buffer-xor":40,"inherits":165}],27:[function(require,module,exports){
+},{"./aes":47,"./cipherBase":50,"./ghash":53,"buffer":41,"buffer-xor":62,"inherits":187}],49:[function(require,module,exports){
 var ciphers = require('./encrypter')
 exports.createCipher = exports.Cipher = ciphers.createCipher
 exports.createCipheriv = exports.Cipheriv = ciphers.createCipheriv
@@ -14242,7 +16965,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"./decrypter":29,"./encrypter":30,"./modes":32}],28:[function(require,module,exports){
+},{"./decrypter":51,"./encrypter":52,"./modes":54}],50:[function(require,module,exports){
 (function (Buffer){
 var Transform = require('stream').Transform
 var inherits = require('inherits')
@@ -14312,7 +17035,7 @@ CipherBase.prototype._toString = function (value, enc, final) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"inherits":165,"stream":181}],29:[function(require,module,exports){
+},{"buffer":41,"inherits":187,"stream":203}],51:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('./cipherBase')
@@ -14452,7 +17175,7 @@ exports.createDecipher = createDecipher
 exports.createDecipheriv = createDecipheriv
 
 }).call(this,require("buffer").Buffer)
-},{"./EVP_BytesToKey":24,"./aes":25,"./authCipher":26,"./cipherBase":28,"./modes":32,"./modes/cbc":33,"./modes/cfb":34,"./modes/cfb1":35,"./modes/cfb8":36,"./modes/ctr":37,"./modes/ecb":38,"./modes/ofb":39,"./streamCipher":41,"buffer":19,"inherits":165}],30:[function(require,module,exports){
+},{"./EVP_BytesToKey":46,"./aes":47,"./authCipher":48,"./cipherBase":50,"./modes":54,"./modes/cbc":55,"./modes/cfb":56,"./modes/cfb1":57,"./modes/cfb8":58,"./modes/ctr":59,"./modes/ecb":60,"./modes/ofb":61,"./streamCipher":63,"buffer":41,"inherits":187}],52:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('./cipherBase')
@@ -14577,7 +17300,7 @@ exports.createCipheriv = createCipheriv
 exports.createCipher = createCipher
 
 }).call(this,require("buffer").Buffer)
-},{"./EVP_BytesToKey":24,"./aes":25,"./authCipher":26,"./cipherBase":28,"./modes":32,"./modes/cbc":33,"./modes/cfb":34,"./modes/cfb1":35,"./modes/cfb8":36,"./modes/ctr":37,"./modes/ecb":38,"./modes/ofb":39,"./streamCipher":41,"buffer":19,"inherits":165}],31:[function(require,module,exports){
+},{"./EVP_BytesToKey":46,"./aes":47,"./authCipher":48,"./cipherBase":50,"./modes":54,"./modes/cbc":55,"./modes/cfb":56,"./modes/cfb1":57,"./modes/cfb8":58,"./modes/ctr":59,"./modes/ecb":60,"./modes/ofb":61,"./streamCipher":63,"buffer":41,"inherits":187}],53:[function(require,module,exports){
 (function (Buffer){
 var zeros = new Buffer(16)
 zeros.fill(0)
@@ -14679,7 +17402,7 @@ function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],32:[function(require,module,exports){
+},{"buffer":41}],54:[function(require,module,exports){
 exports['aes-128-ecb'] = {
   cipher: 'AES',
   key: 128,
@@ -14852,7 +17575,7 @@ exports['aes-256-gcm'] = {
   type: 'auth'
 }
 
-},{}],33:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 var xor = require('buffer-xor')
 
 exports.encrypt = function (self, block) {
@@ -14871,7 +17594,7 @@ exports.decrypt = function (self, block) {
   return xor(out, pad)
 }
 
-},{"buffer-xor":40}],34:[function(require,module,exports){
+},{"buffer-xor":62}],56:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -14906,7 +17629,7 @@ function encryptStart (self, data, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"buffer-xor":40}],35:[function(require,module,exports){
+},{"buffer":41,"buffer-xor":62}],57:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad
@@ -14944,7 +17667,7 @@ function shiftIn (buffer, value) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],36:[function(require,module,exports){
+},{"buffer":41}],58:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad = self._cipher.encryptBlock(self._prev)
@@ -14963,7 +17686,7 @@ exports.encrypt = function (self, chunk, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],37:[function(require,module,exports){
+},{"buffer":41}],59:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -14998,7 +17721,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"buffer-xor":40}],38:[function(require,module,exports){
+},{"buffer":41,"buffer-xor":62}],60:[function(require,module,exports){
 exports.encrypt = function (self, block) {
   return self._cipher.encryptBlock(block)
 }
@@ -15006,7 +17729,7 @@ exports.decrypt = function (self, block) {
   return self._cipher.decryptBlock(block)
 }
 
-},{}],39:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -15026,7 +17749,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"buffer-xor":40}],40:[function(require,module,exports){
+},{"buffer":41,"buffer-xor":62}],62:[function(require,module,exports){
 (function (Buffer){
 module.exports = function xor (a, b) {
   var length = Math.min(a.length, b.length)
@@ -15040,7 +17763,7 @@ module.exports = function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],41:[function(require,module,exports){
+},{"buffer":41}],63:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('./cipherBase')
@@ -15069,7 +17792,7 @@ StreamCipher.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":25,"./cipherBase":28,"buffer":19,"inherits":165}],42:[function(require,module,exports){
+},{"./aes":47,"./cipherBase":50,"buffer":41,"inherits":187}],64:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 exports['RSA-SHA224'] = exports.sha224WithRSAEncryption = {
@@ -15144,7 +17867,7 @@ exports['RSA-MD5'] = exports.md5WithRSAEncryption = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],43:[function(require,module,exports){
+},{"buffer":41}],65:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var sign = require('./sign')
@@ -15241,7 +17964,7 @@ Verify.prototype.verify = function verifyMethod (key, sig, enc) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./algos":42,"./sign":88,"./verify":89,"buffer":19,"create-hash":114,"inherits":165,"stream":181}],44:[function(require,module,exports){
+},{"./algos":64,"./sign":110,"./verify":111,"buffer":41,"create-hash":136,"inherits":187,"stream":203}],66:[function(require,module,exports){
 'use strict'
 exports['1.3.132.0.10'] = 'secp256k1'
 
@@ -15251,7 +17974,7 @@ exports['1.2.840.10045.3.1.1'] = 'p192'
 
 exports['1.2.840.10045.3.1.7'] = 'p256'
 
-},{}],45:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 (function (module, exports) {
 
 'use strict';
@@ -17571,7 +20294,7 @@ Mont.prototype.invm = function invm(a) {
 
 })(typeof module === 'undefined' || module, this);
 
-},{}],46:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 var randomBytes = require('randombytes');
@@ -17620,7 +20343,7 @@ function getr(priv) {
   return r;
 }
 }).call(this,require("buffer").Buffer)
-},{"bn.js":45,"buffer":19,"randombytes":163}],47:[function(require,module,exports){
+},{"bn.js":67,"buffer":41,"randombytes":185}],69:[function(require,module,exports){
 'use strict';
 
 var elliptic = exports;
@@ -17635,7 +20358,7 @@ elliptic.curves = require('./elliptic/curves');
 // Protocols
 elliptic.ec = require('./elliptic/ec');
 
-},{"../package.json":67,"./elliptic/curve":50,"./elliptic/curves":53,"./elliptic/ec":54,"./elliptic/hmac-drbg":57,"./elliptic/utils":59,"brorand":60}],48:[function(require,module,exports){
+},{"../package.json":89,"./elliptic/curve":72,"./elliptic/curves":75,"./elliptic/ec":76,"./elliptic/hmac-drbg":79,"./elliptic/utils":81,"brorand":82}],70:[function(require,module,exports){
 'use strict';
 
 var bn = require('bn.js');
@@ -17952,7 +20675,7 @@ BasePoint.prototype.dblp = function dblp(k) {
   return r;
 };
 
-},{"../../elliptic":47,"bn.js":45}],49:[function(require,module,exports){
+},{"../../elliptic":69,"bn.js":67}],71:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -18325,7 +21048,7 @@ Point.prototype.getY = function getY() {
 Point.prototype.toP = Point.prototype.normalize;
 Point.prototype.mixedAdd = Point.prototype.add;
 
-},{"../../elliptic":47,"../curve":50,"bn.js":45,"inherits":165}],50:[function(require,module,exports){
+},{"../../elliptic":69,"../curve":72,"bn.js":67,"inherits":187}],72:[function(require,module,exports){
 'use strict';
 
 var curve = exports;
@@ -18335,7 +21058,7 @@ curve.short = require('./short');
 curve.mont = require('./mont');
 curve.edwards = require('./edwards');
 
-},{"./base":48,"./edwards":49,"./mont":51,"./short":52}],51:[function(require,module,exports){
+},{"./base":70,"./edwards":71,"./mont":73,"./short":74}],73:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -18498,7 +21221,7 @@ Point.prototype.getX = function getX() {
   return this.x.fromRed();
 };
 
-},{"../curve":50,"bn.js":45,"inherits":165}],52:[function(require,module,exports){
+},{"../curve":72,"bn.js":67,"inherits":187}],74:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -19407,7 +22130,7 @@ JPoint.prototype.isInfinity = function isInfinity() {
   return this.z.cmpn(0) === 0;
 };
 
-},{"../../elliptic":47,"../curve":50,"bn.js":45,"inherits":165}],53:[function(require,module,exports){
+},{"../../elliptic":69,"../curve":72,"bn.js":67,"inherits":187}],75:[function(require,module,exports){
 'use strict';
 
 var curves = exports;
@@ -19566,7 +22289,7 @@ defineCurve('secp256k1', {
   ]
 });
 
-},{"../elliptic":47,"./precomputed/secp256k1":58,"hash.js":61}],54:[function(require,module,exports){
+},{"../elliptic":69,"./precomputed/secp256k1":80,"hash.js":83}],76:[function(require,module,exports){
 'use strict';
 
 var bn = require('bn.js');
@@ -19777,7 +22500,7 @@ EC.prototype.getKeyRecoveryParam = function(e, signature, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-},{"../../elliptic":47,"./key":55,"./signature":56,"bn.js":45}],55:[function(require,module,exports){
+},{"../../elliptic":69,"./key":77,"./signature":78,"bn.js":67}],77:[function(require,module,exports){
 'use strict';
 
 var bn = require('bn.js');
@@ -19929,7 +22652,7 @@ KeyPair.prototype.inspect = function inspect() {
          ' pub: ' + (this.pub && this.pub.inspect()) + ' >';
 };
 
-},{"../../elliptic":47,"bn.js":45}],56:[function(require,module,exports){
+},{"../../elliptic":69,"bn.js":67}],78:[function(require,module,exports){
 'use strict';
 
 var bn = require('bn.js');
@@ -20001,7 +22724,7 @@ Signature.prototype.toDER = function toDER(enc) {
   return utils.encode(res, enc);
 };
 
-},{"../../elliptic":47,"bn.js":45}],57:[function(require,module,exports){
+},{"../../elliptic":69,"bn.js":67}],79:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -20117,7 +22840,7 @@ HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
   return utils.encode(res, enc);
 };
 
-},{"../elliptic":47,"hash.js":61}],58:[function(require,module,exports){
+},{"../elliptic":69,"hash.js":83}],80:[function(require,module,exports){
 module.exports = {
   doubles: {
     step: 4,
@@ -20899,7 +23622,7 @@ module.exports = {
   }
 };
 
-},{}],59:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -21051,7 +23774,7 @@ function getJSF(k1, k2) {
 }
 utils.getJSF = getJSF;
 
-},{}],60:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 var r;
 
 module.exports = function rand(len) {
@@ -21110,7 +23833,7 @@ if (typeof window === 'object') {
   }
 }
 
-},{}],61:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 var hash = exports;
 
 hash.utils = require('./hash/utils');
@@ -21127,7 +23850,7 @@ hash.sha384 = hash.sha.sha384;
 hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 
-},{"./hash/common":62,"./hash/hmac":63,"./hash/ripemd":64,"./hash/sha":65,"./hash/utils":66}],62:[function(require,module,exports){
+},{"./hash/common":84,"./hash/hmac":85,"./hash/ripemd":86,"./hash/sha":87,"./hash/utils":88}],84:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -21220,7 +23943,7 @@ BlockHash.prototype._pad = function pad() {
   return res;
 };
 
-},{"../hash":61}],63:[function(require,module,exports){
+},{"../hash":83}],85:[function(require,module,exports){
 var hmac = exports;
 
 var hash = require('../hash');
@@ -21270,7 +23993,7 @@ Hmac.prototype.digest = function digest(enc) {
   return this.outer.digest(enc);
 };
 
-},{"../hash":61}],64:[function(require,module,exports){
+},{"../hash":83}],86:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 
@@ -21416,7 +24139,7 @@ var sh = [
   8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
 ];
 
-},{"../hash":61}],65:[function(require,module,exports){
+},{"../hash":83}],87:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -21982,7 +24705,7 @@ function g1_512_lo(xh, xl) {
   return r;
 }
 
-},{"../hash":61}],66:[function(require,module,exports){
+},{"../hash":83}],88:[function(require,module,exports){
 var utils = exports;
 var inherits = require('inherits');
 
@@ -22241,7 +24964,7 @@ function shr64_lo(ah, al, num) {
 };
 exports.shr64_lo = shr64_lo;
 
-},{"inherits":165}],67:[function(require,module,exports){
+},{"inherits":187}],89:[function(require,module,exports){
 module.exports={
   "name": "elliptic",
   "version": "3.1.0",
@@ -22306,7 +25029,7 @@ module.exports={
   "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-3.1.0.tgz"
 }
 
-},{}],68:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash');
 module.exports = function evp(password, salt, keyLen) {
@@ -22348,7 +25071,7 @@ module.exports = function evp(password, salt, keyLen) {
   return key;
 };
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"create-hash":114}],69:[function(require,module,exports){
+},{"buffer":41,"create-hash":136}],91:[function(require,module,exports){
 module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.2": "aes-128-cbc",
 "2.16.840.1.101.3.4.1.3": "aes-128-ofb",
@@ -22362,7 +25085,7 @@ module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.43": "aes-256-ofb",
 "2.16.840.1.101.3.4.1.44": "aes-256-cfb"
 }
-},{}],70:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 // from https://github.com/indutny/self-signed/blob/gh-pages/lib/asn1.js
 // Fedor, you are amazing.
 
@@ -22481,7 +25204,7 @@ exports.signature = asn1.define('signature', function() {
   );
 });
 
-},{"asn1.js":73}],71:[function(require,module,exports){
+},{"asn1.js":95}],93:[function(require,module,exports){
 (function (Buffer){
 // adapted from https://github.com/apatil/pemstrip
 var findProc = /Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: AES-((?:128)|(?:192)|(?:256))-CBC,([0-9A-H]+)\r?\n\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n/m;
@@ -22525,7 +25248,7 @@ function wrap (str) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./EVP_BytesToKey":68,"browserify-aes":27,"buffer":19}],72:[function(require,module,exports){
+},{"./EVP_BytesToKey":90,"browserify-aes":49,"buffer":41}],94:[function(require,module,exports){
 (function (Buffer){
 var asn1 = require('./asn1');
 var aesid = require('./aesid.json');
@@ -22630,7 +25353,7 @@ function decrypt(data, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aesid.json":69,"./asn1":70,"./fixProc":71,"browserify-aes":27,"buffer":19,"pbkdf2":134}],73:[function(require,module,exports){
+},{"./aesid.json":91,"./asn1":92,"./fixProc":93,"browserify-aes":49,"buffer":41,"pbkdf2":156}],95:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
@@ -22641,7 +25364,7 @@ asn1.constants = require('./asn1/constants');
 asn1.decoders = require('./asn1/decoders');
 asn1.encoders = require('./asn1/encoders');
 
-},{"./asn1/api":74,"./asn1/base":76,"./asn1/constants":80,"./asn1/decoders":82,"./asn1/encoders":85,"bn.js":45}],74:[function(require,module,exports){
+},{"./asn1/api":96,"./asn1/base":98,"./asn1/constants":102,"./asn1/decoders":104,"./asn1/encoders":107,"bn.js":67}],96:[function(require,module,exports){
 var asn1 = require('../asn1');
 var inherits = require('inherits');
 
@@ -22702,7 +25425,7 @@ Entity.prototype.encode = function encode(data, enc, /* internal */ reporter) {
   return this._getEncoder(enc).encode(data, reporter);
 };
 
-},{"../asn1":73,"inherits":165,"vm":185}],75:[function(require,module,exports){
+},{"../asn1":95,"inherits":187,"vm":207}],97:[function(require,module,exports){
 var inherits = require('inherits');
 var Reporter = require('../base').Reporter;
 var Buffer = require('buffer').Buffer;
@@ -22820,7 +25543,7 @@ EncoderBuffer.prototype.join = function join(out, offset) {
   return out;
 };
 
-},{"../base":76,"buffer":19,"inherits":165}],76:[function(require,module,exports){
+},{"../base":98,"buffer":41,"inherits":187}],98:[function(require,module,exports){
 var base = exports;
 
 base.Reporter = require('./reporter').Reporter;
@@ -22828,7 +25551,7 @@ base.DecoderBuffer = require('./buffer').DecoderBuffer;
 base.EncoderBuffer = require('./buffer').EncoderBuffer;
 base.Node = require('./node');
 
-},{"./buffer":75,"./node":77,"./reporter":78}],77:[function(require,module,exports){
+},{"./buffer":97,"./node":99,"./reporter":100}],99:[function(require,module,exports){
 var Reporter = require('../base').Reporter;
 var EncoderBuffer = require('../base').EncoderBuffer;
 var assert = require('minimalistic-assert');
@@ -23424,7 +26147,7 @@ Node.prototype._encodePrimitive = function encodePrimitive(tag, data) {
     throw new Error('Unsupported tag: ' + tag);
 };
 
-},{"../base":76,"minimalistic-assert":87}],78:[function(require,module,exports){
+},{"../base":98,"minimalistic-assert":109}],100:[function(require,module,exports){
 var inherits = require('inherits');
 
 function Reporter(options) {
@@ -23528,7 +26251,7 @@ ReporterError.prototype.rethrow = function rethrow(msg) {
   return this;
 };
 
-},{"inherits":165}],79:[function(require,module,exports){
+},{"inherits":187}],101:[function(require,module,exports){
 var constants = require('../constants');
 
 exports.tagClass = {
@@ -23572,7 +26295,7 @@ exports.tag = {
 };
 exports.tagByName = constants._reverse(exports.tag);
 
-},{"../constants":80}],80:[function(require,module,exports){
+},{"../constants":102}],102:[function(require,module,exports){
 var constants = exports;
 
 // Helper
@@ -23593,7 +26316,7 @@ constants._reverse = function reverse(map) {
 
 constants.der = require('./der');
 
-},{"./der":79}],81:[function(require,module,exports){
+},{"./der":101}],103:[function(require,module,exports){
 var inherits = require('inherits');
 
 var asn1 = require('../../asn1');
@@ -23884,13 +26607,13 @@ function derDecodeLen(buf, primitive, fail) {
   return len;
 }
 
-},{"../../asn1":73,"inherits":165}],82:[function(require,module,exports){
+},{"../../asn1":95,"inherits":187}],104:[function(require,module,exports){
 var decoders = exports;
 
 decoders.der = require('./der');
 decoders.pem = require('./pem');
 
-},{"./der":81,"./pem":83}],83:[function(require,module,exports){
+},{"./der":103,"./pem":105}],105:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -23942,7 +26665,7 @@ PEMDecoder.prototype.decode = function decode(data, options) {
   return DERDecoder.prototype.decode.call(this, input, options);
 };
 
-},{"../../asn1":73,"./der":81,"buffer":19,"inherits":165}],84:[function(require,module,exports){
+},{"../../asn1":95,"./der":103,"buffer":41,"inherits":187}],106:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -24216,13 +26939,13 @@ function encodeTag(tag, primitive, cls, reporter) {
   return res;
 }
 
-},{"../../asn1":73,"buffer":19,"inherits":165}],85:[function(require,module,exports){
+},{"../../asn1":95,"buffer":41,"inherits":187}],107:[function(require,module,exports){
 var encoders = exports;
 
 encoders.der = require('./der');
 encoders.pem = require('./pem');
 
-},{"./der":84,"./pem":86}],86:[function(require,module,exports){
+},{"./der":106,"./pem":108}],108:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -24247,7 +26970,7 @@ PEMEncoder.prototype.encode = function encode(data, options) {
   return out.join('\n');
 };
 
-},{"../../asn1":73,"./der":84,"buffer":19,"inherits":165}],87:[function(require,module,exports){
+},{"../../asn1":95,"./der":106,"buffer":41,"inherits":187}],109:[function(require,module,exports){
 module.exports = assert;
 
 function assert(val, msg) {
@@ -24260,7 +26983,7 @@ assert.equal = function assertEqual(l, r, msg) {
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
 };
 
-},{}],88:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var parseKeys = require('parse-asn1')
@@ -24438,7 +27161,7 @@ function makeR (g, k, p, q) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":44,"bn.js":45,"browserify-rsa":46,"buffer":19,"create-hmac":126,"elliptic":47,"parse-asn1":72}],89:[function(require,module,exports){
+},{"./curves":66,"bn.js":67,"browserify-rsa":68,"buffer":41,"create-hmac":148,"elliptic":69,"parse-asn1":94}],111:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
@@ -24542,7 +27265,7 @@ function checkValue (b, q) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":44,"bn.js":45,"buffer":19,"elliptic":47,"parse-asn1":72}],90:[function(require,module,exports){
+},{"./curves":66,"bn.js":67,"buffer":41,"elliptic":69,"parse-asn1":94}],112:[function(require,module,exports){
 (function (Buffer){
 var elliptic = require('elliptic');
 var BN = require('bn.js');
@@ -24658,55 +27381,55 @@ function formatReturnValue(bn, enc, len) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":92,"buffer":19,"elliptic":93}],91:[function(require,module,exports){
+},{"bn.js":114,"buffer":41,"elliptic":115}],113:[function(require,module,exports){
 var createECDH = require('crypto').createECDH;
 
 module.exports = createECDH || require('./browser');
-},{"./browser":90,"crypto":23}],92:[function(require,module,exports){
-arguments[4][45][0].apply(exports,arguments)
-},{"dup":45}],93:[function(require,module,exports){
-arguments[4][47][0].apply(exports,arguments)
-},{"../package.json":113,"./elliptic/curve":96,"./elliptic/curves":99,"./elliptic/ec":100,"./elliptic/hmac-drbg":103,"./elliptic/utils":105,"brorand":106,"dup":47}],94:[function(require,module,exports){
-arguments[4][48][0].apply(exports,arguments)
-},{"../../elliptic":93,"bn.js":92,"dup":48}],95:[function(require,module,exports){
-arguments[4][49][0].apply(exports,arguments)
-},{"../../elliptic":93,"../curve":96,"bn.js":92,"dup":49,"inherits":165}],96:[function(require,module,exports){
-arguments[4][50][0].apply(exports,arguments)
-},{"./base":94,"./edwards":95,"./mont":97,"./short":98,"dup":50}],97:[function(require,module,exports){
-arguments[4][51][0].apply(exports,arguments)
-},{"../curve":96,"bn.js":92,"dup":51,"inherits":165}],98:[function(require,module,exports){
-arguments[4][52][0].apply(exports,arguments)
-},{"../../elliptic":93,"../curve":96,"bn.js":92,"dup":52,"inherits":165}],99:[function(require,module,exports){
-arguments[4][53][0].apply(exports,arguments)
-},{"../elliptic":93,"./precomputed/secp256k1":104,"dup":53,"hash.js":107}],100:[function(require,module,exports){
-arguments[4][54][0].apply(exports,arguments)
-},{"../../elliptic":93,"./key":101,"./signature":102,"bn.js":92,"dup":54}],101:[function(require,module,exports){
-arguments[4][55][0].apply(exports,arguments)
-},{"../../elliptic":93,"bn.js":92,"dup":55}],102:[function(require,module,exports){
-arguments[4][56][0].apply(exports,arguments)
-},{"../../elliptic":93,"bn.js":92,"dup":56}],103:[function(require,module,exports){
-arguments[4][57][0].apply(exports,arguments)
-},{"../elliptic":93,"dup":57,"hash.js":107}],104:[function(require,module,exports){
-arguments[4][58][0].apply(exports,arguments)
-},{"dup":58}],105:[function(require,module,exports){
-arguments[4][59][0].apply(exports,arguments)
-},{"dup":59}],106:[function(require,module,exports){
-arguments[4][60][0].apply(exports,arguments)
-},{"dup":60}],107:[function(require,module,exports){
-arguments[4][61][0].apply(exports,arguments)
-},{"./hash/common":108,"./hash/hmac":109,"./hash/ripemd":110,"./hash/sha":111,"./hash/utils":112,"dup":61}],108:[function(require,module,exports){
-arguments[4][62][0].apply(exports,arguments)
-},{"../hash":107,"dup":62}],109:[function(require,module,exports){
-arguments[4][63][0].apply(exports,arguments)
-},{"../hash":107,"dup":63}],110:[function(require,module,exports){
-arguments[4][64][0].apply(exports,arguments)
-},{"../hash":107,"dup":64}],111:[function(require,module,exports){
-arguments[4][65][0].apply(exports,arguments)
-},{"../hash":107,"dup":65}],112:[function(require,module,exports){
-arguments[4][66][0].apply(exports,arguments)
-},{"dup":66,"inherits":165}],113:[function(require,module,exports){
+},{"./browser":112,"crypto":45}],114:[function(require,module,exports){
 arguments[4][67][0].apply(exports,arguments)
-},{"dup":67}],114:[function(require,module,exports){
+},{"dup":67}],115:[function(require,module,exports){
+arguments[4][69][0].apply(exports,arguments)
+},{"../package.json":135,"./elliptic/curve":118,"./elliptic/curves":121,"./elliptic/ec":122,"./elliptic/hmac-drbg":125,"./elliptic/utils":127,"brorand":128,"dup":69}],116:[function(require,module,exports){
+arguments[4][70][0].apply(exports,arguments)
+},{"../../elliptic":115,"bn.js":114,"dup":70}],117:[function(require,module,exports){
+arguments[4][71][0].apply(exports,arguments)
+},{"../../elliptic":115,"../curve":118,"bn.js":114,"dup":71,"inherits":187}],118:[function(require,module,exports){
+arguments[4][72][0].apply(exports,arguments)
+},{"./base":116,"./edwards":117,"./mont":119,"./short":120,"dup":72}],119:[function(require,module,exports){
+arguments[4][73][0].apply(exports,arguments)
+},{"../curve":118,"bn.js":114,"dup":73,"inherits":187}],120:[function(require,module,exports){
+arguments[4][74][0].apply(exports,arguments)
+},{"../../elliptic":115,"../curve":118,"bn.js":114,"dup":74,"inherits":187}],121:[function(require,module,exports){
+arguments[4][75][0].apply(exports,arguments)
+},{"../elliptic":115,"./precomputed/secp256k1":126,"dup":75,"hash.js":129}],122:[function(require,module,exports){
+arguments[4][76][0].apply(exports,arguments)
+},{"../../elliptic":115,"./key":123,"./signature":124,"bn.js":114,"dup":76}],123:[function(require,module,exports){
+arguments[4][77][0].apply(exports,arguments)
+},{"../../elliptic":115,"bn.js":114,"dup":77}],124:[function(require,module,exports){
+arguments[4][78][0].apply(exports,arguments)
+},{"../../elliptic":115,"bn.js":114,"dup":78}],125:[function(require,module,exports){
+arguments[4][79][0].apply(exports,arguments)
+},{"../elliptic":115,"dup":79,"hash.js":129}],126:[function(require,module,exports){
+arguments[4][80][0].apply(exports,arguments)
+},{"dup":80}],127:[function(require,module,exports){
+arguments[4][81][0].apply(exports,arguments)
+},{"dup":81}],128:[function(require,module,exports){
+arguments[4][82][0].apply(exports,arguments)
+},{"dup":82}],129:[function(require,module,exports){
+arguments[4][83][0].apply(exports,arguments)
+},{"./hash/common":130,"./hash/hmac":131,"./hash/ripemd":132,"./hash/sha":133,"./hash/utils":134,"dup":83}],130:[function(require,module,exports){
+arguments[4][84][0].apply(exports,arguments)
+},{"../hash":129,"dup":84}],131:[function(require,module,exports){
+arguments[4][85][0].apply(exports,arguments)
+},{"../hash":129,"dup":85}],132:[function(require,module,exports){
+arguments[4][86][0].apply(exports,arguments)
+},{"../hash":129,"dup":86}],133:[function(require,module,exports){
+arguments[4][87][0].apply(exports,arguments)
+},{"../hash":129,"dup":87}],134:[function(require,module,exports){
+arguments[4][88][0].apply(exports,arguments)
+},{"dup":88,"inherits":187}],135:[function(require,module,exports){
+arguments[4][89][0].apply(exports,arguments)
+},{"dup":89}],136:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var inherits = require('inherits')
@@ -24799,7 +27522,7 @@ module.exports = function createHash (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":116,"buffer":19,"inherits":165,"ripemd160":117,"sha.js":119,"stream":181}],115:[function(require,module,exports){
+},{"./md5":138,"buffer":41,"inherits":187,"ripemd160":139,"sha.js":141,"stream":203}],137:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var intSize = 4;
@@ -24836,7 +27559,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 }
 exports.hash = hash;
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],116:[function(require,module,exports){
+},{"buffer":41}],138:[function(require,module,exports){
 'use strict';
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
@@ -24993,7 +27716,7 @@ function bit_rol(num, cnt)
 module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
-},{"./helpers":115}],117:[function(require,module,exports){
+},{"./helpers":137}],139:[function(require,module,exports){
 (function (Buffer){
 /*
 CryptoJS v3.1.2
@@ -25207,7 +27930,7 @@ function ripemd160 (message) {
 module.exports = ripemd160
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],118:[function(require,module,exports){
+},{"buffer":41}],140:[function(require,module,exports){
 (function (Buffer){
 // prototype class for hash functions
 function Hash (blockSize, finalSize) {
@@ -25280,7 +28003,7 @@ Hash.prototype._update = function () {
 module.exports = Hash
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],119:[function(require,module,exports){
+},{"buffer":41}],141:[function(require,module,exports){
 var exports = module.exports = function SHA (algorithm) {
   algorithm = algorithm.toLowerCase()
 
@@ -25297,7 +28020,7 @@ exports.sha256 = require('./sha256')
 exports.sha384 = require('./sha384')
 exports.sha512 = require('./sha512')
 
-},{"./sha":120,"./sha1":121,"./sha224":122,"./sha256":123,"./sha384":124,"./sha512":125}],120:[function(require,module,exports){
+},{"./sha":142,"./sha1":143,"./sha224":144,"./sha256":145,"./sha384":146,"./sha512":147}],142:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-0, as defined
@@ -25400,7 +28123,7 @@ module.exports = Sha
 
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":118,"buffer":19,"inherits":165}],121:[function(require,module,exports){
+},{"./hash":140,"buffer":41,"inherits":187}],143:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
@@ -25499,7 +28222,7 @@ Sha1.prototype._hash = function () {
 module.exports = Sha1
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":118,"buffer":19,"inherits":165}],122:[function(require,module,exports){
+},{"./hash":140,"buffer":41,"inherits":187}],144:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -25555,7 +28278,7 @@ Sha224.prototype._hash = function () {
 module.exports = Sha224
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":118,"./sha256":123,"buffer":19,"inherits":165}],123:[function(require,module,exports){
+},{"./hash":140,"./sha256":145,"buffer":41,"inherits":187}],145:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -25708,7 +28431,7 @@ Sha256.prototype._hash = function () {
 module.exports = Sha256
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":118,"buffer":19,"inherits":165}],124:[function(require,module,exports){
+},{"./hash":140,"buffer":41,"inherits":187}],146:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var SHA512 = require('./sha512')
@@ -25768,7 +28491,7 @@ Sha384.prototype._hash = function () {
 module.exports = Sha384
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":118,"./sha512":125,"buffer":19,"inherits":165}],125:[function(require,module,exports){
+},{"./hash":140,"./sha512":147,"buffer":41,"inherits":187}],147:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var Hash = require('./hash')
@@ -26017,7 +28740,7 @@ Sha512.prototype._hash = function () {
 module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":118,"buffer":19,"inherits":165}],126:[function(require,module,exports){
+},{"./hash":140,"buffer":41,"inherits":187}],148:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var createHash = require('create-hash/browser');
@@ -26089,7 +28812,7 @@ module.exports = function createHmac(alg, key) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"create-hash/browser":114,"inherits":165,"stream":181}],127:[function(require,module,exports){
+},{"buffer":41,"create-hash/browser":136,"inherits":187,"stream":203}],149:[function(require,module,exports){
 (function (Buffer){
 var generatePrime = require('./lib/generatePrime');
 var primes = require('./lib/primes');
@@ -26133,7 +28856,7 @@ exports.DiffieHellmanGroup = exports.createDiffieHellmanGroup = exports.getDiffi
 exports.createDiffieHellman = exports.DiffieHellman = createDiffieHellman;
 
 }).call(this,require("buffer").Buffer)
-},{"./lib/dh":128,"./lib/generatePrime":129,"./lib/primes":130,"buffer":19}],128:[function(require,module,exports){
+},{"./lib/dh":150,"./lib/generatePrime":151,"./lib/primes":152,"buffer":41}],150:[function(require,module,exports){
 (function (Buffer){
 var BN = require('bn.js');
 var MillerRabin = require('miller-rabin');
@@ -26303,7 +29026,7 @@ function formatReturnValue(bn, enc) {
   }
 }
 }).call(this,require("buffer").Buffer)
-},{"./generatePrime":129,"bn.js":131,"buffer":19,"miller-rabin":132,"randombytes":163}],129:[function(require,module,exports){
+},{"./generatePrime":151,"bn.js":153,"buffer":41,"miller-rabin":154,"randombytes":185}],151:[function(require,module,exports){
 var randomBytes = require('randombytes');
 module.exports = findPrime;
 findPrime.simpleSieve = simpleSieve;
@@ -26436,7 +29159,7 @@ function findPrime(bits, gen) {
   }
 
 }
-},{"bn.js":131,"miller-rabin":132,"randombytes":163}],130:[function(require,module,exports){
+},{"bn.js":153,"miller-rabin":154,"randombytes":185}],152:[function(require,module,exports){
 module.exports={
     "modp1": {
         "gen": "02",
@@ -26471,9 +29194,9 @@ module.exports={
         "prime": "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c93402849236c3fab4d27c7026c1d4dcb2602646dec9751e763dba37bdf8ff9406ad9e530ee5db382f413001aeb06a53ed9027d831179727b0865a8918da3edbebcf9b14ed44ce6cbaced4bb1bdb7f1447e6cc254b332051512bd7af426fb8f401378cd2bf5983ca01c64b92ecf032ea15d1721d03f482d7ce6e74fef6d55e702f46980c82b5a84031900b1c9e59e7c97fbec7e8f323a97a7e36cc88be0f1d45b7ff585ac54bd407b22b4154aacc8f6d7ebf48e1d814cc5ed20f8037e0a79715eef29be32806a1d58bb7c5da76f550aa3d8a1fbff0eb19ccb1a313d55cda56c9ec2ef29632387fe8d76e3c0468043e8f663f4860ee12bf2d5b0b7474d6e694f91e6dbe115974a3926f12fee5e438777cb6a932df8cd8bec4d073b931ba3bc832b68d9dd300741fa7bf8afc47ed2576f6936ba424663aab639c5ae4f5683423b4742bf1c978238f16cbe39d652de3fdb8befc848ad922222e04a4037c0713eb57a81a23f0c73473fc646cea306b4bcbc8862f8385ddfa9d4b7fa2c087e879683303ed5bdd3a062b3cf5b3a278a66d2a13f83f44f82ddf310ee074ab6a364597e899a0255dc164f31cc50846851df9ab48195ded7ea1b1d510bd7ee74d73faf36bc31ecfa268359046f4eb879f924009438b481c6cd7889a002ed5ee382bc9190da6fc026e479558e4475677e9aa9e3050e2765694dfc81f56e880b96e7160c980dd98edd3dfffffffffffffffff"
     }
 }
-},{}],131:[function(require,module,exports){
-arguments[4][45][0].apply(exports,arguments)
-},{"dup":45}],132:[function(require,module,exports){
+},{}],153:[function(require,module,exports){
+arguments[4][67][0].apply(exports,arguments)
+},{"dup":67}],154:[function(require,module,exports){
 var bn = require('bn.js');
 var brorand = require('brorand');
 
@@ -26588,9 +29311,9 @@ MillerRabin.prototype.getDivisor = function getDivisor(n, k) {
   return false;
 };
 
-},{"bn.js":131,"brorand":133}],133:[function(require,module,exports){
-arguments[4][60][0].apply(exports,arguments)
-},{"dup":60}],134:[function(require,module,exports){
+},{"bn.js":153,"brorand":155}],155:[function(require,module,exports){
+arguments[4][82][0].apply(exports,arguments)
+},{"dup":82}],156:[function(require,module,exports){
 (function (Buffer){
 var createHmac = require('create-hmac')
 var MAX_ALLOC = Math.pow(2, 30) - 1 // default in iojs
@@ -26674,7 +29397,7 @@ function pbkdf2Sync (password, salt, iterations, keylen, digest) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"create-hmac":126}],135:[function(require,module,exports){
+},{"buffer":41,"create-hmac":148}],157:[function(require,module,exports){
 exports.publicEncrypt = require('./publicEncrypt');
 exports.privateDecrypt = require('./privateDecrypt');
 
@@ -26685,7 +29408,7 @@ exports.privateEncrypt = function privateEncrypt(key, buf) {
 exports.publicDecrypt = function publicDecrypt(key, buf) {
   return exports.privateDecrypt(key, buf, true);
 };
-},{"./privateDecrypt":159,"./publicEncrypt":160}],136:[function(require,module,exports){
+},{"./privateDecrypt":181,"./publicEncrypt":182}],158:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash');
 module.exports = function (seed, len) {
@@ -26704,51 +29427,51 @@ function i2ops(c) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"buffer":19,"create-hash":114}],137:[function(require,module,exports){
-arguments[4][45][0].apply(exports,arguments)
-},{"dup":45}],138:[function(require,module,exports){
-arguments[4][46][0].apply(exports,arguments)
-},{"bn.js":137,"buffer":19,"dup":46,"randombytes":163}],139:[function(require,module,exports){
+},{"buffer":41,"create-hash":136}],159:[function(require,module,exports){
+arguments[4][67][0].apply(exports,arguments)
+},{"dup":67}],160:[function(require,module,exports){
 arguments[4][68][0].apply(exports,arguments)
-},{"buffer":19,"create-hash":114,"dup":68}],140:[function(require,module,exports){
-arguments[4][69][0].apply(exports,arguments)
-},{"dup":69}],141:[function(require,module,exports){
-arguments[4][70][0].apply(exports,arguments)
-},{"asn1.js":144,"dup":70}],142:[function(require,module,exports){
-arguments[4][71][0].apply(exports,arguments)
-},{"./EVP_BytesToKey":139,"browserify-aes":27,"buffer":19,"dup":71}],143:[function(require,module,exports){
-arguments[4][72][0].apply(exports,arguments)
-},{"./aesid.json":140,"./asn1":141,"./fixProc":142,"browserify-aes":27,"buffer":19,"dup":72,"pbkdf2":134}],144:[function(require,module,exports){
-arguments[4][73][0].apply(exports,arguments)
-},{"./asn1/api":145,"./asn1/base":147,"./asn1/constants":151,"./asn1/decoders":153,"./asn1/encoders":156,"bn.js":137,"dup":73}],145:[function(require,module,exports){
-arguments[4][74][0].apply(exports,arguments)
-},{"../asn1":144,"dup":74,"inherits":165,"vm":185}],146:[function(require,module,exports){
-arguments[4][75][0].apply(exports,arguments)
-},{"../base":147,"buffer":19,"dup":75,"inherits":165}],147:[function(require,module,exports){
-arguments[4][76][0].apply(exports,arguments)
-},{"./buffer":146,"./node":148,"./reporter":149,"dup":76}],148:[function(require,module,exports){
-arguments[4][77][0].apply(exports,arguments)
-},{"../base":147,"dup":77,"minimalistic-assert":158}],149:[function(require,module,exports){
-arguments[4][78][0].apply(exports,arguments)
-},{"dup":78,"inherits":165}],150:[function(require,module,exports){
-arguments[4][79][0].apply(exports,arguments)
-},{"../constants":151,"dup":79}],151:[function(require,module,exports){
-arguments[4][80][0].apply(exports,arguments)
-},{"./der":150,"dup":80}],152:[function(require,module,exports){
-arguments[4][81][0].apply(exports,arguments)
-},{"../../asn1":144,"dup":81,"inherits":165}],153:[function(require,module,exports){
-arguments[4][82][0].apply(exports,arguments)
-},{"./der":152,"./pem":154,"dup":82}],154:[function(require,module,exports){
-arguments[4][83][0].apply(exports,arguments)
-},{"../../asn1":144,"./der":152,"buffer":19,"dup":83,"inherits":165}],155:[function(require,module,exports){
-arguments[4][84][0].apply(exports,arguments)
-},{"../../asn1":144,"buffer":19,"dup":84,"inherits":165}],156:[function(require,module,exports){
-arguments[4][85][0].apply(exports,arguments)
-},{"./der":155,"./pem":157,"dup":85}],157:[function(require,module,exports){
-arguments[4][86][0].apply(exports,arguments)
-},{"../../asn1":144,"./der":155,"buffer":19,"dup":86,"inherits":165}],158:[function(require,module,exports){
-arguments[4][87][0].apply(exports,arguments)
-},{"dup":87}],159:[function(require,module,exports){
+},{"bn.js":159,"buffer":41,"dup":68,"randombytes":185}],161:[function(require,module,exports){
+arguments[4][90][0].apply(exports,arguments)
+},{"buffer":41,"create-hash":136,"dup":90}],162:[function(require,module,exports){
+arguments[4][91][0].apply(exports,arguments)
+},{"dup":91}],163:[function(require,module,exports){
+arguments[4][92][0].apply(exports,arguments)
+},{"asn1.js":166,"dup":92}],164:[function(require,module,exports){
+arguments[4][93][0].apply(exports,arguments)
+},{"./EVP_BytesToKey":161,"browserify-aes":49,"buffer":41,"dup":93}],165:[function(require,module,exports){
+arguments[4][94][0].apply(exports,arguments)
+},{"./aesid.json":162,"./asn1":163,"./fixProc":164,"browserify-aes":49,"buffer":41,"dup":94,"pbkdf2":156}],166:[function(require,module,exports){
+arguments[4][95][0].apply(exports,arguments)
+},{"./asn1/api":167,"./asn1/base":169,"./asn1/constants":173,"./asn1/decoders":175,"./asn1/encoders":178,"bn.js":159,"dup":95}],167:[function(require,module,exports){
+arguments[4][96][0].apply(exports,arguments)
+},{"../asn1":166,"dup":96,"inherits":187,"vm":207}],168:[function(require,module,exports){
+arguments[4][97][0].apply(exports,arguments)
+},{"../base":169,"buffer":41,"dup":97,"inherits":187}],169:[function(require,module,exports){
+arguments[4][98][0].apply(exports,arguments)
+},{"./buffer":168,"./node":170,"./reporter":171,"dup":98}],170:[function(require,module,exports){
+arguments[4][99][0].apply(exports,arguments)
+},{"../base":169,"dup":99,"minimalistic-assert":180}],171:[function(require,module,exports){
+arguments[4][100][0].apply(exports,arguments)
+},{"dup":100,"inherits":187}],172:[function(require,module,exports){
+arguments[4][101][0].apply(exports,arguments)
+},{"../constants":173,"dup":101}],173:[function(require,module,exports){
+arguments[4][102][0].apply(exports,arguments)
+},{"./der":172,"dup":102}],174:[function(require,module,exports){
+arguments[4][103][0].apply(exports,arguments)
+},{"../../asn1":166,"dup":103,"inherits":187}],175:[function(require,module,exports){
+arguments[4][104][0].apply(exports,arguments)
+},{"./der":174,"./pem":176,"dup":104}],176:[function(require,module,exports){
+arguments[4][105][0].apply(exports,arguments)
+},{"../../asn1":166,"./der":174,"buffer":41,"dup":105,"inherits":187}],177:[function(require,module,exports){
+arguments[4][106][0].apply(exports,arguments)
+},{"../../asn1":166,"buffer":41,"dup":106,"inherits":187}],178:[function(require,module,exports){
+arguments[4][107][0].apply(exports,arguments)
+},{"./der":177,"./pem":179,"dup":107}],179:[function(require,module,exports){
+arguments[4][108][0].apply(exports,arguments)
+},{"../../asn1":166,"./der":177,"buffer":41,"dup":108,"inherits":187}],180:[function(require,module,exports){
+arguments[4][109][0].apply(exports,arguments)
+},{"dup":109}],181:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var mgf = require('./mgf');
@@ -26859,7 +29582,7 @@ function compare(a, b){
   return dif;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":136,"./withPublic":161,"./xor":162,"bn.js":137,"browserify-rsa":138,"buffer":19,"create-hash":114,"parse-asn1":143}],160:[function(require,module,exports){
+},{"./mgf":158,"./withPublic":183,"./xor":184,"bn.js":159,"browserify-rsa":160,"buffer":41,"create-hash":136,"parse-asn1":165}],182:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var randomBytes = require('randombytes');
@@ -26957,7 +29680,7 @@ function nonZero(len, crypto) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":136,"./withPublic":161,"./xor":162,"bn.js":137,"browserify-rsa":138,"buffer":19,"create-hash":114,"parse-asn1":143,"randombytes":163}],161:[function(require,module,exports){
+},{"./mgf":158,"./withPublic":183,"./xor":184,"bn.js":159,"browserify-rsa":160,"buffer":41,"create-hash":136,"parse-asn1":165,"randombytes":185}],183:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 function withPublic(paddedMsg, key) {
@@ -26970,7 +29693,7 @@ function withPublic(paddedMsg, key) {
 
 module.exports = withPublic;
 }).call(this,require("buffer").Buffer)
-},{"bn.js":137,"buffer":19}],162:[function(require,module,exports){
+},{"bn.js":159,"buffer":41}],184:[function(require,module,exports){
 module.exports = function xor(a, b) {
   var len = a.length;
   var i = -1;
@@ -26979,7 +29702,7 @@ module.exports = function xor(a, b) {
   }
   return a
 };
-},{}],163:[function(require,module,exports){
+},{}],185:[function(require,module,exports){
 (function (process,global,Buffer){
 'use strict';
 
@@ -27011,7 +29734,7 @@ function oldBrowser() {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"_process":167,"buffer":19}],164:[function(require,module,exports){
+},{"_process":189,"buffer":41}],186:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -27314,7 +30037,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],165:[function(require,module,exports){
+},{}],187:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -27339,12 +30062,12 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],166:[function(require,module,exports){
+},{}],188:[function(require,module,exports){
 module.exports = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
 
-},{}],167:[function(require,module,exports){
+},{}],189:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -27436,10 +30159,10 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],168:[function(require,module,exports){
+},{}],190:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":169}],169:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":191}],191:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -27523,7 +30246,7 @@ function forEach (xs, f) {
   }
 }
 
-},{"./_stream_readable":171,"./_stream_writable":173,"core-util-is":174,"inherits":165,"process-nextick-args":175}],170:[function(require,module,exports){
+},{"./_stream_readable":193,"./_stream_writable":195,"core-util-is":196,"inherits":187,"process-nextick-args":197}],192:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -27552,7 +30275,7 @@ PassThrough.prototype._transform = function(chunk, encoding, cb) {
   cb(null, chunk);
 };
 
-},{"./_stream_transform":172,"core-util-is":174,"inherits":165}],171:[function(require,module,exports){
+},{"./_stream_transform":194,"core-util-is":196,"inherits":187}],193:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -28515,7 +31238,7 @@ function indexOf (xs, x) {
 }
 
 }).call(this,require('_process'))
-},{"./_stream_duplex":169,"_process":167,"buffer":19,"core-util-is":174,"events":164,"inherits":165,"isarray":166,"process-nextick-args":175,"string_decoder/":182,"util":18}],172:[function(require,module,exports){
+},{"./_stream_duplex":191,"_process":189,"buffer":41,"core-util-is":196,"events":186,"inherits":187,"isarray":188,"process-nextick-args":197,"string_decoder/":204,"util":40}],194:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -28714,7 +31437,7 @@ function done(stream, er) {
   return stream.push(null);
 }
 
-},{"./_stream_duplex":169,"core-util-is":174,"inherits":165}],173:[function(require,module,exports){
+},{"./_stream_duplex":191,"core-util-is":196,"inherits":187}],195:[function(require,module,exports){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, cb), and it'll handle all
 // the drain event emission and buffering.
@@ -29236,7 +31959,7 @@ function endWritable(stream, state, cb) {
   state.ended = true;
 }
 
-},{"./_stream_duplex":169,"buffer":19,"core-util-is":174,"events":164,"inherits":165,"process-nextick-args":175,"util-deprecate":176}],174:[function(require,module,exports){
+},{"./_stream_duplex":191,"buffer":41,"core-util-is":196,"events":186,"inherits":187,"process-nextick-args":197,"util-deprecate":198}],196:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -29346,7 +32069,7 @@ function objectToString(o) {
   return Object.prototype.toString.call(o);
 }
 }).call(this,require("buffer").Buffer)
-},{"buffer":19}],175:[function(require,module,exports){
+},{"buffer":41}],197:[function(require,module,exports){
 (function (process){
 'use strict';
 module.exports = nextTick;
@@ -29363,7 +32086,7 @@ function nextTick(fn) {
 }
 
 }).call(this,require('_process'))
-},{"_process":167}],176:[function(require,module,exports){
+},{"_process":189}],198:[function(require,module,exports){
 (function (global){
 
 /**
@@ -29429,10 +32152,10 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],177:[function(require,module,exports){
+},{}],199:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":170}],178:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":192}],200:[function(require,module,exports){
 var Stream = (function (){
   try {
     return require('st' + 'ream'); // hack to fix a circular dependency issue when used with browserify
@@ -29446,13 +32169,13 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":169,"./lib/_stream_passthrough.js":170,"./lib/_stream_readable.js":171,"./lib/_stream_transform.js":172,"./lib/_stream_writable.js":173}],179:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":191,"./lib/_stream_passthrough.js":192,"./lib/_stream_readable.js":193,"./lib/_stream_transform.js":194,"./lib/_stream_writable.js":195}],201:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":172}],180:[function(require,module,exports){
+},{"./lib/_stream_transform.js":194}],202:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":173}],181:[function(require,module,exports){
+},{"./lib/_stream_writable.js":195}],203:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -29581,7 +32304,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":164,"inherits":165,"readable-stream/duplex.js":168,"readable-stream/passthrough.js":177,"readable-stream/readable.js":178,"readable-stream/transform.js":179,"readable-stream/writable.js":180}],182:[function(require,module,exports){
+},{"events":186,"inherits":187,"readable-stream/duplex.js":190,"readable-stream/passthrough.js":199,"readable-stream/readable.js":200,"readable-stream/transform.js":201,"readable-stream/writable.js":202}],204:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -29804,14 +32527,14 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":19}],183:[function(require,module,exports){
+},{"buffer":41}],205:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],184:[function(require,module,exports){
+},{}],206:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -30401,7 +33124,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":183,"_process":167,"inherits":165}],185:[function(require,module,exports){
+},{"./support/isBuffer":205,"_process":189,"inherits":187}],207:[function(require,module,exports){
 var indexOf = require('indexof');
 
 var Object_keys = function (obj) {
@@ -30541,7 +33264,7 @@ exports.createContext = Script.createContext = function (context) {
     return copy;
 };
 
-},{"indexof":186}],186:[function(require,module,exports){
+},{"indexof":208}],208:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -30552,4 +33275,4 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}]},{},[17]);
+},{}]},{},[28]);

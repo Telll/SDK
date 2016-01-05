@@ -1,6 +1,6 @@
 /**
   * Abstract class iData
-  * @construct 
+  * @interface 
   */
 iData = function (t)
 {

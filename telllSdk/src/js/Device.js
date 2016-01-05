@@ -1,7 +1,7 @@
 /**
 * Class: Device
+* @constructor
 */
-
 function Device(){
     //Constructor
 

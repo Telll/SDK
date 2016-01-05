@@ -15,7 +15,7 @@ MoviesList.prototype =Object.create(iView.prototype);
 * @return bool
 */
 MoviesList.prototype._init = function(t){
-    this.status = null;
+    this.state = null;
     this._showWidget(t.store);
     return null;
 }
@@ -45,29 +45,29 @@ MoviesList.prototype._showWidget = function(data){
         e.preventDefault();
         // The draggable pointer
         me.drgPointer();
-	me.status = "tracking";
+	me.state = "tracking";
 	
     });
     $( ".tag-titlebar button.tag" ).on("click", function(e) {
         e.preventDefault();
         // The tag editor
         me.tagEditor();
-	me.status = "tagging";
+	me.state = "tagging";
 	
     });
     */
     $( ".movies-list-titlebar button.close" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
-	me.status = "selected";
+	me.state = "selected";
 	me.detach();
     });
 
     $( ".movie-thumb" ).on("click", function(e) {
         e.preventDefault();
         var movie = JSON.parse($(this).attr('data'));
-        me.status = 'selected';
-        me.emit(me.status, movie);
+        me.state = 'selected';
+        me.emit(me.state, movie);
         telll.setCookie('movieId',movie.id,telll.conf.extime);
 	me.detach();
     });

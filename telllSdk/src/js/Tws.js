@@ -1,6 +1,7 @@
 //require('./iData.js');
 /**
   * class Tws
+* @constructor
   * 
   */
 Tws = function (server)

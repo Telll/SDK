@@ -1,9 +1,13 @@
 require('./iPlayer.js');
 /**
-  * class MockPlayer
   * Use it as a basic player mockup to begin your own player 
   * Rewrite the methods you need.
-  * @constructor
+  *
+  * Enjoy!
+  *
+  * @param t {Telll} The Telll object
+  * @class
+  * @implements {iPlayer}
   */
 MockPlayer = function (t)
 {
@@ -11,6 +15,40 @@ MockPlayer = function (t)
 }
 
 MockPlayer.prototype =Object.create(iPlayer.prototype);
+
+/**
+ * Event loaded
+ * Movie loaded in player
+ *
+ * @event MockPlayer#loaded
+ * @type {Movie}
+ */
+
+/**
+ * Event timeupdate
+ * Time is updated
+ *
+ * @event MockPlayer#timeupdate
+ * @type {integer}
+ */
+
+/**
+ * Event playing
+ * Movie is playing
+ *
+ * @event MockPlayer#playing
+ * @type {integer}
+ */
+
+/**
+ * Event paused
+ * Movie is paused
+ *
+ * @event MockPlayer#paused
+ * @type {integer}
+ */
+
+
 
 /**
  * _init 
@@ -29,9 +67,9 @@ MockPlayer.prototype._init = function (t)
 }
 
 /**
- * 
- * @param error
- * @param callback
+ * Private method
+ * @param t {Telll} The Telll object
+ * @fires MockPlayer#loaded
  */
 MockPlayer.prototype._showWidget = function (t)
 {
@@ -54,6 +92,8 @@ MockPlayer.prototype._showWidget = function (t)
     };
     this.video.oncanplaythrough = function() {
        telllDialog("Playing: "+movie.url, 2000);
+       me.state = "canplaythrough";
+       me.emit(me.state, movie );
        me.play();
     }; 
     this.video.ontimeupdate = function(){
@@ -70,9 +110,9 @@ MockPlayer.prototype._showWidget = function (t)
  */
 MockPlayer.prototype.play = function (e, callback)
 {
+    this.video.play();
     this.state = "playing";
     this.emit("playing", this.time);
-    this.video.play();
 }
 
 /**
@@ -82,9 +122,9 @@ MockPlayer.prototype.play = function (e, callback)
  */
 MockPlayer.prototype.pause = function (evt, callback)
 {
-    this.state = "paused";
-    this.emit("pause", this.time);
     this.video.pause();
+    this.state = "paused";
+    this.emit("paused", this.time);
 }
 
 /**
@@ -135,7 +175,7 @@ MockPlayer.prototype.detach = function(){
     //$('div.popup-overlay').detach();
     //$('div.popup').detach();
     $('#movie-player').detach();
-    this.status = "detached";
+    this.state = "detached";
     this.emit("detach", this.time);
 };
 

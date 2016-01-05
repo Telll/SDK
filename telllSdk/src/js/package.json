@@ -1,16 +1,26 @@
 {
   "name":"telllSDK",
+  "version": "0.16.0",
   "scripts": {
     "start": "beefy main.js:telllSDK.js --live",
     "bundle": "browserify -t brfs main.js -o telllSDK.js",
     "prepare": "./scripts/compile_templates.pl",
 
     "prestart": "npm run prepare",
-    "prebundle": "npm run prepare"
+    "prebundle": "npm run prepare",
+    "postbundle": "cp telllSDK.js ../../build/js"
   },
   "dependencies": {
     "browserify-mustache": "0.0.4",
     "hogan.js": "^3.0.2"
   },
-  "browserify": { "transform": [ "brfs" ] }
+  "browserify": { "transform": [ "brfs" ] },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Telll/SDK"
+  },
+  "bugs": {
+    "url": "https://github.com/Telll/SDK/issues"
+  },
+  "homepage": "http://telll.github.io/SDK/"
 }

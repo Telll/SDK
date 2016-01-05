@@ -40,6 +40,12 @@ Login.prototype._showLoginWidget = function(data){
     var html = Mustache.render(tmpl.html, data);
     $('<style id="login-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
+    // As a popup    
+    $('<div class="popup-overlay"></div>').appendTo('body');
+    $('<div id="popup-login" class="popup"></div>').appendTo('body');
+    $(".telll-login-widget").appendTo('#popup-login').fadeIn();
+    //$('#popup-movies-list').css('z-index','999');
+    $('html').addClass('overlay');
 
     // Behaviors
     var telll = this.t;
@@ -89,6 +95,9 @@ Login.prototype._showLoginWidget = function(data){
 */
 Login.prototype.detach = function(){
     $('.telll-login-widget').detach();
+    $('div.popup-overlay').detach();
+    $('div#popup-login').detach();
+
 };
 
 module.exports = {Login:Login};

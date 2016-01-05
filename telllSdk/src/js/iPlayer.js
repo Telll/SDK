@@ -2,18 +2,50 @@ const util = require('util');
 const EventEmitter = require('events');
 /**
   * class iPlayer
-  * 
+  * @interface 
   */
-
 iPlayer = function ()
 {
   this._init ();
 }
+/**
+ * Event loaded
+ * Movie loaded in player
+ *
+ * @event iPlayer#loaded
+ * @type {Movie}
+ */
+
+/**
+ * Event timeupdate
+ * Time is updated
+ *
+ * @event iPlayer#timeupdate
+ * @type {integer}
+ */
+
+/**
+ * Event playing
+ * Movie is playing
+ *
+ * @event iPlayer#playing
+ * @type {integer}
+ */
+
+/**
+ * Event paused
+ * Movie is paused
+ *
+ * @event iPlayer#paused
+ * @type {integer}
+ */
+
+
 
 iPlayer.prototype._init = function ()
 {
     EventEmitter.call(this);
-    this.state = "STOPPED"; 
+    this.state = "stoped"; 
 }
 
 util.inherits(iPlayer, EventEmitter);
@@ -25,7 +57,7 @@ util.inherits(iPlayer, EventEmitter);
  */
 iPlayer.prototype.play = function (movie)
 {
-   this.state = "PLAYING"; 
+   this.state = "playing"; 
 }
 
 
@@ -34,7 +66,7 @@ iPlayer.prototype.play = function (movie)
  */
 iPlayer.prototype.stop = function ()
 {
-   this.state = "STOPPED"; 
+   this.state = "stoped"; 
 }
 
 /**
@@ -42,7 +74,7 @@ iPlayer.prototype.stop = function ()
  */
 iPlayer.prototype.pause = function ()
 {
-   this.state = "PAUSED"; 
+   this.state = "paused"; 
 }
 
 
@@ -88,17 +120,4 @@ iPlayer.prototype.volume = function (new_volume)
 {
   
 }
-
-/**
- * 
- * @param event
- * @param callback
-    *      
-iPlayer.prototype.on = function (evt, callback)
-{
-  this.me[0].addEventListener(evt, callback);
-}
- */
-
-
 
