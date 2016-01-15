@@ -35,6 +35,10 @@ Login.prototype._init = function () {
 * @return bool
 */
 Login.prototype._showLoginWidget = function(data){
+    var telll = this.t;
+    var me = this;
+    me.state = "opened";
+    me.emit(me.state, me);
     // Create widget
     var tmpl = require('./templates/login_template.mtjs');
     var html = Mustache.render(tmpl.html, data);
@@ -46,10 +50,10 @@ Login.prototype._showLoginWidget = function(data){
     $(".telll-login-widget").appendTo('#popup-login').fadeIn();
     //$('#popup-movies-list').css('z-index','999');
     $('html').addClass('overlay');
-
-    // Behaviors
-    var telll = this.t;
-    var me = this;
+    this.centerPanel();
+    $( window ).resize(function() { me.centerPanel(); });
+    $(window).on('orientationchange', function() { me.centerPanel(); });
+   // Behaviors
     this.on( "authOk", function( data ) {
 	me.detach();
         //telll.setCookie('username',data.username,telll.conf.extime);
@@ -89,6 +93,22 @@ Login.prototype._showLoginWidget = function(data){
     });
     return true;
 };
+
+/**
+* @return null
+*/
+Login.prototype.centerPanel = function(){
+	console.log("centering login panel");
+  var height = $(window).height();
+  var panelSize = {
+    width:  $("div.telll-login-widget").width(),
+    height: $("div.telll-login-widget").height()
+  };
+  var marginTop = (height - panelSize.height) / 2 ;
+  if (marginTop < 0) marginTop = 0;
+  $("div.telll-login-widget").css("margin-top",marginTop+"px");
+};
+
 
 /**
 * @return null

@@ -27,7 +27,7 @@ Clickbox.prototype._init = function(t){
 * @return bool
 */
 Clickbox.prototype._showWidget = function(data){
-    console.log('Showing the clickbox');
+    //console.log('Showing the clickbox');
     var tmpl = require('./templates/clickbox.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
@@ -38,11 +38,10 @@ Clickbox.prototype._showWidget = function(data){
     this.state = "open";
     $(".telll-clickbox-widget .close").on( "click", function( e, data ) {
 	me.detach();
-        console.log('Clickbox closing ...');
     });
 
     // The popup 
-    $('<div class="popup-overlay"></div>').appendTo('body');
+    //$('<div class="popup-overlay"></div>').appendTo('body');
     $('<div id="popup-clickbox" class="popup"></div>').appendTo('body');
     $("#clickbox-widget").appendTo('#popup-clickbox').fadeIn();
     $('#popup-clickbox').css('z-index','999');
@@ -56,9 +55,10 @@ Clickbox.prototype._showWidget = function(data){
 * @return null
 */
 Clickbox.prototype.detach = function(){
+        console.log('Clickbox closing ...');
     $('.telll-clickbox-widget').detach();
-    $('.popup').detach();
-    $('div.popup-overlay').detach();
+    $('#popup-clickbox').detach();
+    //$('div.popup-overlay').detach();
     this.state = "detached";
 };
 

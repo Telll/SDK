@@ -1,9 +1,9 @@
 #telll-controls{
 position: absolute;
-bottom:40px;
-height: 50px;
+bottom: 0px;
+height: 100px;
 width:100%;
-/*background-color:#000;*/
+/* background-color:#000; */
 z-index: 800000;
 display:none;
 }
@@ -48,6 +48,15 @@ cursor: pointer;
 div.frame-icon label {
 position:absolute;
 display:none;
+}
+div#photolinks-list-widget{
+position: fixed;
+bottom: 0px;
+left: 0px;
+z-index: 80000;
+height: 110px;
+width: 100%;
+overflow: hidden;
 }
 .photolink-icon{
 border:1px solid #fff;

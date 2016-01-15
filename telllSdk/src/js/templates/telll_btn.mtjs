@@ -1,1 +1,1 @@
-module.exports={"name":"telll_btn","html":"<!-- telll button --><div id=\"telll-warn\" class=\"telll-btn\">\t<p>Implement-me!!!\t{{:appName}}\t{{:author}}\t</p></div><!-- end telll-btn -->"}
+module.exports={"html":"<!-- telll button --><div id=\"telll-warn\" class=\"telll-btn\">\t<p>Implement-me!!!\t{{:appName}}\t{{:author}}\t</p></div><!-- end telll-btn -->","name":"telll_btn"}

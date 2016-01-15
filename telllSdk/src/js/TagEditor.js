@@ -50,7 +50,6 @@ TagEditor.prototype._showWidget = function(data){
     var me = this;
 
     // The player 
-    //TODO: not the MockPlayer!!! How to use Youtube or Projekktor?
     var mvPlayer = new telllSDK.View.MockPlayer(telll);
     var tgPlayer = new telllSDK.View.TagPlayer(telll, mvPlayer);
     me.sync(mvPlayer);
@@ -87,8 +86,18 @@ TagEditor.prototype._showWidget = function(data){
 	me.state = "sent";
 	me.detach();
     });
+    this.formatScreen();
+    $( window ).resize(function() { this.formatScreen(); });
+    $(window).on('orientationchange', function(event) { this.formatScreen(); });
 }
-
+/**
+* @return null
+*/
+TagEditor.prototype.formatScreen = function(){
+    $('#telll-movie').width($(window).width());
+    if ($("#telll-movie").height() > $(window).height()) $("#telll-movie").height( $(window).height() );
+};
+ 
 /**
 * @return null
 */

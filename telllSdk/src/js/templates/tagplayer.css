@@ -1,3 +1,9 @@
 div.tag {
-display:none;
+/*display:none;*/
+}
+div.tgp-default{
+opacity:0.5
+}
+div.tgp-none{
+opacity:0
 }

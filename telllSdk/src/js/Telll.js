@@ -195,8 +195,9 @@ Telll.prototype.logout = function(cb) {
 * @return bool
 */
 Telll.prototype.syncPlayer = function(t, m, cb) {
-    //console.log(t);
-    //console.log(m);
+    console.log("Syncing Player ..");
+    console.log(t);
+    console.log(m);
     m.on('timeupdate', function(time){
         t.time = time;
         t.emit( 'changeTime', t.time );
@@ -206,6 +207,7 @@ Telll.prototype.syncPlayer = function(t, m, cb) {
          //console.log(t.time);
     });
     if(cb) cb(t.time);
+    console.log("Syncing Player end!!!..");
 };
 
 
@@ -231,24 +233,23 @@ Telll.prototype.auth = function(data, cb){
 };
 
 /**
-* @return {null}
+* @return {iView} the PhotolinksList View
 */
 Telll.prototype.showPhotolinksList = function(){
-    //console.log('Showing the telll panel');
+    console.log('Showing the telll panel');
     // get movie and list of photolinks
+    var me = this;
     if (!this.movie) {
         alert('Please, select a movie first.');
         this.showMoviesList(function(m){
-            //console.log(" From Panel: my movie:");
-            //console.log(m);
             //register movie
-            //this.movie = m;
+            //me.movie = m;
             //get photolinks list
-            this.photolinksListView = new telllSDK.View.PhotolinksList( this );
+            me.photolinksListView = new telllSDK.View.PhotolinksList( me );
         });
     }
     else this.photolinksListView = new telllSDK.View.PhotolinksList( this );
-    return true;
+    return this.photolinksListView;
 };
 
 /**
@@ -256,10 +257,18 @@ Telll.prototype.showPhotolinksList = function(){
 * @listens MockPlayer
 */
 Telll.prototype.showMockPlayer = function(cb){
+    if (!this.moviePlayerView.state) {
+    console.log("Creating a new MockPlayer");
     this.moviePlayerView = new telllSDK.View.MockPlayer ( this );
-    this.moviePlayerView.on("loaded", function(){
+    this.moviePlayerView.once("loaded", function(movie){
+        console.log("MockPlayer loaded with ", movie);
         if (cb) cb(this);
     });
+    } else {
+      console.log("Using the same view ...");
+      this.moviePlayerView.atach();
+      if (cb) cb(this.moviePlayerView);
+    }
 };
 
 /**
@@ -284,12 +293,29 @@ Telll.prototype.showYoutubePlayer = function(){
 * @return {null}
 */
 Telll.prototype.showTagPlayer = function(player, cb){
-	var me = this;
-    this.tagPlayerView = new telllSDK.View.TagPlayer ( this, player );
-    this.tagPlayerView.on("showing", function(){
-	    //console.log('from telll.showTagPlayer ...');
-	    if (cb) cb( me.tagPlayerView );
-    });
+    var me = this;
+    var t = this.t;
+    console.log("Showing TagPlayer ...");
+    //console.log(this.tagPlayerView);
+    //console.log(player, cb);
+    //console.log(this.movie);
+    // prepare the store
+    //console.log("The telll store:");
+    //console.log(this.store);
+    //if (!this.tagPlayerView.state) {
+          console.log("Creating a new tag player");
+          this.tagPlayerView = new telllSDK.View.TagPlayer ( me, player );
+          console.log("Created a new tag player");
+          console.log(this.tagPlayerView);
+          if (cb) cb( me.tagPlayerView );
+/*    } else {
+          this.getPhotolinksOfMovie(t.movie.id, function(pl){
+             console.log("Reutilizing the tag player");
+             this.tagPlayerView.list = pl;
+             this.tagPlayerView.loadTags(t.movie.id);
+             if (cb) cb( me.tagPlayerView );
+          });
+    }*/
 };
 
 /**
@@ -300,16 +326,19 @@ Telll.prototype.showTagPlayer = function(player, cb){
 * @return {null}
 */
 Telll.prototype.showMoviesList = function(cb){
-    //console.log('Showing the Movies List');
-    this.movie = this.getMovie(0);
+    console.log('Showing the Movies List');
     var me = this;
     this.listMovies(null, function(ml){
+        console.log('Running the Movies List setup');
         me.store.movies = ml;
         me.moviesListView = new telllSDK.View.MoviesList( me );
-        me.moviesListView.on('selected', function(m){
-            // TODO it produces a bug, fix please!
-            me.movie = me.getMovie(m.id, function (){
-               if(cb) cb(me.movie);
+        me.moviesListView.once('selected', function(m){
+            console.log("Movie selected: ", m);
+            me.getMovie(m.id, function (movie){
+               console.log("Telll.showMoviesList callback from getMovie:" , movie);
+               // assign movie to me!!!
+               me.movie = movie;
+               if(cb) cb(movie);
             });
         });
     });
@@ -350,17 +379,38 @@ Telll.prototype.showTelllBtn = function(trkm){
 };
 
 /**
+* Load movieId in this.movie 
+* forward the callback to Movie.read()
 * @param movieId {}
 * @param cb callback
 * @return bool
 */
 Telll.prototype.getMovie = function(movieId, cb){
-    if (this.credentials.authKey){ 
+    if (this.credentials.authKey){
+        if (!this.movie)
         this.movie = new telllSDK.TWS.Movie(this);
 	this.movie.read(movieId, cb);
     }
+    return false;
+};
+
+/**
+* @param movieId {}
+* @param cb callback
+* @return bool
+*/
+Telll.prototype.getPhotolinksOfMovie = function(movieId, cb){
+    console.log("Telll.getPhotolinksOfMovie: Reading photolinks of movie: "+movieId);
+    if (this.credentials.authKey){ 
+        if (!this.movie)
+        this.movie = new telllSDK.TWS.Movie(this);
+	this.movie.readPhotolinks(movieId, cb);
+    }
+    console.log("Telll.getPhotolinksOfMovie: Reading photolinks of movie: done!!!");
     return this.movie;
 };
+
+
 
 /**
  * Save movie data from form
@@ -373,6 +423,7 @@ Telll.prototype.saveMovie = function(data, cb){
     data.forEach(function(e){
         result[e.name]=e.value;
     });
+    if (!this.movie)
     this.movie = new telllSDK.TWS.Movie(this);
     this.movie.save(result, cb);
 };
@@ -388,6 +439,7 @@ Telll.prototype.deleteMovie = function(data, cb){
     data.forEach(function(e){
         result[e.name]=e.value;
     });
+    if (!this.movie)
     this.movie = new telllSDK.TWS.Movie(this);
     this.movie.delete(result, cb);
 };
@@ -459,18 +511,21 @@ Telll.prototype.getTrackms = function(trkId){
 };
 
 /**
-* @param m {Movie} 
+* @param id {Integer} 
 * @param cb {} Callback 
 * @return {null}
 */
-Telll.prototype.getTracks = function(m, cb){
+Telll.prototype.getTracks = function(id, cb){
+    console.log("Getting tracks with cws ...");
+    console.log("For movie: ", id);
     var ret = this.cws.cmd.trackmotions_from_movie({
         api_key:    this.credentials.apiKey,
         auth_key:   this.credentials.authKey,
-	movie: parseInt(m.id)
+	movie: parseInt(id)
     }, function(response) {
         if(cb) cb(response.error, response.data);
     });
+    console.log(ret);
 };
 
 

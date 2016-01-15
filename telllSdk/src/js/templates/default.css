@@ -24,17 +24,32 @@ float:right;
 margin-right: 3px;
 }
 div.movies-list-titlebar.widget-titlebar div.logo-86x86 {
-position:relative;
-float:right;
+position: relative;
+float: left;
 width: 30px;
 height: 30px;
 margin-bottom: 3px;
 margin-top: 3px;
-margin-right: 3px;
+margin-right: 10px;
 right: 0px;
 top: -5px;
 }
-
+div.logo-86x86.flat{
+bottom: 2px;
+right: 2px;
+}
+div.logo-86x86.panel{
+bottom: 130px;
+right: 20px;
+}
+div.logo-86x86.controls{
+bottom: 130px;
+right: 20px;
+}
+div.logo-86x86.controls-panel{
+bottom: 130px;
+right: 20px;
+}
 div.telll-dialog{
 color: white;
 position: absolute;
@@ -73,7 +88,6 @@ z-index: 9999;
 width: 90%;
 height: 90%;
 }
-
 
 form {
   margin: 0;
@@ -128,7 +142,7 @@ form div {
 form fieldset div.notes {
   float: right;
   height: auto;
-  margin: 0 0 10px 10px;
+  margin: initial;
   padding: 5px;
   border: 1px solid #666666;
   background-color: #fff;
@@ -139,7 +153,8 @@ form fieldset div.notes {
 form fieldset div.notes h4 {
   background-repeat: no-repeat;
   background-position: top left;
-  padding: 3px 0 3px 27px;
+  margin: initial;
+  padding: initial;
   border-width: 0 0 1px 0;
   border-style: solid;
   border-color: #666666;
@@ -298,12 +313,17 @@ form div small {
   font-size: 88%;
   zoom: 1;
 }
+
 div.logo-86x86{
-background-size: 30px;
-position: absolute;
-right: 5px;
-top: 23px;
-width: 30px;
+position: fixed ;
+right: 2px      ;
+bottom: 2px     ;
+top: initial    ;
+margin: 0px     ;
+background-size: 25px ;
+width: 25px ;
+height: 25px ;
+z-index:9999999999;
 }
 .logo-86x86{
 background-size: 86px 86px;
@@ -329,7 +349,6 @@ max-width: 1096px;
 min-width: 480px;
 min-height: 200px;
 max-height: 1096px;
-margin-top: 20px;
 }
 form fieldset legend {
   padding: 0 5px;
@@ -340,12 +359,12 @@ form div {
   padding: 1px 3px;
 }
 form fieldset div.notes {
-  width: 158px;
-  margin: 0 0 10px 10px;
-  padding: 5px;
+  margin: initial;
+  padding: initial;
+
 }
 form fieldset div.notes h4 {
-  padding: 3px 0 3px 27px;
+  padding: initial;
 }
 form fieldset div.notes p {
   margin: 0em 0em 1.2em 0em;
@@ -435,13 +454,7 @@ form div {
   margin: 5px 0 0 0;
   padding: 1px 3px;
 }
-form fieldset div.notes {
-  width: 158px;
-  margin: 0 0 10px 10px;
-  padding: 5px;
-}
 form fieldset div.notes h4 {
-  padding: 3px 0 3px 27px;
 }
 form fieldset div.notes p {
   margin: 0em 0em 1.2em 0em;
@@ -531,11 +544,6 @@ form div {
   width: 300px;
   margin: 5px 0 0 0;
   padding: 1px 3px;
-}
-form fieldset div.notes {
-  width: 158px;
-  margin: 0 0 10px 10px;
-  padding: 5px;
 }
 form fieldset div.notes h4 {
   padding: 3px 0 3px 27px;
@@ -629,12 +637,9 @@ form div {
   padding: 1px 3px;
 }
 form fieldset div.notes {
-  width: 158px;
-  margin: 0 0 10px 10px;
   padding: 5px;
 }
 form fieldset div.notes h4 {
-  padding: 3px 0 3px 27px;
 }
 form fieldset div.notes p {
   margin: 0em 0em 1.2em 0em;
@@ -703,4 +708,66 @@ form div small {
 }
  
 
+.tag{
+position:absolute;
+width:300px;
+height:250px;
+z-index:900000;
+}
+.tag-default{
+opacity:0.5;
+}
+.tag-none{
+opacity:0;
+}
+.tag-yellow{
+background:rgba(255,255,255,0.3);
+border: solid 3px yellow;
+}
+.tag-flash{
+background-image: url('../img/logo_01.gif');
+}
+.tag .clkbl{
+width:100%;
+height:100%;
+cursor:pointer;
+}
+.tag .tag-label{
+margin:auto;
+min-height: 30px;
+min-width:150px;
+/*margin-top: 15%;*/
+background: rgba(255,255,255,0.7);
+padding: 8px;
+display: table-cell;
+vertical-align: middle;
+color: black;
+}
+.tag .tag-label a:link{
+text-decoration:none;
+}
+.ui-dialog{
+z-index:900000 !important;
+}
+.ui-widget-overlay{
+z-index:800999 !important;
+}
+div#settingspanel {
+z-index:900000 !important;
+}
+div#telllspanel {
+z-index:900000 !important;
+}
+#telll-warn{
+background-image: url('../img/logo_3l_bbg.png');
+position:absolute;
+bottom:12px;
+right:12px;
+width:44px;
+height:44px;
+z-index: 800000;
+background-size: 44px 44px;
+display:none;
+cursor:pointer;
+}
 

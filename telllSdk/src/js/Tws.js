@@ -115,6 +115,26 @@ Tws.prototype.getMovie = function (id)
     return xhr;
 }
 
+/**
+ * getPhotolinksOfMovie 
+ * 
+ */
+Tws.prototype.getPhotolinksOfMovie = function (id)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie/'+id+'/photolinks', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
 
 /**
  * moviesList 

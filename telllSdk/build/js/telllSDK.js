@@ -11547,7 +11547,7 @@ Clickbox.prototype._init = function(t){
 * @return bool
 */
 Clickbox.prototype._showWidget = function(data){
-    console.log('Showing the clickbox');
+    //console.log('Showing the clickbox');
     var tmpl = require('./templates/clickbox.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
@@ -11558,11 +11558,10 @@ Clickbox.prototype._showWidget = function(data){
     this.state = "open";
     $(".telll-clickbox-widget .close").on( "click", function( e, data ) {
 	me.detach();
-        console.log('Clickbox closing ...');
     });
 
     // The popup 
-    $('<div class="popup-overlay"></div>').appendTo('body');
+    //$('<div class="popup-overlay"></div>').appendTo('body');
     $('<div id="popup-clickbox" class="popup"></div>').appendTo('body');
     $("#clickbox-widget").appendTo('#popup-clickbox').fadeIn();
     $('#popup-clickbox').css('z-index','999');
@@ -11576,9 +11575,10 @@ Clickbox.prototype._showWidget = function(data){
 * @return null
 */
 Clickbox.prototype.detach = function(){
+        console.log('Clickbox closing ...');
     $('.telll-clickbox-widget').detach();
-    $('.popup').detach();
-    $('div.popup-overlay').detach();
+    $('#popup-clickbox').detach();
+    //$('div.popup-overlay').detach();
     this.state = "detached";
 };
 
@@ -12150,6 +12150,10 @@ Login.prototype._init = function () {
 * @return bool
 */
 Login.prototype._showLoginWidget = function(data){
+    var telll = this.t;
+    var me = this;
+    me.state = "opened";
+    me.emit(me.state, me);
     // Create widget
     var tmpl = require('./templates/login_template.mtjs');
     var html = Mustache.render(tmpl.html, data);
@@ -12161,10 +12165,10 @@ Login.prototype._showLoginWidget = function(data){
     $(".telll-login-widget").appendTo('#popup-login').fadeIn();
     //$('#popup-movies-list').css('z-index','999');
     $('html').addClass('overlay');
-
-    // Behaviors
-    var telll = this.t;
-    var me = this;
+    this.centerPanel();
+    $( window ).resize(function() { me.centerPanel(); });
+    $(window).on('orientationchange', function() { me.centerPanel(); });
+   // Behaviors
     this.on( "authOk", function( data ) {
 	me.detach();
         //telll.setCookie('username',data.username,telll.conf.extime);
@@ -12204,6 +12208,22 @@ Login.prototype._showLoginWidget = function(data){
     });
     return true;
 };
+
+/**
+* @return null
+*/
+Login.prototype.centerPanel = function(){
+	console.log("centering login panel");
+  var height = $(window).height();
+  var panelSize = {
+    width:  $("div.telll-login-widget").width(),
+    height: $("div.telll-login-widget").height()
+  };
+  var marginTop = (height - panelSize.height) / 2 ;
+  if (marginTop < 0) marginTop = 0;
+  $("div.telll-login-widget").css("margin-top",marginTop+"px");
+};
+
 
 /**
 * @return null
@@ -12284,6 +12304,8 @@ MockPlayer.prototype._init = function (t)
     }
     else
     this._showWidget(t);
+    this.state = "init";
+    this.emit("init", null);
 }
 
 /**
@@ -12296,33 +12318,89 @@ MockPlayer.prototype._showWidget = function (t)
     var me = this;
     var telll = t;
     var movie = t.movie;
-    $("<div id='movie-player' style='display:none'><video src="+movie.url+" id='telll-movie' style='width:100%;height:100%;display:none'/><button class='movie'>Select Movie</button><button class='play'>Play</button><button class='pause'>Pause</button><button class='stop'>Stop</button><div id='title-pos'>telll MockPlayer: "+t.movie.title+"- <b>pos:</b><input id='pos'></div>").appendTo('body');
+    $("<div id='movie-player' class='mock' style='display:none'><div id='mock-buttons'><button class='play'>Play</button><button class='pause'>Pause</button><button class='stop'>Stop</button></div><div id='title-pos'><button class='movie'>Select Movie</button>: "+t.movie.title+"- <b>pos:</b><input id='pos'></div>").appendTo('body');
+    //$("<video controls webkit-playsinline src='"+movie.url+"' id='telll-movie' style='width:100%;height:100%;display:none'/>").appendTo("#movie-player");;
+    ////////////////////////////////////////////////////////////
+    // to work with inline video on iphone see http://apple.co/1VQRL58
+    this.video = document.createElement('video');
+    this.video.setAttribute('webkit-playsinline', 'true');
+    this.video.setAttribute('src', movie.url);
+    this.video.setAttribute("id", "telll-movie");
+    document.body.appendChild(this.video); // append video to DOM
+    ////////////////////////////////////////////////////////////
+    $("#telll-movie").appendTo("#movie-player"); // return to jquery
+    //$("#telll-movie").attr("webkit-playsinline", true);
+    //$("#telll-movie").attr("src", movie.url);
     $('#movie-player .movie').on('click', function (e){me.selectMovie()});
     $('#movie-player .play').on('click', function (e){me.play()});
     $('#movie-player .pause').on('click', function (e){me.pause()});
     $('#movie-player .stop').on('click', function (e){me.stop()});
-    this.video = document.getElementById('telll-movie');
-    this.video.preload = "auto";
-    this.video.controls = true;
+    //this.video = document.getElementById('telll-movie');
+    //this.video.preload = "auto";
+    //this.video.controls = true;
+    this.loadBehaviors(t);
+    this.video.load();
+    this.video.play();
+    $('#movie-player').fadeIn();
+    $('#telll-movie').fadeIn();
+}
+ /**
+ * 
+ * @param t {Telll}
+ */
+MockPlayer.prototype.loadBehaviors = function (t)
+{
+    var me = this;
+    var telll = t;
+    var movie = t.movie;
+    ///////////////////////////
+    // mirror some video events
     this.video.onloadstart = function() {
         me.state = "loaded";
         me.emit('loaded', movie );
-        $('#movie-player').fadeIn();
-        $('#telll-movie').fadeIn();
+       // TODO if it is an iphone do something!!! 
+        var agent = navigator.userAgent.toLowerCase();
+        if (agent.indexOf('iphone') >= 0){
+		// what can i do? :p
+        } 
+    };
+    this.video.onplaying = function() {
+       me.state = "playing";
+       me.emit('playing', movie );
     };
     this.video.oncanplaythrough = function() {
        telllDialog("Playing: "+movie.url, 2000);
        me.state = "canplaythrough";
-       me.emit(me.state, movie );
+       me.emit("canplaythrough", movie );
        me.play();
     }; 
     this.video.ontimeupdate = function(){
-        me.time = me.video.currentTime;
-        me.emit( 'timeupdate', me.time );
+        me.timeupdate();
         $('#pos').val(me.time);
     };
-}
- 
+    this.video.onpause = function(){
+        me.time = me.video.currentTime;
+        me.state = "pause";
+        me.emit( 'pause', me.time );
+    };
+    this.video.ended = function(){
+        me.time = me.video.currentTime;
+        me.state = "ended";
+        me.emit( 'ended', me.time );
+    };
+     ////////////////////////////
+};
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.timeupdate = function ()
+{
+        this.time = this.video.currentTime;
+        this.emit( 'timeupdate', this.time );
+};
+
 /**
  * 
  * @param error
@@ -12355,7 +12433,7 @@ MockPlayer.prototype.pause = function (evt, callback)
 MockPlayer.prototype.stop = function (evt, callback)
 {
     this.time = 0;
-    this.state = "stoped";
+    this.state = "stop";
     this.emit("stop", this.time);
     this.video.pause();
     this.video.currentTime = 0;
@@ -12399,6 +12477,15 @@ MockPlayer.prototype.detach = function(){
     this.emit("detach", this.time);
 };
 
+/**
+* @return null
+*/
+MockPlayer.prototype.atach = function(){
+    this._showWidget(this.t);
+    this.state = "atached";
+    this.emit("atached", this.time);
+};
+
 
 
 
@@ -12421,6 +12508,8 @@ Movie.prototype =Object.create(iData.prototype);
 Movie.prototype._init = function(t){
     this.t = t;
     this.title = "none";
+    console.log("Movie: new movie init done!");
+    console.log(this);
 };
 
 /** 
@@ -12453,8 +12542,9 @@ Movie.prototype.update = function (data, cb)
 };
 
 /** 
- * Read
+ * Read a movie id and when done callback(me)
  * @param id integer
+ * @return nulll
  * */
 Movie.prototype.read = function (id, cb)
 {
@@ -12465,12 +12555,38 @@ Movie.prototype.read = function (id, cb)
             var jsData = JSON.parse(this.responseText);
             if (jsData.errors) alert("Error: "+JSON.stringify(jsData.errors[0].message));
             else {
+                console.log("Movie : ", me);
+                console.log("Movie read: ", jsData);
                 me.merge(jsData);
-	        if(cb) cb(jsData);
+                console.log("Movie : ", me);
+	        if(cb) cb(me);
 	    } 
         });	
     }
 };
+
+/** 
+ * ReadPhotolinks
+ * @param id integer
+ * */
+Movie.prototype.readPhotolinks = function (id, cb)
+{
+    console.log("Movie "+id+" reading photolinks")
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.getPhotolinksOfMovie(id);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert("Error: "+JSON.stringify(jsData.errors[0].message));
+            else {
+                me.merge(jsData);
+                console.log("Movie "+id+" read photolinks done ...");
+	        if(cb) cb(jsData, id);
+	    } 
+        });	
+    }
+};
+
 
 /** 
  * Save
@@ -12546,6 +12662,7 @@ MoviesList.prototype._init = function(t){
 * @return bool
 */
 MoviesList.prototype._showWidget = function(data){
+    console.log('MoviesList: opening ...');
     var tmpl = require('./templates/movies_list.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
@@ -12561,6 +12678,7 @@ MoviesList.prototype._showWidget = function(data){
     //$('#popup-movies-list').css('z-index','999');
     $('html').addClass('overlay');
 
+    console.log('MoviesList: opening ... ok');
     /* // other buttons
     $( ".tag-titlebar button.trackms" ).on("click", function(e) {
         e.preventDefault();
@@ -12580,16 +12698,18 @@ MoviesList.prototype._showWidget = function(data){
     $( ".movies-list-titlebar button.close" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
-	me.state = "selected";
+	me.state = "detached";
 	me.detach();
     });
 
     $( ".movie-thumb" ).on("click", function(e) {
+        console.log("Click");
         e.preventDefault();
-        var movie = JSON.parse($(this).attr('data'));
+        var movieData = JSON.parse($(this).attr('data'));
+        console.log("Clicked!!!: ", movieData);
         me.state = 'selected';
-        me.emit(me.state, movie);
-        telll.setCookie('movieId',movie.id,telll.conf.extime);
+        me.emit(me.state, movieData);
+        telll.setCookie('movieId',movieData.id,telll.conf.extime);
 	me.detach();
     });
     
@@ -12606,6 +12726,7 @@ MoviesList.prototype._showWidget = function(data){
         $(this).find('.movie-label').fadeOut();
     });
 
+    console.log('MoviesList: opening ... done');
     return true;
 };
 
@@ -12658,7 +12779,11 @@ PhotolinksList.prototype =Object.create(iView.prototype);
 */
 PhotolinksList.prototype._init = function(t){
     this.state = null;
-    this._showWidget(t.store);
+    var me = this;
+    t.getPhotolinksOfMovie(t.movie.id, function(pl){
+       me.list = pl;
+       me._showWidget(t.store);
+    });
     return null;
 };
 
@@ -12669,22 +12794,23 @@ PhotolinksList.prototype._init = function(t){
 * @return bool
 */
 PhotolinksList.prototype._showWidget = function(data){
-    console.log('Showing the photolinks-list-widget');
     var tmpl = require('./templates/panel.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
     $('<style id="panel-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
     this.state = "open";
+    this.emit(this.state, this.list);
     var telll = this.t;
     var me = this;
+/*
     $( "#close-button" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
 	me.state = "sent";
 	me.detach();
     });
-
+*/
     $("div#telll-controls").fadeIn();
 
 
@@ -12862,7 +12988,7 @@ PhotolinksList.prototype._showWidget = function(data){
  *
  */
 PhotolinksList.prototype.highlightPhotolink = function(n){
-    pls = $("#panel").find('.frame-icon img');
+    var pls = $("#panel").find('.frame-icon img');
     console.log('---> '+n);
     console.log(pls.eq(n));
     pls.each(function(i){
@@ -12939,7 +13065,6 @@ TagEditor.prototype._showWidget = function(data){
     var me = this;
 
     // The player 
-    //TODO: not the MockPlayer!!! How to use Youtube or Projekktor?
     var mvPlayer = new telllSDK.View.MockPlayer(telll);
     var tgPlayer = new telllSDK.View.TagPlayer(telll, mvPlayer);
     me.sync(mvPlayer);
@@ -12976,8 +13101,18 @@ TagEditor.prototype._showWidget = function(data){
 	me.state = "sent";
 	me.detach();
     });
+    this.formatScreen();
+    $( window ).resize(function() { this.formatScreen(); });
+    $(window).on('orientationchange', function(event) { this.formatScreen(); });
 }
-
+/**
+* @return null
+*/
+TagEditor.prototype.formatScreen = function(){
+    $('#telll-movie').width($(window).width());
+    if ($("#telll-movie").height() > $(window).height()) $("#telll-movie").height( $(window).height() );
+};
+ 
 /**
 * @return null
 */
@@ -13085,7 +13220,7 @@ function TagPlayer(t, mp){
 		alert ('Error: TagPlayer not working. Talk with the system administrator, please. '+mp.error)} else {
     this.t = t;
     this.mp = mp;
-    this.state = null;
+    this.state = 'new';
     this._init(t);
 	}
 }
@@ -13099,28 +13234,246 @@ TagPlayer.prototype =Object.create(iView.prototype);
 */
 TagPlayer.prototype._init = function(t){
     var me = this;
+    this.animations = [];
+    this.tag; this.actualPhotolink; this.highlightedPhotolink;
     this.state = "init";
-    this.emit(this.state);
-    this._showWidget(t.store);
-    this.sync(this.mp);
+    this.emit('init');
+    console.log("Init TagPlayer ...");
+    console.log("TagPlayer movie ...", t.movie);
+    var mid = parseInt(t.movie.id);
+    //console.log("with movie: "+mid);
+    //console.log(t.movie);
+    //console.log("Init TagPlayer load tags ...");
+    this.loadTags(mid, function (theStore){me._showWidget(theStore)});
+    console.log("Init TagPlayer behaviors ...");
+    this.loadBehaviors();
+    console.log("Init TagPlayer  done!!!");
     return null;
-}
+};
+
+/**
+* @return bool
+*/
+TagPlayer.prototype.loadBehaviors = function(){
+console.log("Sync TagPlayer with Movie Player: !!");
+        var me = this;
+        var mp = this.t.moviePlayerView;
+	mp.on('loaded', function(m){
+		console.log('Loaded on TagPlayer: ', m);
+		// get trackms for this movie
+	});
+	mp.on('playing', function(t){
+	      console.log('Playing',t);
+              console.log( "Show TagPlayer when playing ...");
+              console.log( me.state );
+              if ( me.state == 'init' || me.state == 'detach'  ){ 
+                   console.log( "Show TagPlayer!!!");
+                   me.show();
+              }
+	});
+	mp.on('timeupdate', function(t){
+		me.handleTag(t);
+	});
+	/*mp.on('pause', function(t){
+		console.log('Paused', t);
+                me.pause();
+	});
+	mp.on('stop', function(t){
+		console.log('Stoped', t);
+                me.detach();
+	});*/
+        $(".logo-86x86").addClass("flat");
+        $("body").mousemove(function(event){
+            me.handleState(function(classe, i){
+               if (! $(".logo-86x86").hasClass(classe[i])){
+                   $.each(classe, function(tc){
+                       $(".logo-86x86").removeClass(classe[tc])
+                   }); 
+                   $(".logo-86x86").removeAttr("style"); 
+                   $(".logo-86x86").addClass(classe[i])
+               }
+            });
+        });
+/*
+        $('.ppcontrols').on('cssClassChanged', function() {
+            console.log("Screen controls changed");
+            me.handleState({x:event.pageX,y:event.pageY}, function(classe, i){
+               if (! $(".logo-86x86").hasClass(classe[i])){
+                   console.log("Screen status moved to: "+ classe[i]);
+                   $.each(classe, function(tc){
+                       console.log("Screen removing class:",classe[tc])
+                       $(".logo-86x86").removeClass(classe[tc])
+                   }); 
+                   $(".logo-86x86").removeAttr("style"); 
+                   $(".logo-86x86").addClass(classe[i])
+               }
+            });
+        });
+*/
+        console.log("TagPlayer sync: done!!!");
+        return null;
+};
+
+/** 
+ * Telll movie player has 4 possible screen status:
+ *
+ * - flat: movie controls and panel closed
+ * - controls: movie controls opened and panel closed
+ * - panel: movie controls closed and panel opened
+ * - controls-panel: movie controls and panel opened
+ *
+ * @param cb {Function} Callback
+ */
+TagPlayer.prototype.handleState = function(cb) {
+        setTimeout(function(){
+        var classe = ["flat","controls","panel","controls-panel"];
+        var state = {controls:"closed",panel:"closed"};
+        var i = 0 ;
+        // See the screen status and return the class to be applyed
+        // TODO .ppcontrols is the control from PRJK, what about mockPlayer ?
+        if ($(".ppcontrols").hasClass("active")){ state.controls = "opened" }
+        else if ($(".ppcontrols").hasClass("inactive")){ state.controls = "closed" }
+        if ($("#photolinks-list-widget").hasClass("active")){ state.panel = "opened" }
+        else if ($("#photolinks-list-widget").hasClass("inactive")){ state.panel = "closed" }
+        if (state.controls == "closed" && state.panel == "closed") i = 0;
+        if (state.controls == "opened" && state.panel == "closed") i = 1;
+        if (state.controls == "closed" && state.panel == "opened") i = 2;
+        if (state.controls == "opened" && state.panel == "opened") i = 3;
+        if (cb) cb(classe, i);
+        }, 200);
+};
+
+/**
+ *
+ * @param mid {Integer} The movie id 
+ * @param cb {function} callback
+ * @return bool
+ */
+TagPlayer.prototype.loadTags = function(mid, cb){
+    t = this.t;
+    me = this;
+    console.log("TagPlayer.loadTags: loading photolins and tracks for movie "+mid); 
+    t.getPhotolinksOfMovie(mid, function(pl, rid){
+       console.log("    The movie photolinks");
+       console.log("    with movie: "+rid);
+       console.log(pl);
+       me.list = t.store.photolinks = pl.photolinks;
+       console.log("TagPlayer.loadTags: call t.getTracks ..."); 
+       t.getTracks(rid, function(e, d){
+             console.log("Callback from telll.getTracks from TagPlayer init ... ");
+	     console.log(d);
+             if (e) { 
+                 alert (e.message);
+                 throw(e.message);
+             }
+             me.tags = t.store.tags = d.trackmotions.concat(t.store.tags);
+             me.state = "loaded";
+             me.emit('loaded');
+             //t.store.tags = me.list.concat(t.store.tags); 
+             console.log("TagPlayer: the store", t.store);
+             console.log("TagPlayer: the list", me.list);
+             t.store.getLabel = function(){
+                 var label = "Telll Photolink";
+                 //console.log("Label:");
+                 //console.log(this);
+                 //console.log(me.list);
+                 //console.log("TagPlayer: the store",t.store);
+                 t.store.photolinks.forEach(function(p){
+                       //console.log(p);
+                       if (p.photolink.id == this.photolink ) label = p.photolink.title;
+                 });  
+                 return label;
+             }    
+             t.store.getImage = function(){
+                 var src  = "img/tag_default.png";
+                 t.movie.photolinks.forEach(function(p){
+                       if (p.photolink.id == this.photolink ) src = p.thumb;
+                 });  
+                  return src; 
+             }
+             if (cb) cb(t.store);
+             console.log("TagPlayer: loading photolins and tracks done getPhotolinks!! "); 
+       });
+       console.log("TagPlayer: loading photolins and tracks done getTracks!! "); 
+    });
+    console.log("TagPlayer: loading photolins and tracks done!! "); 
+};
+
+/**
+ * Needs to load tags ans photolinks in store first
+ * @return bool
+ */
+TagPlayer.prototype.show = function(){
+    console.log("Showing TagPlayer widget ...");
+    this.t.store.getLabel = function () {
+         var label = "Telll Photolink";
+/*
+         if (this.t.store.photolinks)
+         this.t.store.photolinks.forEach(function(p){
+               if (p.photolink.id == this.photolink ) label = p.photolink.title;
+         });
+*/
+         return label;
+     }
+     this.t.store.getImage = function () {
+         var src  = "img/tag_default.png";
+/*
+         if (this.t.movies.photolinks)
+         this.t.store.photolinks.forEach(function(p){
+               if (p.photolink.id == this.photolink ) src = p.thumb;
+         });
+*/
+         return src;
+     }
+    this._showWidget(this.t.store);
+    this.animations.forEach(function(a){
+        a.resume();
+    });
+    this.viewMode("none"); 
+}; 
+
+/**
+ * @return bool
+ */
+TagPlayer.prototype.pause = function(){
+    console.log("TagPlayer widget paused ...");
+    this.animations.forEach(function(ttimer){
+        ttimer.pause();
+    });
+    if (this.state == "show") this.detach();
+}; 
+
+
+/**
+ * @return bool
+ */
+TagPlayer.prototype.detach = function(){
+    console.log("Detaching TagPlayer widget ...");
+    //throw("See!!!");
+    $("div#telll-tag-player-widget").remove();
+    $("#tag-player-css").remove();
+
+    //$(".tag").detach();
+    this.state = "detach";
+    this.emit("detach" );
+}; 
+
 
 /**
  *
  * @param data {} 
  * @return bool
  */
-TagPlayer.prototype._showWidget = function(data){
+TagPlayer.prototype._showWidget = function(store){
+    console.log("Running to show TagPlayer ...");
     var tmpl = require('./templates/tagplayer.mtjs');
-    var html = Mustache.render(tmpl.html, data);
+    var html = Mustache.render(tmpl.html, store);
     if (tmpl.css)
-    $('<style id="tag_player-css">'+tmpl.css+'</style>').appendTo('head');
+    $('<style id="tag-player-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
-    var telll = this.t;
-    var me = this;
-    this.state = "showing";
-    this.emit(this.state,html );
+    this.state = "show";
+    this.emit("show", html );
+    console.log("Showing TagPlayer widget done!!!...");
     return true;
 };
 
@@ -13128,20 +13481,25 @@ TagPlayer.prototype._showWidget = function(data){
 * @param mp {iPlayer} The movie player to sync 
 * @param cb {} The callback
 * @return bool
-*/
-TagPlayer.prototype.sync = function(mp,cb){
+TagPlayer.prototype.follow = function(){
+        console,log("TagPlayer sync: Movie");
+        console.log(telll.movie);
         this.t.syncPlayer(this, mp, cb);
 	var telll = this.t;
 	var me = this;
+	telll.getTracks(telll.movie, function(e, d){
+             console.log("Callback from tell.getTracks from TagPlayer.sync ... ");
+	     console.log(e);
+	     console.log(d);
+             if (e) alert (e.message);
+             throw(e.message);
+             me.state = "loaded";
+             me.emit('loaded');
+	});
+
 	mp.on('loaded', function(m){
-		console.log('Loaded', m);
+		console.log('Loaded on TagPlayer: ', m);
 		// get trackms for this movie
-	//	telll.getTracks(m);
-		telll.getTracks(m, function(e, d){
-			console.log(e);
-			console.log(d);
-                     this.state = "loaded";
-		});
 	});
 	mp.on('playing', function(t){
 		console.log('Playing',t);
@@ -13155,8 +13513,294 @@ TagPlayer.prototype.sync = function(mp,cb){
 	mp.on('stoped', function(t){
 		console.log('Stoped', t);
 	});
+        console,log("TagPlayer sync: done!!!");
         return null;
+};
+*/
+/**
+* @return null
+*/
+TagPlayer.prototype.scrollPhotolinksPanel = function(){
+  console.log('Implement method scrollPhotolinksPanel');
+};
+
+/**
+* @return null
+*/
+TagPlayer.prototype.flashIcon = function(){
+  console.log('Implement method flashIcon');
+};
+
+
+/** 
+* @param mode {String} default or none
+* @return null
+*/
+TagPlayer.prototype.viewMode = function(mode){
+    console.log("Seting viewMode to: " + mode );
+    if ( mode == "default" )$("#telll-tag-player-widget").addClass("tgp-default").removeClass("tgp-none");
+    if ( mode == "none" )$("#telll-tag-player-widget").addClass("tgp-none").removeClass("tgp-default");
+    return null
 }
+
+
+
+/**
+* @return null
+*/
+TagPlayer.prototype.getTracks = function(){
+  console.log('Implement method getTracks');
+};
+
+/**
+* @return null
+*/
+TagPlayer.prototype.playTrackms = function(p1, p2){
+  console.log('Playing tag', this.tag);
+  var me = this;
+  // TODO its suposed to be in css ... hmmmm
+  $("#telll-tag-player-widget").css({
+      "overflow":"hidden",
+      "width": "200px",
+      "height":"120px",
+      "position": "absolute",
+      "top" :"100px",
+      "z-index": 99999999,
+      /*"opacity":0.5,*/
+      "background": "white"
+  });
+  // it a widget but we want to avoid some behaviors ... :)
+  $("#telll-tag-player-widget").removeClass("telll-widget");
+  $('.tag').removeClass('tag-none');
+  $('.tag').removeClass('tag-flash');
+  $('.tag').removeClass('tag-yellow');
+  $('.tag').addClass('tag-default');
+
+  // show the actual tag
+
+  /**
+  * begin the animation
+  */
+  me.viewMode("none");
+  var animation = new telllTimer( function(){
+      //$("#telll-tag-player-widget").fadeOut();
+      me.viewMode('none');
+      //$('.tag').removeClass('tag-default');
+      //$('.tag').removeClass('tag-flash');
+      //$('.tag').removeClass('tag-yellow');
+      //$('.tag').addClass('tag-none');
+      //me.detach();
+      me.t.store.tags[i].stopped = 1;
+      console.log('TagPlayer Stoping tag', me.tag);
+  }, 1000 * (p2 - p1));
+  console.log(animation);
+  this.animations.push( animation );
+  for (var i=0; i<this.tag.points.length-1; i++){
+       var pt = this.tag.points[i];  //this point
+       var xpt= this.tag.points[i+1];//next point
+       var mp = me.t.movie.time;     //movie position
+       if (pt.t < mp ){
+            if (i == this.tag.points.length-2){
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, 0, xpt.t-mp, this.tag.photolink,true);
+            } else {
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, 0, xpt.t-mp, this.tag.photolink, false);
+            }
+       } else {
+            if (i == this.tag.points.length-2){
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, pt.t-mp, xpt.t-pt.t, this.tag.photolink, true);
+            } else {
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, pt.t-mp, xpt.t-pt.t, this.tag.photolink, false);
+            }
+       }
+  }
+};
+
+/** animTag
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @param tout
+ * @param time
+ * @param plId
+ * @param last
+**/
+//var animT = [];
+TagPlayer.prototype.animTag = function (x1, y1, x2, y2, tout, time, plId, last){
+     console.log("Animating tag ...");
+     var me = this;
+     // using miliseconds
+     tout = tout*1000;
+     time = time*1000;
+
+     vOffset = $('video').offset();
+     vWidth  =  $('video').width();
+     vHeight =  $('video').height()
+     x1=Math.round(vWidth*x1/100+vOffset.left);
+     x2=Math.round(vWidth*x2/100+vOffset.left);
+     y1=Math.round(vHeight*y1/100+vOffset.top);
+     y2=Math.round(vHeight*y2/100+vOffset.top);
+     console.log("Animating tag begin ...");
+     console.log(me.t.store.photolinks, plId);
+     var myPl = me.t.store.photolinks[plId];
+
+     console.log("Animating tag going ...", myPl);
+     $('div#telll-tag-player-widget').css({'left':x1,'top':y1});
+     $('div#telll-tag-player-widget').css({'width':'20%','height':'18%'});
+     //$('div#telll-tag-player-widget').fadeIn();
+
+     $('div#telll-tag-player-widget').animate({
+           'left':x2,
+           'top':y2,
+     },time,function(){
+           // done
+
+     });
+     console.log("Animating tag ended ...");
+};
+
+/*     var handle = setTimeout (function(t){
+          // Create the tag if it doesn't exist
+          if( !$('#pl-'+plId).length ){
+            //$("body").append('<div id="pl-'+plId+'" class="tag tag-none"><div class="clkbl"><div class="tag-label"><a target="_blank" href="'+myPl.links[0].url+'">'+myPl.links[0].title+'</a></div></div></div>');
+            $("body").append('<div id="pl-'+plId+'" class="tag tag-none"><div class="clkbl"><div class="tag-label">'+myPl.links[0].title+'</div></div></div>');
+            $('#pl-'+plId).css({'left':x1,'top':y1});
+            $('#pl-'+plId).css({'width':'20%','height':'18%'});
+            $('#pl-'+plId).fadeIn();
+
+            // When double clicked -> Dialog with link
+            //$('#pl-'+plId+' *').dblclick(function (e) {
+            $('#pl-'+plId+' *').doubletap(function (e) {
+    console.log('Double Click!!!');
+            me.t.moviePlayerView.pause();
+                // show dialog with photolinked webpage
+    	    $('body').append('<div id="ph-dialog-'+plId+'"><iframe width="100%" height="100%" src="/cgi-bin/mirror.pl?url='+myPl.links[0].url+'"></div>');
+*/
+
+/*    	    $( "#ph-dialog-"+plId ).dialog({
+    	           modal: true,
+                       width: '80%',
+                       height: theHeight - 5,
+                       title: myPl.links[0].title,
+    	           buttons: {
+    	    	 Close: function() {
+    	    	   $( this ).dialog( "close" );
+    	    	 }
+    	           }
+    	    });
+                $( "#ph-dialog-"+plId ).dialog( "open" );
+*/
+/*
+                telllPopup($( "#ph-dialog-"+plId ) );
+    	},
+            // When single clicked -> Send photolink
+            //$('#pl-'+plId+' *').click(
+            function (e) {
+    console.log('Single Click!!!');
+                //sendPhotolink(plId);
+    	},400);
+          } // Tag created. Animate it!
+*/
+          //$('#pl-'+plId).animate({
+
+/*
+      },tout);
+
+      // save timeout at stack
+      animT.push(handle);
+      // if it's the last animation fadeout after done
+      handle = setTimeout (function(t){
+          if(last) $('#pl-'+plId).fadeOut(200,function(){});
+      },tout+time);
+      animT.push(handle);
+};
+*/
+
+
+
+
+
+
+/**
+* Traverse the tags to find a trackmotion begining to play now
+* Register the tag found and play it
+* 
+* #param t {Integer}
+* @return bool
+*/
+TagPlayer.prototype.handleTag = function(t){
+        for (var i = 0; i < this.t.store.tags.length; i++) {
+          var p2 = this.t.store.tags[i].points[0].t;
+          var p1 = p2;
+          for (var j = 0; j < this.t.store.tags[i].points.length; j++) {
+             var tp = this.t.store.tags[i].points[j].t;
+             if (tp > p2) p2 = tp;
+             if (tp < p1) p1 = tp;
+          }
+          if (t >= p1 && t <= p2) { // It's playing now!
+            this.tag = this.t.store.tags[i];
+            if (this.t.store.tags[i].stopped) {
+		  console.log("PLAYTAG");
+              this.t.store.tags[i].stopped = 0;
+              // scroll photolink panel to here
+              this.actualPhotolink = this.t.store.tags[i].photolink;
+	      this.emit("tag", actualPhotolink );
+              this.scrollPhotolinksPanel(this.actualPhotolink - this.highlightedPhotolink);
+              this.playTrackms(p1,p2); // animate tag
+              this.tagWarn(parseInt((p2 - p1)*1000)); // warn the user that have a tag here
+            }
+          } else {
+            this.t.store.tags[i].stopped = 1;
+          }
+        }
+        return null;
+};
+
+/** 
+* the telll logo button is allways in the titlebar.
+* on called tagWarn the logo comes to body for time 
+* @param time {Integer} in milisseconds
+*/
+TagPlayer.prototype.tagWarn = function (time) {
+    var myPlace = $('.logo-86x86').parent();
+    console.log("Append to body ",$("body"),"From ", myPlace);
+    //verify if it still is in the body
+   if (($("body")[0] != myPlace[0]  )){
+    $('.logo-86x86').appendTo("body");
+    $('.logo-86x86').css({position:"absolute","z-index":9999999999999});
+    $(".logo-86x86").fadeIn(100, function() {
+        setTimeout(function() {
+            console.log("Append to bar: ",myPlace);
+            if ( ( myPlace && $("body")[0] != myPlace[0] ) ) {
+              myPlace.append($(".logo-86x86"));
+              $(".logo-86x86").removeAttr("style").hide();
+            } else { console.log("Still in the bar!!!");}
+        }, time);
+    });
+    } else { console.log("Still in the body!!!");
+    }
+}
+
+/**
+* @return null
+*/
+
+TagPlayer.prototype.attach = function(){
+  console.log('Implement method attach');
+};
+/**
+* @return null
+*/
+TagPlayer.prototype.open = function(){
+  console.log('Implement method open');
+};
+
+/**
+* @return null
+*/
+TagPlayer.prototype.close = function(){
+  console.log('Implement method close');
+};
 
 
 module.exports = {TagPlayer:TagPlayer};
@@ -13359,8 +14003,9 @@ Telll.prototype.logout = function(cb) {
 * @return bool
 */
 Telll.prototype.syncPlayer = function(t, m, cb) {
-    //console.log(t);
-    //console.log(m);
+    console.log("Syncing Player ..");
+    console.log(t);
+    console.log(m);
     m.on('timeupdate', function(time){
         t.time = time;
         t.emit( 'changeTime', t.time );
@@ -13370,6 +14015,7 @@ Telll.prototype.syncPlayer = function(t, m, cb) {
          //console.log(t.time);
     });
     if(cb) cb(t.time);
+    console.log("Syncing Player end!!!..");
 };
 
 
@@ -13395,24 +14041,23 @@ Telll.prototype.auth = function(data, cb){
 };
 
 /**
-* @return {null}
+* @return {iView} the PhotolinksList View
 */
 Telll.prototype.showPhotolinksList = function(){
-    //console.log('Showing the telll panel');
+    console.log('Showing the telll panel');
     // get movie and list of photolinks
+    var me = this;
     if (!this.movie) {
         alert('Please, select a movie first.');
         this.showMoviesList(function(m){
-            //console.log(" From Panel: my movie:");
-            //console.log(m);
             //register movie
-            //this.movie = m;
+            //me.movie = m;
             //get photolinks list
-            this.photolinksListView = new telllSDK.View.PhotolinksList( this );
+            me.photolinksListView = new telllSDK.View.PhotolinksList( me );
         });
     }
     else this.photolinksListView = new telllSDK.View.PhotolinksList( this );
-    return true;
+    return this.photolinksListView;
 };
 
 /**
@@ -13420,10 +14065,18 @@ Telll.prototype.showPhotolinksList = function(){
 * @listens MockPlayer
 */
 Telll.prototype.showMockPlayer = function(cb){
+    if (!this.moviePlayerView.state) {
+    console.log("Creating a new MockPlayer");
     this.moviePlayerView = new telllSDK.View.MockPlayer ( this );
-    this.moviePlayerView.on("loaded", function(){
+    this.moviePlayerView.once("loaded", function(movie){
+        console.log("MockPlayer loaded with ", movie);
         if (cb) cb(this);
     });
+    } else {
+      console.log("Using the same view ...");
+      this.moviePlayerView.atach();
+      if (cb) cb(this.moviePlayerView);
+    }
 };
 
 /**
@@ -13448,12 +14101,29 @@ Telll.prototype.showYoutubePlayer = function(){
 * @return {null}
 */
 Telll.prototype.showTagPlayer = function(player, cb){
-	var me = this;
-    this.tagPlayerView = new telllSDK.View.TagPlayer ( this, player );
-    this.tagPlayerView.on("showing", function(){
-	    //console.log('from telll.showTagPlayer ...');
-	    if (cb) cb( me.tagPlayerView );
-    });
+    var me = this;
+    var t = this.t;
+    console.log("Showing TagPlayer ...");
+    //console.log(this.tagPlayerView);
+    //console.log(player, cb);
+    //console.log(this.movie);
+    // prepare the store
+    //console.log("The telll store:");
+    //console.log(this.store);
+    //if (!this.tagPlayerView.state) {
+          console.log("Creating a new tag player");
+          this.tagPlayerView = new telllSDK.View.TagPlayer ( me, player );
+          console.log("Created a new tag player");
+          console.log(this.tagPlayerView);
+          if (cb) cb( me.tagPlayerView );
+/*    } else {
+          this.getPhotolinksOfMovie(t.movie.id, function(pl){
+             console.log("Reutilizing the tag player");
+             this.tagPlayerView.list = pl;
+             this.tagPlayerView.loadTags(t.movie.id);
+             if (cb) cb( me.tagPlayerView );
+          });
+    }*/
 };
 
 /**
@@ -13464,16 +14134,19 @@ Telll.prototype.showTagPlayer = function(player, cb){
 * @return {null}
 */
 Telll.prototype.showMoviesList = function(cb){
-    //console.log('Showing the Movies List');
-    this.movie = this.getMovie(0);
+    console.log('Showing the Movies List');
     var me = this;
     this.listMovies(null, function(ml){
+        console.log('Running the Movies List setup');
         me.store.movies = ml;
         me.moviesListView = new telllSDK.View.MoviesList( me );
-        me.moviesListView.on('selected', function(m){
-            // TODO it produces a bug, fix please!
-            me.movie = me.getMovie(m.id, function (){
-               if(cb) cb(me.movie);
+        me.moviesListView.once('selected', function(m){
+            console.log("Movie selected: ", m);
+            me.getMovie(m.id, function (movie){
+               console.log("Telll.showMoviesList callback from getMovie:" , movie);
+               // assign movie to me!!!
+               me.movie = movie;
+               if(cb) cb(movie);
             });
         });
     });
@@ -13514,17 +14187,38 @@ Telll.prototype.showTelllBtn = function(trkm){
 };
 
 /**
+* Load movieId in this.movie 
+* forward the callback to Movie.read()
 * @param movieId {}
 * @param cb callback
 * @return bool
 */
 Telll.prototype.getMovie = function(movieId, cb){
-    if (this.credentials.authKey){ 
+    if (this.credentials.authKey){
+        if (!this.movie)
         this.movie = new telllSDK.TWS.Movie(this);
 	this.movie.read(movieId, cb);
     }
+    return false;
+};
+
+/**
+* @param movieId {}
+* @param cb callback
+* @return bool
+*/
+Telll.prototype.getPhotolinksOfMovie = function(movieId, cb){
+    console.log("Telll.getPhotolinksOfMovie: Reading photolinks of movie: "+movieId);
+    if (this.credentials.authKey){ 
+        if (!this.movie)
+        this.movie = new telllSDK.TWS.Movie(this);
+	this.movie.readPhotolinks(movieId, cb);
+    }
+    console.log("Telll.getPhotolinksOfMovie: Reading photolinks of movie: done!!!");
     return this.movie;
 };
+
+
 
 /**
  * Save movie data from form
@@ -13537,6 +14231,7 @@ Telll.prototype.saveMovie = function(data, cb){
     data.forEach(function(e){
         result[e.name]=e.value;
     });
+    if (!this.movie)
     this.movie = new telllSDK.TWS.Movie(this);
     this.movie.save(result, cb);
 };
@@ -13552,6 +14247,7 @@ Telll.prototype.deleteMovie = function(data, cb){
     data.forEach(function(e){
         result[e.name]=e.value;
     });
+    if (!this.movie)
     this.movie = new telllSDK.TWS.Movie(this);
     this.movie.delete(result, cb);
 };
@@ -13623,18 +14319,21 @@ Telll.prototype.getTrackms = function(trkId){
 };
 
 /**
-* @param m {Movie} 
+* @param id {Integer} 
 * @param cb {} Callback 
 * @return {null}
 */
-Telll.prototype.getTracks = function(m, cb){
+Telll.prototype.getTracks = function(id, cb){
+    console.log("Getting tracks with cws ...");
+    console.log("For movie: ", id);
     var ret = this.cws.cmd.trackmotions_from_movie({
         api_key:    this.credentials.apiKey,
         auth_key:   this.credentials.authKey,
-	movie: parseInt(m.id)
+	movie: parseInt(id)
     }, function(response) {
         if(cb) cb(response.error, response.data);
     });
+    console.log(ret);
 };
 
 
@@ -13963,6 +14662,26 @@ Tws.prototype.getMovie = function (id)
         //console.log(this.responseText);
     });
     xhr.open('GET', 'http://'+this.m_server+'/app/movie/'+id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+/**
+ * getPhotolinksOfMovie 
+ * 
+ */
+Tws.prototype.getPhotolinksOfMovie = function (id)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie/'+id+'/photolinks', true);
     for(var key in this.headers) {
             xhr.setRequestHeader(key, this.headers[key]);
     }
@@ -14660,15 +15379,289 @@ iView.prototype.close = function(){
 
 VERSION = "0.16.0";
 //console.log('telllSDK javascript by Monsenhor, Version: '+VERSION);
-var devMode = true;
+var devMode = false;
+if (location.hostname == "127.0.0.1" && location.port == "9966") devMode = true;
 
-// telll requires websockets, jquery and mustache
-//console.log('Loadind jquery ...');
 // Load jQuery
 $ = require('jquery');
-//console.log('Loadind mustache ...');
+jQuery = $;
 // Load mustache
 Mustache = require('mustache');
+
+// Apply some jQuery plugins
+(function($){
+/*
+ * jQuery FxQueues 2.1
+ * Copyright 2009, 2010 Luciano German Panaro <contact@decodeuri.com>
+ * Released under the MIT and GPL licenses.
+ */
+  var fxQueue = function(queueName) {
+    return {
+      name: queueName,
+
+      isFxQueue: true,
+
+      paused: false,
+
+      playing: null,
+
+      shouldStart: function() {
+          return (this.playing == null || !this.paused);
+      },
+
+      pause: function() {
+          if (!this.playing) { return false; }
+          ((this.playing.isScope)? this.playing: this.playing.elem).stop();
+          this.paused = true;
+          return true;
+      },
+
+      stop: function() {
+          if (!this.playing) { return false; }
+          ((this.playing.isScope)? this.playing: this.playing.elem).stop();
+          this.playing = null;
+          this.paused = false;
+          this.length = 0;
+          return true;
+      },
+
+      start: function() {
+          // if a dequeued fn was paused
+          if (this.playing && this.paused) {
+              this.playing();
+              this.paused = false;
+              return true;
+          // or if the queue has not started
+          } else if (this.length && !this.playing) {
+              this.playing = this[0];
+              $(document).dequeue(this.name);
+              return true;
+          }
+          return false;
+      },
+
+      getScope: function( scopeName ) {
+          if (this.playing && this.playing.isScope && this.playing.called == scopeName) {
+              return this.playing;
+          }
+
+          for (var i = 0; i < this.length; i++) {
+              if (this[i].isScope && this[i].called == scopeName) {
+                  return this[i];
+              }
+          }
+          return false;
+      },
+
+      dequeue: function( caller ) {
+          // Do nothing if queue is not playing anything
+          if (!this.playing) {
+            return false;
+          }
+
+          if (this.playing.isScope) {
+
+              var queueItems = this.playing.items;
+              // Find the actual element in scope's items
+              for ( var i=0; i < queueItems.length; i++) {
+                  if ( caller == queueItems[i].elem[0] && !queueItems[i].finished ) {
+                      queueItems[i].finished = true;
+                      this.playing.finishedItems++;
+                  }
+              }
+
+              // Do not dequeue if scope is not finished
+              if (this.playing.finishedItems < queueItems.length) {
+                  return false;
+              }
+
+          // Dequeue just once for every selection
+          } else if (this.playing.elem && this.playing.elem[0] != caller) {
+              return false;
+          }
+
+          var queue = this;
+
+          setTimeout(function() {
+              queue.playing = queue[0];
+              $(document).dequeue(queue.name);
+          }, this.playing.postDelay);
+
+          return true;
+      }
+
+    };
+
+  };
+
+  var fxScope = function ( scopeName ) {
+      var newScope = function() {
+          for (var i=0; i < newScope.items.length; i++) {
+              newScope.items[i]();
+          }
+      };
+      newScope.called = scopeName;
+      newScope.isScope = true;
+      newScope.finishedItems = 0;
+      newScope.stop = function() {
+          for (var i=0; i < newScope.items.length; i++) {
+              newScope.items[i].elem.stop();
+          }
+      };
+      newScope.items = [];
+      return newScope;
+  };
+
+  // We need to overload the default animate method
+  var _animate = $.fn.animate;
+
+  $.fn.animate = function( props, speed, easing, callback ) {
+      if (!this.length) {
+          return this;
+      }
+
+      var options = (typeof speed == "object")? speed: $.speed(speed, easing, callback);
+
+      // Load in the default options
+      var opts = $.extend({
+          queue: "fx",
+          position: "end",
+          limit: -1,
+          preDelay: 0,
+          postDelay: 0,
+          complete: null
+      }, options );
+
+      // Let normal animations just pass through
+      if ( !opts.queue || opts.queue == "fx" ) {
+          return _animate.apply( this, arguments );
+      }
+
+      // Get the name of the queue
+      var queueName = opts.queue;
+
+      // Get the effect queue (A global queue is centered on 'document')
+      var queue = $(document).queue( opts.queue );
+
+      // Queue initialization
+      if ( queue.length == 0 && !queue.isFxQueue ) {
+          $(document).queue( queueName, [] ); //initialize queue
+          queue = $(document).queue( queueName ); //get the new queue
+          $.extend(queue, fxQueue(queueName)); //extend with fxQueue
+      }
+
+      // We're overriding the default queueing behavior
+      opts.queue = false;
+
+      // The animation to queue
+      var fn = function() {
+          opts.complete = function() {
+              queue.dequeue(this);
+              if ( $.isFunction(fn.users_complete) ) {
+                  return fn.users_complete.apply(this, arguments);
+              }
+          };
+          setTimeout(function() {
+              fn.elem.animate( props, opts );
+          }, fn.preDelay);
+      };
+      fn.elem = this;
+      fn.preDelay = opts.preDelay || 0;
+      fn.postDelay = opts.postDelay || 0;
+      fn.users_complete = speed.complete || callback; //Do not use the one generated by $.speed
+
+      // If scope exists, just add the animation and return
+      var scope = queue.getScope( opts.scope );
+      if ( scope ) {
+          scope.items.push( fn );
+          // Start the animation if the scope is already being played
+          if (queue.playing == scope) {
+              fn();
+          }
+          return this;
+      }
+
+      // Restrict the animation to a specifically sized queue
+      if ( opts.limit < 0 || queue.length < opts.limit) {
+
+          var add = null; //What we are going to add into the queue
+          if ( opts.scope ) {
+              add = fxScope( opts.scope );
+              add.items.push(fn);
+          } else {
+              add = fn;
+          }
+
+          if ( opts.position == "end" ) {
+            queue.push( add );
+          } else if ( opts.position == "front" ) {
+            queue.splice( 1, 0, add );
+          }
+
+          if ( queue.shouldStart() ) {
+            queue.start();
+          }
+
+          return this;
+      }
+  };
+
+  // A simple global fx queue getter
+  $.extend({
+      fxqueue: function(queueName) {
+          return $(document).queue( queueName );
+      }
+  });
+
+  $.fxqueue.version = "2.1";
+
+
+  // Create event to listen when jquery changes a class
+  // We need that to trigger the projekktor toolbar and reposition the warn tool
+  var originalAddClassMethod = $.fn.addClass;
+  $.fn.addClass = function() {
+    var result = originalAddClassMethod.apply(this, arguments);
+    // trigger a custom event
+    $(this).trigger('cssClassChanged');
+    return result;
+  };
+
+  // Create the doubletap method
+  // based on http://appcropolis.com/blog/howto/implementing-doubletap-on-iphones-and-ipads/
+  $.fn.doubletap = function(onDoubleTapCallback, onTapCallback, delay) {
+    var eventName, action;
+    delay = delay === null ? 500 : delay;
+    eventName = isiOS === true || isAndroid === true ? 'touchend' : 'click';
+
+    $(this).on(eventName, function(event) {
+      var now = new Date().getTime();
+      /** the first time this will make delta a negative number */
+      var lastTouch = $(this).data('lastTouch') || now + 1;
+      var delta = now - lastTouch;
+      clearTimeout(action);
+      if (delta < 500 && delta > 0) {
+        if (onDoubleTapCallback !== null && typeof onDoubleTapCallback == 'function') {
+          event.preventDefault();
+          onDoubleTapCallback(event);
+        }
+      } else {
+        $(this).data('lastTouch', now);
+        action = setTimeout(function(evt) {
+          if (onTapCallback !== null && typeof onTapCallback == 'function') {
+            event.preventDefault();
+            onTapCallback(event);
+          }
+          clearTimeout(action); // clear the timeout
+        }, delay, [event]);
+      }
+      $(this).data('lastTouch', now);
+    });
+    return this;
+  };
+})(jQuery);
+///////////////////////////////////////////////////
+
+
 
 // create the object telllSDK
 /**
@@ -14702,6 +15695,34 @@ telllSDK.View.MockPlayer = require('./MockPlayer.js').MockPlayer;
 telllSDK.View.TagEditor = require('./TagEditor.js').TagEditor;
 telllSDK.View.YoutubePlayer = require('./YoutubePlayer.js').YoutubePlayer;
 
+/**
+ * Provides requestAnimationFrame/cancelRequestAnimation in a cross browser way.
+ * from paul irish + jerome etienne
+ * - http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+ * - http://notes.jetienne.com/2011/05/18/cancelRequestAnimFrame-for-paul-irish-requestAnimFrame.html
+ */
+
+if ( !window.requestAnimationFrame ) {
+	window.requestAnimationFrame = ( function() {
+		return window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame ||
+		window.oRequestAnimationFrame ||
+		window.msRequestAnimationFrame ||
+		function( callback, element ) {
+			return window.setTimeout( callback, 1000 / 60 );
+		};
+	} )();
+}
+if ( !window.cancelRequestAnimationFrame ) {
+	window.cancelRequestAnimationFrame = ( function() {
+		return window.webkitCancelRequestAnimationFrame ||
+		window.mozCancelRequestAnimationFrame ||
+		window.oCancelRequestAnimationFrame ||
+		window.msCancelRequestAnimationFrame ||
+		clearTimeout
+	} )();
+}
+
 // load default css
 var tmpl = require('./templates/default.mtjs');
 if (tmpl.css)
@@ -14733,18 +15754,59 @@ telllDialog = function(msg, delay){
  * @function telllPopup
  * @param element {JQuery} The Jquery object to embbed in popup
  * @param title {string} The popup title, defaults to "telll"
+ * @return {String} the unique class name
  * @global
  */
 telllPopup = function(element, title){
-	if (!title) title = "telll";
-    $('<div class="popup-overlay"></div>').appendTo('body');
-    $('<div class="telll-popup popup"><div class="popup-titlebar widget-titlebar"><span class="title">'+title+'</span><button class="close">Close</button></div></div>').append(element).appendTo('body').fadeIn();
+    var idPopup = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for( var i=0; i < 30; i++ )
+        idPopup += possible.charAt(Math.floor(Math.random() * possible.length));
+ 
+    if (!title) title = "telll";
+    $('<div id="'+idPopup+'-overlay" class="overlay"></div>').appendTo('body');
+    $('<div id='+idPopup+' class="telll-popup popup"><div class="popup-titlebar widget-titlebar"><div class="logo-86x86"></div><span class="title">'+title+'</span><button class="close">Close</button></div></div>').append(element).appendTo('body').fadeIn();
     $('.telll-popup').css('z-index','999');
     $('html').addClass('overlay');
-    $('div.popup-titlebar .close').on('click', function(){
-        $('.popup-overlay').detach();
-        $('.popup').detach();
+    $('#'+idPopup+' div.popup-titlebar .close').on('click', function(){
+        $('#'+idPopup+'-overlay').remove();
+        $('#'+idPopup).remove();
     });
+    return idPopup;
+}
+
+/** 
+ * TelllTimer
+ * @function telllTimer
+ * @param element {JQuery} The Jquery object to embbed in popup
+ * @param title {string} The popup title, defaults to "telll"
+ * @global
+ */
+telllTimer = function (fn, countdown) {
+    console.log("New telllTimer ...");
+    var ident, complete = false;
+    function _time_diff(date1, date2) {
+        return date2 ? date2 - date1 : new Date().getTime() - date1;
+    }
+
+    function cancel() {
+        clearTimeout(ident);
+    }
+
+    function pause() {
+        clearTimeout(ident);
+        total_time_run = _time_diff(start_time);
+        complete = total_time_run >= countdown;
+    }
+
+    function resume() {
+        ident = complete ? -1 : setTimeout(fn, countdown - total_time_run);
+    }
+
+    var start_time = new Date().getTime();
+    ident = setTimeout(fn, countdown);
+
+    return { cancel: cancel, pause: pause, resume: resume };
 }
 
 if (devMode) exampleImplementation();
@@ -14754,6 +15816,7 @@ function exampleImplementation (){
 console.log('Loading example implementation ...');
 
 myAdTest = new telllSDK.Telll();
+console.info('telll: ', myAdTest);
 // We may do it for a simplest aproach
 // myAdTest.start();
 
@@ -14802,7 +15865,14 @@ myAdTest.login(null, function(){
                            console.log(tp);
 	           }) 
 	   });
-    $('<input type="button" value="Photolinks List">').appendTo('body').on('click', function(){myAdTest.showPhotolinksList()});
+    $('<input type="button" value="Photolinks List">').appendTo('body').on('click', function(){
+	    var list = myAdTest.showPhotolinksList();
+	    setTimeout(function(){
+	    console.log(list);
+	    list.on("open", function(pl){
+	        console.log("PL :", pl);
+	    });},200);
+    });
     $('<input type="button" value="Telll Button">').appendTo('body').on('click', function(){myAdTest.showTelllBtn()});
  
 });
@@ -14812,25 +15882,26 @@ myAdTest.login(null, function(){
 },{"./Clickbox.js":4,"./CommandWS.js":6,"./Dashboard.js":7,"./Device.js":8,"./Login.js":9,"./MockPlayer.js":10,"./Movie.js":11,"./MoviesList.js":12,"./Photolink.js":13,"./PhotolinksList.js":14,"./TagEditor.js":15,"./TagPlayer.js":16,"./Telll.js":17,"./TelllBtn.js":18,"./TelllPlayer.js":19,"./Trackms.js":20,"./Tws.js":21,"./User.js":22,"./YoutubePlayer.js":23,"./templates/default.mtjs":32,"jquery":1,"mustache":2}],29:[function(require,module,exports){
 module.exports = {
     appName:'telll version 0.15',
-    author: 'Monsenhor filipo@telll.me'
+    author: 'Monsenhor filipo@telll.me',
+    tags:[]
 }
 
 },{}],30:[function(require,module,exports){
-module.exports={"html":"<div id=\"clickbox-widget\" class=\"telll-clickbox-widget telll-widget\"><div class=\"clickbox-titlebar widget-titlebar\"><span class=\"dashboard-title\">Clickbox</span><button class=\"close\">Close</button> </div><div id=\"clickbox\">\t<p>This device didn't receive any photolink yet. To send a photolink click on the labels at movie screen. You can send clicking on flashiing logo at right down or at photolinks list on the bottom of screen. The photolinks will be sent to this dialog and to any device connected to telll also. Enjoy!</div></div><!-- end clickbox-widget -->","css":"p { color:white }.clickbox, div#clickbox {/*width:100%;height:100%;*/min-width: 260px;max-width:1080px;min-height: 260px;max-height:1080px;padding:10px;}.telll-clickbox-widget{background: rgb(50, 50, 50);}#telll-clickbox-frame{width:100%;position:relative;background:#000;z-index:800000;}#telll-photolink{width:100%;height:800px;position:relative;background: #000;}#photolink-list {  width: 100%;  height: 100%;/*  display: none; */}.photolink-icon{border:1px solid #fff;max-width: 100%;}.photolink-list-element{width: 100%;border: 1px solid rgba(146, 146, 146, 0.73);height: 100px;margin: 3px;}.photolink-thumb{float:left;clear:left}.photolink-thumb-image{height: 97px;}.photolink-title{float:left;width:30%;margin:10px;font-size: 24px}.photolink-description{float:left;clear:right;width:40%;}#photolink-image {height:100%;margin: auto;background-repeat: no-repeat;background-position: center;display:none;background-image: url('../img/photolinks/photolinks_ocean_13.10.jpg');}#photolink-image img {width:100%;height:100%;}.ttc-element {width:26px;margin-left: 5px;margin-top: 2px;}.social-nw {float: left;position: relative;left: 10%;}#telll-bottom-controls{position: absolute;bottom:0px;height: 120px;width:100%;background-color:rgba(254,254,254,0.7);z-index: 800000;display:none;}.pl-title{font-size: 24px;margin-right: 3px;}.pl-description{font-size: 16px;}.title-post{display:none;}","name":"clickbox"}
+module.exports={"css":"p { color:white }.clickbox, div#clickbox {/*width:100%;height:100%;*/min-width: 260px;max-width:1080px;min-height: 260px;max-height:1080px;padding:10px;}.telll-clickbox-widget{background: rgb(50, 50, 50);}#telll-clickbox-frame{width:100%;position:relative;background:#000;z-index:800000;}#telll-photolink{width:100%;height:800px;position:relative;background: #000;}#photolink-list {  width: 100%;  height: 100%;/*  display: none; */}.photolink-icon{border:1px solid #fff;max-width: 100%;}.photolink-list-element{width: 100%;border: 1px solid rgba(146, 146, 146, 0.73);height: 100px;margin: 3px;}.photolink-thumb{float:left;clear:left}.photolink-thumb-image{height: 97px;}.photolink-title{float:left;width:30%;margin:10px;font-size: 24px}.photolink-description{float:left;clear:right;width:40%;}#photolink-image {height:100%;margin: auto;background-repeat: no-repeat;background-position: center;display:none;background-image: url('../img/photolinks/photolinks_ocean_13.10.jpg');}#photolink-image img {width:100%;height:100%;}.ttc-element {width:26px;margin-left: 5px;margin-top: 2px;}.social-nw {float: left;position: relative;left: 10%;}#telll-bottom-controls{position: absolute;bottom:0px;height: 120px;width:100%;background-color:rgba(254,254,254,0.7);z-index: 800000;display:none;}.pl-title{font-size: 24px;margin-right: 3px;}.pl-description{font-size: 16px;}.title-post{display:none;}","html":"<div id=\"clickbox-widget\" class=\"telll-clickbox-widget telll-widget\"><div class=\"clickbox-titlebar widget-titlebar\"><span class=\"dashboard-title\">Clickbox</span><button class=\"close\">Close</button> </div><div id=\"clickbox\">\t<p>This device didn't receive any photolink yet. To send a photolink click on the labels at movie screen. You can send clicking on flashiing logo at right down or at photolinks list on the bottom of screen. The photolinks will be sent to this dialog and to any device connected to telll also. Enjoy!</div></div><!-- end clickbox-widget -->","name":"clickbox"}
 },{}],31:[function(require,module,exports){
-module.exports={"html":"<div class=\"telll-dashboard-widget\"> \t<div class=\"logo-86x86\"></div>         <small>{{appName}} by {{author}}</small>\t<div id=\"telll-dashboard-frame\">\t\t<div id=\"tell-dashboard-titlebar\" class=\"dashboard-home dashboard-titlebar\"> \t            <span class=\"dashboard-title\">Telll Dashboard</span>\t\t    <input type=\"button\" value=\"Close\" id=\"close-button\">                 </div>\t        <div class=\"buttons\"> </div> <!-- end buttons --> \t\t<div id=\"tell-dashboard-menu\" class=\"dashboard-home\"> \t\t<li id=\"user-profile\">User profile</li> \t\t\t<li id=\"movies\">Movies</li>\t\t\t<li id=\"tags\">Tags</li>\t\t\t<li id=\"photolinks\">Photolinks</li>\t\t\t<li id=\"clicks\">Clicks</li>\t\t</div>\t\t<div id=\"user-dashboard\" class=\"dashboard-panel\">\t\t\t<form id=\"dashboard_form_user\" class=\"telll-dashboard\"><fieldset class=\"dashboard-fieldset\"><legend>User profile</legend><div class=\"notes\"><h4>Personal information</h4><p class=\"last\">Update your personal information on te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div>{{#df.profile}}<div class=\"telll-dashboard-field\">\t<label for=\"{{name}}-field\">{{label}}:</label>\t<input type=\"{{type}}\" name=\"{{name}}\" id=\"{{name}}-field\" value=\"{{value}}\" size=\"{{size}}\"></div>{{/df.profile}}<div class=\"telll-dashboard-field submit\">         <input type=\"button\" value=\"Save\" class=\"save-button\">          <input type=\"button\" value=\"Delete Account\" class=\"delete-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end user dashboard --> \t\t<div id=\"movies-dashboard\" class=\"dashboard-panel\"> \t\t\t<div class=\"dashboard-titlebar\"><form>\t\t\t\t<label class=\"dashboard-title\" for=\"movie-select\">Select movie:</label>\t\t\t\t<select id=\"movie-select\"><option value=\"0\">Select a movie to update</option>\t\t\t\t</select></form></div>\t\t\t<form id=\"dashboard_form_movie\" class=\"telll-dashboard\"> <fieldset class=\"dashboard-fieldset\"><legend>Movies</legend><div class=\"notes\"><h4>Update movies</h4><p class=\"last\">Create a new movie or select a movie you own and update that information on te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div><input type=\"hidden\" name=\"id\" id=\"id-field\" value=\"{{movie.id}}\">{{#df.movies}}<div class=\"telll-dashboard-field\">\t<label for=\"{{name}}-field\">{{label}}:</label>\t<input type=\"{{type}}\" name=\"{{name}}\" id=\"{{name}}-field\" value=\"{{value}}\" size=\"{{size}}\"></div>{{/df.movies}}<!-- player will be implemented soon<div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"player-select\">Player:</label><select name=\"select_movie\" id=\"player-select\"><option value=\"0\">Select the player for this movie</option><option value=\"1\">Telll</option><option value=\"2\">Youtube</option><option value=\"3\">Vimeo</option>                                </select>\t\t\t</div>\t\t\t--><div class=\"telll-dashboard-field submit\">\t\t\t\t<input type=\"button\" value=\"Save\" class=\"save-button\"> \t\t\t\t<input type=\"button\" value=\"Delete\" class=\"delete-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end movies dashboard --> \t\t<div id=\"clicks-dashboard\" class=\"dashboard-panel\"> \t\t\t<form id=\"dashboard_form_movie\" class=\"telll-dashboard\"> <fieldset class=\"dashboard-fieldset\"><legend>Clicks & Metrics</legend><div class=\"notes\"><h4>Control photolinks click and monetization</h4><p class=\"last\">Te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> photolinks generates extra revenue. Follow how your tags are trending.</p></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Title:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Email:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Name:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field submit\">\t\t\t\t<input type=\"button\" value=\"Save\" class=\"save-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end user dashboard -->         </div> <!-- end telll-dashboard-frame --> </div><!-- telll-dashboard-widget -->","css":"#telll-dashboard-frame{border: solid 1px black;width: 80%;background: white;color: black;margin: auto;}.dashboard-panel{display:none;border: solid 1px black;margin: auto;min-width: 560px;max-width: 620px;width: 590px;margin-bottom:12px;}div#tags-dashboard.dashboard-panel {background: rgb(50, 50, 50);width: 90%;height: 90%;max-width:90%;border: solid 3px white;cursor:pointer;}#tell-dashboard-menu{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;}.dashboard-title{font-size: 130%;font-weight: normal;color: #000000;margin: 0 0 0 0;}#tell-dashboard-titlebar{}.dashboard-titlebar{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;background: black;}.dashboard-titlebar .dashboard-title{color:grey;}.dashboard-titlebar #close-button,.dashboard-titlebar button{float:right;margin-right: 3px;}#tell-dashboard-menu li {list-style-type: none;cursor:pointer;display: inline;margin-right: 12px;}fieldset.dashboard-fieldset{padding: 20px;margin-bottom: 20px;}div.time-dialog{color: white;position: absolute;top: 50%;left: 45%;padding: 5px;background: black;border: 2px solid grey;border-radius: 8px}img#movie-image {width:285px;}","name":"dashboard"}
+module.exports={"name":"dashboard","html":"<div class=\"telll-dashboard-widget\"> \t<div class=\"logo-86x86\"></div>         <small>{{appName}} by {{author}}</small>\t<div id=\"telll-dashboard-frame\">\t\t<div id=\"tell-dashboard-titlebar\" class=\"dashboard-home dashboard-titlebar\"> \t            <span class=\"dashboard-title\">Telll Dashboard</span>\t\t    <input type=\"button\" value=\"Close\" id=\"close-button\">                 </div>\t        <div class=\"buttons\"> </div> <!-- end buttons --> \t\t<div id=\"tell-dashboard-menu\" class=\"dashboard-home\"> \t\t<li id=\"user-profile\">User profile</li> \t\t\t<li id=\"movies\">Movies</li>\t\t\t<li id=\"tags\">Tags</li>\t\t\t<li id=\"photolinks\">Photolinks</li>\t\t\t<li id=\"clicks\">Clicks</li>\t\t</div>\t\t<div id=\"user-dashboard\" class=\"dashboard-panel\">\t\t\t<form id=\"dashboard_form_user\" class=\"telll-dashboard\"><fieldset class=\"dashboard-fieldset\"><legend>User profile</legend><div class=\"notes\"><h4>Personal information</h4><p class=\"last\">Update your personal information on te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div>{{#df.profile}}<div class=\"telll-dashboard-field\">\t<label for=\"{{name}}-field\">{{label}}:</label>\t<input type=\"{{type}}\" name=\"{{name}}\" id=\"{{name}}-field\" value=\"{{value}}\" size=\"{{size}}\"></div>{{/df.profile}}<div class=\"telll-dashboard-field submit\">         <input type=\"button\" value=\"Save\" class=\"save-button\">          <input type=\"button\" value=\"Delete Account\" class=\"delete-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end user dashboard --> \t\t<div id=\"movies-dashboard\" class=\"dashboard-panel\"> \t\t\t<div class=\"dashboard-titlebar\"><form>\t\t\t\t<label class=\"dashboard-title\" for=\"movie-select\">Select movie:</label>\t\t\t\t<select id=\"movie-select\"><option value=\"0\">Select a movie to update</option>\t\t\t\t</select></form></div>\t\t\t<form id=\"dashboard_form_movie\" class=\"telll-dashboard\"> <fieldset class=\"dashboard-fieldset\"><legend>Movies</legend><div class=\"notes\"><h4>Update movies</h4><p class=\"last\">Create a new movie or select a movie you own and update that information on te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div><input type=\"hidden\" name=\"id\" id=\"id-field\" value=\"{{movie.id}}\">{{#df.movies}}<div class=\"telll-dashboard-field\">\t<label for=\"{{name}}-field\">{{label}}:</label>\t<input type=\"{{type}}\" name=\"{{name}}\" id=\"{{name}}-field\" value=\"{{value}}\" size=\"{{size}}\"></div>{{/df.movies}}<!-- player will be implemented soon<div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"player-select\">Player:</label><select name=\"select_movie\" id=\"player-select\"><option value=\"0\">Select the player for this movie</option><option value=\"1\">Telll</option><option value=\"2\">Youtube</option><option value=\"3\">Vimeo</option>                                </select>\t\t\t</div>\t\t\t--><div class=\"telll-dashboard-field submit\">\t\t\t\t<input type=\"button\" value=\"Save\" class=\"save-button\"> \t\t\t\t<input type=\"button\" value=\"Delete\" class=\"delete-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end movies dashboard --> \t\t<div id=\"clicks-dashboard\" class=\"dashboard-panel\"> \t\t\t<form id=\"dashboard_form_movie\" class=\"telll-dashboard\"> <fieldset class=\"dashboard-fieldset\"><legend>Clicks & Metrics</legend><div class=\"notes\"><h4>Control photolinks click and monetization</h4><p class=\"last\">Te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> photolinks generates extra revenue. Follow how your tags are trending.</p></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Title:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Email:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field\">\t\t\t\t<label for=\"name-field\">Name:</label>\t\t\t\t<input type=\"text\" name=\"name\" id=\"name-field\"></div><div class=\"telll-dashboard-field submit\">\t\t\t\t<input type=\"button\" value=\"Save\" class=\"save-button\"> </div></fieldset>\t\t        </form> \t\t</div><!-- end user dashboard -->         </div> <!-- end telll-dashboard-frame --> </div><!-- telll-dashboard-widget -->","css":"#telll-dashboard-frame{border: solid 1px black;width: 80%;background: white;color: black;margin: auto;}.dashboard-panel{display:none;border: solid 1px black;margin: auto;min-width: 560px;max-width: 620px;width: 590px;margin-bottom:12px;}#tell-dashboard-menu{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;}.dashboard-title{font-size: 130%;font-weight: normal;color: #000000;margin: 0 0 0 0;}#telll-dashboard-titlebar{}.dashboard-titlebar{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;background: black;}.dashboard-titlebar .dashboard-title{color:grey;}.dashboard-titlebar #close-button,.dashboard-titlebar button{float:right;margin-right: 3px;}#tell-dashboard-menu li {list-style-type: none;cursor:pointer;display: inline;margin-right: 12px;}fieldset.dashboard-fieldset{padding: 20px;margin-bottom: 20px;}div.time-dialog{color: white;position: absolute;top: 50%;left: 45%;padding: 5px;background: black;border: 2px solid grey;border-radius: 8px}img#movie-image {width:285px;}"}
 },{}],32:[function(require,module,exports){
-module.exports={"css":"body{color:grey;background:grey;font-family: Tahoma, Arial, sans-serif;}.widget-titlebar{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;background: black;}.widget-titlebar .wiget-title{color:grey;}.wiget-titlebar #close-button,.widget-titlebar button{float:right;margin-right: 3px;}div.movies-list-titlebar.widget-titlebar div.logo-86x86 {position:relative;float:right;width: 30px;height: 30px;margin-bottom: 3px;margin-top: 3px;margin-right: 3px;right: 0px;top: -5px;}div.telll-dialog{color: white;position: absolute;top: 50%;left: 45%;padding: 5px;background: black;border: 2px solid grey;border-radius: 8px}.popup-overlay {    width: 100%;    height: 100%;    position: fixed;    background: rgba(196, 196, 196, .85);    top: 0;    left: 100%;    opacity: 0;    -ms-filter:\"progid:DXImageTransform.Microsoft.Alpha(Opacity=0)\";    -webkit-transition: opacity .2s ease-out;    -moz-transition: opacity .2s ease-out;    -ms-transition: opacity .2s ease-out;    -o-transition: opacity .2s ease-out;    transition: opacity .2s ease-out;}.overlay .popup-overlay {    opacity: 1;    left: 0}.popup {position: fixed;top: 5%;left: 5%;z-index: 9999;width: 90%;height: 90%;}form {  margin: 0;  padding: 0;  font-size: 100%;}form fieldset, .telll-widget, .dashboard-widget {clear: both;font-size: 100%;border-color: #000000;border-width: 1px;border-style: solid;padding: 0 0 10px;margin: auto;width: 80%;height: 80%;}form fieldset legend {  font-size: 150%;  font-weight: normal;  color: #000000;  margin: 0 0 0 0;  padding: 0 5px;}label {  font-size: 100%;}label u {  font-style: normal;  text-decoration: underline;}input, select, textarea, button {  font-size: 100%;  color: #000000;}textarea {  overflow: auto;}form div {  clear: left;  display: block;  zoom: 1;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  float: right;  height: auto;  margin: 0 0 10px 10px;  padding: 5px;  border: 1px solid #666666;  background-color: #fff;  color: #666666;  font-size: 88%;}form fieldset div.notes h4 {  background-repeat: no-repeat;  background-position: top left;  padding: 3px 0 3px 27px;  border-width: 0 0 1px 0;  border-style: solid;  border-color: #666666;  color: #666666;  font-size: 110%;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;  color: #666666;}form fieldset div.notes p.last {  margin: 0em;}form div fieldset {  clear: none;  border-width: 1px;  border-style: solid;  border-color: #666666;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  font-size: 100%;  padding: 0 3px 0 9px;}form div.required fieldset legend {  font-weight: bold;}form div label {  display: block;  float: left;  padding: 3px 5px;  margin: 0 0 5px 0;  text-align: right;}form div.optional label, label.optional {  font-weight: normal;}form div.required label, label.required {  font-weight: bold;}form div label.labelCheckbox, form div label.labelRadio {  float: none;  display: block;  width: 200px;  zoom: 1;  padding: 0;  text-align: left;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;}form div img {  float: left;  border: 1px solid #000000;  margin: 0 0 5px 0;}p.error {  background-color: #ff0000;  background-image: url(/images/icon_error.gif);  background-repeat: no-repeat;  background-position: 3px 3px;  color: #ffffff;  padding: 3px 3px 5px 27px;  border: 1px solid #000000;  margin: auto 100px;}form div.error {  background-color: #ffffe1;  background-image: url(/images/required_bg.gif);  background-repeat: no-repeat;  background-position: top left;  color: #666666;  border: 1px solid #ff0000;}form div.error p.error {  background-image: url(/images/icon_error.gif);  background-position: top left;  background-color: transparent;  border-style: none;  font-size: 88%;  font-weight: bold;  margin: 0 0 0 118px;  width: 200px;  color: #ff0000;}form div select, form div textarea {  padding: 1px 3px;  margin: 0 0 0 0;}form div input.inputText, form div input.inputPassword {  padding: 1px 3px;  margin: 0 0 0 0;}form div input.inputFile {}form div select.selectOne, form div select.selectMultiple {  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  display: inline;  height: auto;  width: auto;  background-color: transparent;  border-width: 0;  padding: 0;}form div.submit {}form div.submit div {  display: inline;  float: left;  text-align: left;  width: auto;  padding: 0;  margin: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  background-color: #cccccc;  color: #000000;  width: auto;  padding: 0 6px;  margin: 0;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  float: right;  margin: 0 0 0 5px;}form div small {  display: block;  padding: 1px 3px;  font-size: 88%;  zoom: 1;}div.logo-86x86{background-size: 30px;position: absolute;right: 5px;top: 23px;width: 30px;}.logo-86x86{background-size: 86px 86px;background-repeat: no-repeat;width: 86px;height: 86px;margin-bottom: 20px;margin-top: -20px;cursor: pointer;background-image: url(\"data:image/png;base64,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\");}/* desktops */@media screen and (min-width: 1024px){form {  min-width: 560px;  max-width: 620px;  width: 590px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 1096px;min-width: 480px;min-height: 200px;max-height: 1096px;margin-top: 20px;}form fieldset legend {  padding: 0 5px;}form div {  width: 354px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}}/* 800x600 screen */@media (min-device-width: 768px) and (max-device-width: 1024px){form {  max-width: 580px;  width: 500px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 580px;min-width: 300px;min-height: 200px;max-height: 560px;margin-top: 8px;}form fieldset legend {  padding: 0 3px;}form div {  width: 580px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} /* mobiles */@media screen and (max-device-width: 640px){form {  min-width: 280px;  max-width: 320px;  width: 320px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 640px;min-width: 200px;min-height: 200px;max-height: 640px;margin-top: 8px;}form fieldset legend {  padding: 0 5px;}form div {  width: 300px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} /* #### iPhone 5 Portrait or Landscape #### */@media (device-height: 568px) and (device-width: 320px) and (-webkit-min-device-pixel-ratio: 2){form {  max-width: 310px;  width: 310px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 310px;min-width: 200px;min-height: 200px;max-height: 560px;margin-top: 8px;}form fieldset legend {  padding: 0 3px;}form div {  width: 310px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  width: 158px;  margin: 0 0 10px 10px;  padding: 5px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} ","name":"default"}
+module.exports={"name":"default","css":"body{color:grey;background:grey;font-family: Tahoma, Arial, sans-serif;}.widget-titlebar{margin-bottom:12px;clear: both;font-size: 100%;border-color: #000000;border-width: 1px 0 0 0;border-style: solid none none none;padding: 10px;margin: 0 0 0 0;background: black;}.widget-titlebar .wiget-title{color:grey;}.wiget-titlebar #close-button,.widget-titlebar button{float:right;margin-right: 3px;}div.movies-list-titlebar.widget-titlebar div.logo-86x86 {position: relative;float: left;width: 30px;height: 30px;margin-bottom: 3px;margin-top: 3px;margin-right: 10px;right: 0px;top: -5px;}div.logo-86x86.flat{bottom: 2px;right: 2px;}div.logo-86x86.panel{bottom: 130px;right: 20px;}div.logo-86x86.controls{bottom: 130px;right: 20px;}div.logo-86x86.controls-panel{bottom: 130px;right: 20px;}div.telll-dialog{color: white;position: absolute;top: 50%;left: 45%;padding: 5px;background: black;border: 2px solid grey;border-radius: 8px}.popup-overlay {    width: 100%;    height: 100%;    position: fixed;    background: rgba(196, 196, 196, .85);    top: 0;    left: 100%;    opacity: 0;    -ms-filter:\"progid:DXImageTransform.Microsoft.Alpha(Opacity=0)\";    -webkit-transition: opacity .2s ease-out;    -moz-transition: opacity .2s ease-out;    -ms-transition: opacity .2s ease-out;    -o-transition: opacity .2s ease-out;    transition: opacity .2s ease-out;}.overlay .popup-overlay {    opacity: 1;    left: 0}.popup {position: fixed;top: 5%;left: 5%;z-index: 9999;width: 90%;height: 90%;}form {  margin: 0;  padding: 0;  font-size: 100%;}form fieldset, .telll-widget, .dashboard-widget {clear: both;font-size: 100%;border-color: #000000;border-width: 1px;border-style: solid;padding: 0 0 10px;margin: auto;width: 80%;height: 80%;}form fieldset legend {  font-size: 150%;  font-weight: normal;  color: #000000;  margin: 0 0 0 0;  padding: 0 5px;}label {  font-size: 100%;}label u {  font-style: normal;  text-decoration: underline;}input, select, textarea, button {  font-size: 100%;  color: #000000;}textarea {  overflow: auto;}form div {  clear: left;  display: block;  zoom: 1;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  float: right;  height: auto;  margin: initial;  padding: 5px;  border: 1px solid #666666;  background-color: #fff;  color: #666666;  font-size: 88%;}form fieldset div.notes h4 {  background-repeat: no-repeat;  background-position: top left;  margin: initial;  padding: initial;  border-width: 0 0 1px 0;  border-style: solid;  border-color: #666666;  color: #666666;  font-size: 110%;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;  color: #666666;}form fieldset div.notes p.last {  margin: 0em;}form div fieldset {  clear: none;  border-width: 1px;  border-style: solid;  border-color: #666666;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  font-size: 100%;  padding: 0 3px 0 9px;}form div.required fieldset legend {  font-weight: bold;}form div label {  display: block;  float: left;  padding: 3px 5px;  margin: 0 0 5px 0;  text-align: right;}form div.optional label, label.optional {  font-weight: normal;}form div.required label, label.required {  font-weight: bold;}form div label.labelCheckbox, form div label.labelRadio {  float: none;  display: block;  width: 200px;  zoom: 1;  padding: 0;  text-align: left;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;}form div img {  float: left;  border: 1px solid #000000;  margin: 0 0 5px 0;}p.error {  background-color: #ff0000;  background-image: url(/images/icon_error.gif);  background-repeat: no-repeat;  background-position: 3px 3px;  color: #ffffff;  padding: 3px 3px 5px 27px;  border: 1px solid #000000;  margin: auto 100px;}form div.error {  background-color: #ffffe1;  background-image: url(/images/required_bg.gif);  background-repeat: no-repeat;  background-position: top left;  color: #666666;  border: 1px solid #ff0000;}form div.error p.error {  background-image: url(/images/icon_error.gif);  background-position: top left;  background-color: transparent;  border-style: none;  font-size: 88%;  font-weight: bold;  margin: 0 0 0 118px;  width: 200px;  color: #ff0000;}form div select, form div textarea {  padding: 1px 3px;  margin: 0 0 0 0;}form div input.inputText, form div input.inputPassword {  padding: 1px 3px;  margin: 0 0 0 0;}form div input.inputFile {}form div select.selectOne, form div select.selectMultiple {  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  display: inline;  height: auto;  width: auto;  background-color: transparent;  border-width: 0;  padding: 0;}form div.submit {}form div.submit div {  display: inline;  float: left;  text-align: left;  width: auto;  padding: 0;  margin: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  background-color: #cccccc;  color: #000000;  width: auto;  padding: 0 6px;  margin: 0;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  float: right;  margin: 0 0 0 5px;}form div small {  display: block;  padding: 1px 3px;  font-size: 88%;  zoom: 1;}div.logo-86x86{position: fixed ;right: 2px      ;bottom: 2px     ;top: initial    ;margin: 0px     ;background-size: 25px ;width: 25px ;height: 25px ;z-index:9999999999;}.logo-86x86{background-size: 86px 86px;background-repeat: no-repeat;width: 86px;height: 86px;margin-bottom: 20px;margin-top: -20px;cursor: pointer;background-image: url(\"data:image/png;base64,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\");}/* desktops */@media screen and (min-width: 1024px){form {  min-width: 560px;  max-width: 620px;  width: 590px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 1096px;min-width: 480px;min-height: 200px;max-height: 1096px;}form fieldset legend {  padding: 0 5px;}form div {  width: 354px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  margin: initial;  padding: initial;}form fieldset div.notes h4 {  padding: initial;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}}/* 800x600 screen */@media (min-device-width: 768px) and (max-device-width: 1024px){form {  max-width: 580px;  width: 500px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 580px;min-width: 300px;min-height: 200px;max-height: 560px;margin-top: 8px;}form fieldset legend {  padding: 0 3px;}form div {  width: 580px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes h4 {}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} /* mobiles */@media screen and (max-device-width: 640px){form {  min-width: 280px;  max-width: 320px;  width: 320px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 640px;min-width: 200px;min-height: 200px;max-height: 640px;margin-top: 8px;}form fieldset legend {  padding: 0 5px;}form div {  width: 300px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes h4 {  padding: 3px 0 3px 27px;}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} /* #### iPhone 5 Portrait or Landscape #### */@media (device-height: 568px) and (device-width: 320px) and (-webkit-min-device-pixel-ratio: 2){form {  max-width: 310px;  width: 310px;}form fieldset, .telll-widget, .dashboard-widget {padding: 0 0 10px;max-width: 310px;min-width: 200px;min-height: 200px;max-height: 560px;margin-top: 8px;}form fieldset legend {  padding: 0 3px;}form div {  width: 310px;  margin: 5px 0 0 0;  padding: 1px 3px;}form fieldset div.notes {  padding: 5px;}form fieldset div.notes h4 {}form fieldset div.notes p {  margin: 0em 0em 1.2em 0em;}form div fieldset {  margin: 0 0 0 144px;  padding: 0 5px 5px 5px;  width: 197px;}form div fieldset legend {  padding: 0 3px 0 9px;}form div label {  width: 175px;  padding: 3px 5px;  margin: 0 0 5px 0;}form div label.labelCheckbox, form div label.labelRadio {  width: 200px;  margin: 0 0 5px 142px;}form div fieldset label.labelCheckbox, form div fieldset label.labelRadio {  margin: 0 0 5px 0;  width: 170px;}form div img {  margin: 0 0 5px 0;}form div select, form div textarea {  width: 275px;  padding: 1px 3px;}form div input.inputText, form div input.inputPassword {  width: 200px;  padding: 1px 3px;}form div input.inputFile {  width: 211px;}form div select.selectOne, form div select.selectMultiple {  width: 211px;  padding: 1px 3px;}form div input.inputCheckbox, form div input.inputRadio, input.inputCheckbox, input.inputRadio {  margin: 0 0 0 140px;}form div.submit {  width: 214px;  padding: 0 0 0 146px;}form div.submit div {  width: auto;  padding: 0;}form div input.inputSubmit, form div input.inputButton, input.inputSubmit, input.inputButton {  padding: 0 6px;}form div.submit div input.inputSubmit, form div.submit div input.inputButton {  margin: 0 0 0 5px;}form div small {  margin: 0 0 5px 142px;  padding: 1px 3px;}} .tag{position:absolute;width:300px;height:250px;z-index:900000;}.tag-default{opacity:0.5;}.tag-none{opacity:0;}.tag-yellow{background:rgba(255,255,255,0.3);border: solid 3px yellow;}.tag-flash{background-image: url('../img/logo_01.gif');}.tag .clkbl{width:100%;height:100%;cursor:pointer;}.tag .tag-label{margin:auto;min-height: 30px;min-width:150px;/*margin-top: 15%;*/background: rgba(255,255,255,0.7);padding: 8px;display: table-cell;vertical-align: middle;color: black;}.tag .tag-label a:link{text-decoration:none;}.ui-dialog{z-index:900000 !important;}.ui-widget-overlay{z-index:800999 !important;}div#settingspanel {z-index:900000 !important;}div#telllspanel {z-index:900000 !important;}#telll-warn{background-image: url('../img/logo_3l_bbg.png');position:absolute;bottom:12px;right:12px;width:44px;height:44px;z-index: 800000;background-size: 44px 44px;display:none;cursor:pointer;}"}
 },{}],33:[function(require,module,exports){
-module.exports={"name":"login_template","css":".telll-login-widget{font-size: 100%;background: #000;margin: auto;background: #000;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{font-size:28px;}/* desktops */@media screen and (min-width: 1024px){.telll-login-widget{font-size: 100%;min-width: 560px;max-width: 620px;width: 590px;margin: auto;padding: 10px;background: #000;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:20px;margin-bottom:50px;font-size:28px;}}/* 800x600 screen */@media (min-device-width: 768px) and (max-device-width: 1024px){.telll-login-widget{font-size: 100%;min-width: 400px;max-width: 780px;width: 720px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:20px;font-size:18px;}}/* mobiles */@media screen and (max-device-width: 640px){.telll-login-widget{font-size: 100%;min-width: 200px;max-width: 620px;width: 320px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:30px;font-size:18px;}}/* #### iPhone 5 Portrait or Landscape #### */@media (device-height: 568px) and (device-width: 320px) and (-webkit-min-device-pixel-ratio: 2){.telll-login-widget{font-size: 100%;min-width: 200px;max-width: 310px;width: 310px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:20px;font-size:18px;}}","html":"<div class=\"telll-login-widget\">\t<div class=\"welcome\">Welcome to <span class=\"telll\">te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span></span></div><div class=\"logo-86x86\"></div>        <div id=\"telll-login-frame\"><form name=\"login_form\" id=\"telll-login\"><fieldset><legend>Login on telll.me</legend><div class=\"notes\"><h4>Login Information</h4><p class=\"last\">Please enter your username and password to access your  te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div><div class=\"telll-login-field\"><label for=\"email\">Username</label><input type=\"text\" id=\"email\" name=\"email\"/></div><div class=\"telll-login-field\"><label for=\"password\">Password</label><input type=\"password\" id=\"password\" name=\"password\"/></div><div class=\"telll-login-field submit\"><button id=\"login-ok-button\" value=\"Login\">Login</button></div></fieldset></form>         </div> <!-- end telll-login-frame -->         <div class=\"buttons\"><!--    <span class=\"forgot\"><a href=\"forgot.html\" data-role=\"button\">I forgot my login</a></span>    <span class=\"google\"><a href=\"google.html\" data-role=\"button\">Login with Google+</a></span>    <span class=\"facebook\"><a href=\"facebook.html\" data-role=\"button\">Login with Facebook</a></span>-->         </div> <!-- end buttons --><div id=\"login-ok\"></div></div><!-- telll-login-widget -->"}
+module.exports={"css":".telll-login-widget{font-size: 100%;background: #000;margin: auto;background: #000;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{font-size:28px;}/* desktops */@media screen and (min-width: 1024px){.telll-login-widget{font-size: 100%;min-width: 560px;max-width: 620px;width: 590px;margin: auto;padding: 10px;background: #000;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:20px;margin-bottom:50px;font-size:28px;}}/* 800x600 screen */@media (min-device-width: 768px) and (max-device-width: 1024px){.telll-login-widget{font-size: 100%;min-width: 400px;max-width: 780px;width: 720px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:20px;font-size:18px;}}/* mobiles */@media screen and (max-device-width: 640px){.telll-login-widget{font-size: 100%;min-width: 200px;max-width: 620px;width: 320px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:30px;font-size:18px;}}/* #### iPhone 5 Portrait or Landscape #### */@media (device-height: 568px) and (device-width: 320px) and (-webkit-min-device-pixel-ratio: 2){.telll-login-widget{font-size: 100%;min-width: 200px;max-width: 310px;width: 310px;background: #000;margin: auto;padding: 5px;}span.red{color:#ff0000;}span.green{color:#00FF00;}span.blue{color:#0000FF;}.welcome{margin-top:10px;margin-bottom:20px;font-size:18px;}}","html":"<div class=\"telll-login-widget\">\t<div class=\"welcome\">Welcome to <span class=\"telll\">te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span></span></div><div class=\"logo-86x86\"></div>        <div id=\"telll-login-frame\"><form name=\"login_form\" id=\"telll-login\"><fieldset><legend>Login on telll.me</legend><div class=\"notes\"><h4>Login Information</h4><p class=\"last\">Please enter your username and password to access your  te<span class=\"red\">l</span><span class=\"green\">l</span><span class=\"blue\">l</span> account.</p></div><div class=\"telll-login-field\"><label for=\"email\">Username</label><input type=\"text\" id=\"email\" name=\"email\"/></div><div class=\"telll-login-field\"><label for=\"password\">Password</label><input type=\"password\" id=\"password\" name=\"password\"/></div><div class=\"telll-login-field submit\"><button id=\"login-ok-button\" value=\"Login\">Login</button></div></fieldset></form>         </div> <!-- end telll-login-frame -->         <div class=\"buttons\"><!--    <span class=\"forgot\"><a href=\"forgot.html\" data-role=\"button\">I forgot my login</a></span>    <span class=\"google\"><a href=\"google.html\" data-role=\"button\">Login with Google+</a></span>    <span class=\"facebook\"><a href=\"facebook.html\" data-role=\"button\">Login with Facebook</a></span>-->         </div> <!-- end buttons --><div id=\"login-ok\"></div></div><!-- telll-login-widget -->","name":"login_template"}
 },{}],34:[function(require,module,exports){
-module.exports={"html":"<div class=\"telll-movies-list-widget\"><div class=\"movies-list-titlebar widget-titlebar\">    <span class=\"widget-title\">Movies on telll</span>    <div class=\"logo-86x86\"></div>    <button class=\"close\">Close</button> </div>    <div id=\"telll-movies-list-frame\">{{#movies}}<div class=\"telll-movie-element\">   <div class=\"movie-label\">\t<span class=\"movie-title\">{{title}}</span>\t<span class=\"movie-description\">{{description}}</span>   </div>   <img class=\"movie-thumb\" src=\"{{image}}\" data='{\"id\":\"{{id}}\",\"title\":\"{{title}}\"}'/></div>{{/movies}}    </div> <!-- end telll-movies-list-frame -->    <div class=\"buttons\">    </div> <!-- end buttons --><div id=\"list-ok\"></div></div>","css":"div#popup-movies-list{}div.telll-movie-element{float: left;margin: 2px;width: 237px;height: 180px;background: white;border: 1px solid black;overflow: hidden;}div#telll-movies-list-frame{width: 989px;height: 600px;overflow: auto;}div.telll-movies-list-widget{border: 1px solid;width: 989px;height: 650px;overflow: hidden;margin:auto;background: white;}div.movie-label{position:absolute;/* z-index:80000 */;display: none;width: 232px;height: 74px;background: rgba(128, 128, 128, 0.4);margin-top: 100px;padding: 3px;overflow: hidden}span.movie-title{color: black;font-size: 22px;float: left;margin-right: 10px;}span.movie-description{color: black;display: table-column;float: left;}img.movie-thumb{width: 240px;height: 180px;cursor:pointer;}","name":"movies_list"}
+module.exports={"html":"<div class=\"telll-movies-list-widget telll-widget\"><div class=\"movies-list-titlebar widget-titlebar\">    <span class=\"widget-title\">Movies on telll</span>    <div class=\"logo-86x86\"></div>    <button class=\"close\">Close</button> </div>    <div id=\"telll-movies-list-frame\">{{#movies}}<div class=\"telll-movie-element\" style=\"background-image:url('{{image}}')\">   <div class=\"movie-label\">\t<span class=\"movie-title\">{{title}}</span>\t<span class=\"movie-description\">{{description}}</span>   </div>   <img class=\"movie-thumb\" src=\"{{image}}\" data='{\"id\":\"{{id}}\",\"title\":\"{{title}}\"}'/></div>{{/movies}}    </div> <!-- end telll-movies-list-frame -->    <div class=\"buttons\">    </div> <!-- end buttons --><div id=\"list-ok\"></div></div>","name":"movies_list","css":"div#popup-movies-list{}div.telll-movie-element{float: left;margin: 2px;width: 128px;height: 72px;background: white;border: 1px solid black;overflow: hidden;}div#telll-movies-list-frame{width: 989px;height: 600px;overflow: auto;}div.telll-movies-list-widget{border: 1px solid;width: 989px;height: 650px;overflow: hidden;margin:auto;background: white;}div.movie-label{position:relative;display: none;width: 232px;height: 74px;background: rgba(255, 255, 255, 0.7);/*margin-top: 100px;*/padding: 3px;overflow: hidden}span.movie-title{color: black;font-size: 22px;float: left;margin-right: 10px;}span.movie-description{color: black;display: table-column;float: left;}img.movie-thumb{width: 128px;height: 72px;cursor:pointer;}"}
 },{}],35:[function(require,module,exports){
-module.exports={"html":"<div id=\"photolinks-list-widget\">    <!-- panel -->    <div id=\"telll-controls\">     <div id=telll-panel-frame><div id=\"telll-panel\"      class=\"panel\"><div id=\"panel-frame\"><!-- disabled         <div id=\"rgb-buttons\" class=\"panel\">            <div class=\"rbtn\"></div>            <div class=\"gbtn\"></div>            <div class=\"bbtn\"></div>        </div>-->        <div id=\"return-button\" class=\"panel\"></div>        <div id=\"panel\" class=\"panel\"><div id=\"panel-slider\"><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_0\" src=\"img/photolinks/photolinks_ocean_13.00_180x90.jpg\" id_photolink=\"0\"><label for=\"icon_0\">Brad Pitt - IMDB<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_1\" src=\"img/photolinks/photolinks_ocean_13.01_180x90.jpg\" id_photolink=\"1\"><label for=\"icon_1\">Ted Baker suit - Nordstrom<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_2\" src=\"img/photolinks/photolinks_ocean_13.02_180x90.jpg\" id_photolink=\"2\"><label for=\"icon_2\">George Clooney -  IMDB<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_3\" src=\"img/photolinks/photolinks_ocean_13.03_180x90.jpg\" id_photolink=\"3\"><label for=\"icon_3\">Armani suit - Celebrity Suit Shop<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_4\" src=\"img/photolinks/photolinks_ocean_13.04_180x90.jpg\" id_photolink=\"4\"><label for=\"icon_4\">Las Vegas Travel<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_5\" src=\"img/photolinks/photolinks_ocean_13.05_180x90.jpg\" id_photolink=\"5\"><label for=\"icon_5\">Bellagio<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_6\" src=\"img/photolinks/photolinks_ocean_13.06_180x90.jpg\" id_photolink=\"6\"><label for=\"icon_6\">MGM Grand<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_7\" src=\"img/photolinks/photolinks_ocean_13.07_180x90.jpg\" id_photolink=\"7\"><label for=\"icon_7\">Luxor<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_8\" src=\"img/photolinks/photolinks_ocean_13.08_180x90.jpg\" id_photolink=\"8\"><label for=\"icon_8\">Ghurka vintage bag <label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_9\" src=\"img/photolinks/photolinks_ocean_13.09_180x90.jpg\" id_photolink=\"9\"><label for=\"icon_9\">John Varvatos bag <label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_10\" src=\"img/photolinks/photolinks_ocean_13.10_180x90.jpg\" id_photolink=\"10\"><label for=\"icon_10\">Ford Taurus <label></label></label></div></div></div>        <div id=\"forward-button\" class=\"panel\"></div><!-- disabled         <div id=\"settings-button\" href=\"#settingspanel\" class=\"panel\"></div>        <div id=\"telll-button\"     class=\"panel\"></div>-->    </div></div>        <div id=\"settings-button\"  class=\"panel\"></div>    </div><!-- panel frame -->   </div><!-- telll-controls --></div><!-- photolinks-list-widget -->","css":"#telll-controls{position: absolute;bottom:40px;height: 50px;width:100%;/*background-color:#000;*/z-index: 800000;display:none;}#panel-frame{   width: 590px;   height: 40px;   margin: 0 auto;}#panel{width:525px;height:39px;overflow: hidden;float: left;}#return-button {    background: url(\"../img/telll.png\") no-repeat -276px -66px transparent;    width:31px;    height:38px;    float:left;    cursor:pointer;}#forward-button {    background: url(\"../img/telll.png\") no-repeat -310px -66px transparent;    width:31px;    height:38px;    float:left;    cursor:pointer;}.photolink-icon {border: 1px solid #fff;max-width: 100%;}div.frame-icon {overflow: hide;width: 64px;height: 39px;float: left;margin-left: 10px;cursor: pointer;}div.frame-icon label {position:absolute;display:none;}.photolink-icon{border:1px solid #fff;max-width: 100%;}.photolink-list-element{width: 100%;border: 1px solid rgba(146, 146, 146, 0.73);height: 100px;margin: 3px;}.photolink-thumb{float:left;clear:left}.photolink-thumb-image{height: 97px;}.photolink-title{float:left;width:30%;margin:10px;font-size: 24px}.photolink-description{float:left;clear:right;width:40%;}","name":"panel"}
+module.exports={"css":"#telll-controls{position: absolute;bottom: 0px;height: 100px;width:100%;/* background-color:#000; */z-index: 800000;display:none;}#panel-frame{   width: 590px;   height: 40px;   margin: 0 auto;}#panel{width:525px;height:39px;overflow: hidden;float: left;}#return-button {    background: url(\"../img/telll.png\") no-repeat -276px -66px transparent;    width:31px;    height:38px;    float:left;    cursor:pointer;}#forward-button {    background: url(\"../img/telll.png\") no-repeat -310px -66px transparent;    width:31px;    height:38px;    float:left;    cursor:pointer;}.photolink-icon {border: 1px solid #fff;max-width: 100%;}div.frame-icon {overflow: hide;width: 64px;height: 39px;float: left;margin-left: 10px;cursor: pointer;}div.frame-icon label {position:absolute;display:none;}div#photolinks-list-widget{position: fixed;bottom: 0px;left: 0px;z-index: 80000;height: 110px;width: 100%;overflow: hidden;}.photolink-icon{border:1px solid #fff;max-width: 100%;}.photolink-list-element{width: 100%;border: 1px solid rgba(146, 146, 146, 0.73);height: 100px;margin: 3px;}.photolink-thumb{float:left;clear:left}.photolink-thumb-image{height: 97px;}.photolink-title{float:left;width:30%;margin:10px;font-size: 24px}.photolink-description{float:left;clear:right;width:40%;}","name":"panel","html":"<div id=\"photolinks-list-widget\" class=\"active\">    <!-- panel -->    <div id=\"telll-controls\">     <div id=telll-panel-frame><div id=\"telll-panel\"      class=\"panel\"><div id=\"panel-frame\"><!-- disabled         <div id=\"rgb-buttons\" class=\"panel\">            <div class=\"rbtn\"></div>            <div class=\"gbtn\"></div>            <div class=\"bbtn\"></div>        </div>-->        <div id=\"return-button\" class=\"panel\"></div>        <div id=\"panel\" class=\"panel\"><div id=\"panel-slider\"><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_0\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.00_180x90.jpg\" id_photolink=\"0\"><label for=\"icon_0\">Brad Pitt - IMDB<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_1\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.01_180x90.jpg\" id_photolink=\"1\"><label for=\"icon_1\">Ted Baker suit - Nordstrom<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_2\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.02_180x90.jpg\" id_photolink=\"2\"><label for=\"icon_2\">George Clooney -  IMDB<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_3\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.03_180x90.jpg\" id_photolink=\"3\"><label for=\"icon_3\">Armani suit - Celebrity Suit Shop<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_4\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.04_180x90.jpg\" id_photolink=\"4\"><label for=\"icon_4\">Las Vegas Travel<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_5\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.05_180x90.jpg\" id_photolink=\"5\"><label for=\"icon_5\">Bellagio<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_6\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.06_180x90.jpg\" id_photolink=\"6\"><label for=\"icon_6\">MGM Grand<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_7\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.07_180x90.jpg\" id_photolink=\"7\"><label for=\"icon_7\">Luxor<label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_8\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.08_180x90.jpg\" id_photolink=\"8\"><label for=\"icon_8\">Ghurka vintage bag <label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_9\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.09_180x90.jpg\" id_photolink=\"9\"><label for=\"icon_9\">John Varvatos bag <label></label></label></div><div class=\"frame-icon\"><img class=\"photolink-icon\" id=\"icon_10\" src=\"http://webapp.telll.me/demo/img/photolinks/photolinks_ocean_13.10_180x90.jpg\" id_photolink=\"10\"><label for=\"icon_10\">Ford Taurus <label></label></label></div></div></div>        <div id=\"forward-button\" class=\"panel\"></div><!-- disabled         <div id=\"settings-button\" href=\"#settingspanel\" class=\"panel\"></div>        <div id=\"telll-button\"     class=\"panel\"></div>-->    </div></div>        <div id=\"settings-button\"  class=\"panel\"></div>    </div><!-- panel frame -->   </div><!-- telll-controls --></div><!-- photolinks-list-widget -->"}
 },{}],36:[function(require,module,exports){
-module.exports={"html":"\t\t<div id=\"tags-dashboard\" class=\"dashboard-panel\"> <div id=\"telll-tageditor\" class='telll-tag-editor-widget'><div class=\"tag-titlebar dashboard-titlebar\"><span class=\"dashboard-title\">Tags and Track-Motions</span><button class=\"close\">Close</button> <button class=\"trackms\">New Track-motion</button><button class=\"tag\">New Photolink</button></div><div class=\"tag-pointer\"></div></div>\t\t</div><!-- end tags dashboard --> ","css":"div#telll-tageditor{width:'100%',height:'100%'}div.tag-pointer{display:none;width: 48px;height: 48px;position: absolute;left: 50%;top: 50%;cursor:pointer;background-image: url(\"data:image/png;base64,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\");}","name":"tageditor"}
+module.exports={"html":"\t\t<div id=\"tags-dashboard\" class=\"telll-widget\"> <div id=\"telll-tageditor\" class='telll-tag-editor-widget'><div class=\"tag-titlebar dashboard-titlebar\"><span class=\"dashboard-title\">Tags and Track-Motions</span><button class=\"close\">Close</button> <button class=\"trackms\">New Track-motion</button><button class=\"tag\">New Photolink</button></div><div class=\"tag-pointer\"></div></div>\t\t</div><!-- end tags dashboard --> ","name":"tageditor","css":"div#telll-tageditor{width:'100%',height:'100%'}div#tags-dashboard.dashboard-panel {background: rgb(50, 50, 50);width: 100%;height: 100%;cursor:pointer;}div.tag-pointer{background-size: 8px 8px;display:none;width: 48px;height: 48px;position: absolute;left: 50%;top: 50%;cursor:pointer;background-image: url(\"data:image/png;base64,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\");}"}
 },{}],37:[function(require,module,exports){
-module.exports={"name":"tagplayer","css":"div.tag {display:none;}","html":"{{#tags}}<div id=\"pl-{{id}}\" class=\"tag tag-none\">\t<div class=\"clkbl\">\t\t<div class=\"tag-label\">{{title}}</div>\t\t<p>implement-me!!!</p></div></div>{{/tags}}"}
+module.exports={"css":"div.tag {/*display:none;*/}div.tgp-default{opacity:0.5}div.tgp-none{opacity:0}","html":"<div id=\"telll-tag-player-widget\" class=\"telll-widget\"><div id=\"tag-player-frame\">{{#tags}}<div id=\"pl-{{ photolink}}\" class=\"tag tag-none\">\t<div class=\"clkbl\">\t\t<div class=\"tag-label\">{{getLabel}}</div>\t\t<div class=\"tag-image\"><img src=\"{{getImage}}\" id=\"tag-{{photolink}}\"></div>        </div></div>{{/tags}}</div></div>","name":"tagplayer"}
 },{}],38:[function(require,module,exports){
 module.exports={"html":"<!-- telll button --><div id=\"telll-warn\" class=\"telll-btn\">\t<p>Implement-me!!!\t{{:appName}}\t{{:author}}\t</p></div><!-- end telll-btn -->","name":"telll_btn"}
 },{}],39:[function(require,module,exports){

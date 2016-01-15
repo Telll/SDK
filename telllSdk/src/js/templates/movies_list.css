@@ -3,8 +3,8 @@ div#popup-movies-list{
 div.telll-movie-element{
 float: left;
 margin: 2px;
-width: 237px;
-height: 180px;
+width: 128px;
+height: 72px;
 background: white;
 border: 1px solid black;
 overflow: hidden;
@@ -23,13 +23,12 @@ margin:auto;
 background: white;
 }
 div.movie-label{
-position:absolute;
-/* z-index:80000 */;
+position:relative;
 display: none;
 width: 232px;
 height: 74px;
-background: rgba(128, 128, 128, 0.4);
-margin-top: 100px;
+background: rgba(255, 255, 255, 0.7);
+/*margin-top: 100px;*/
 padding: 3px;
 overflow: hidden
 }
@@ -45,7 +44,7 @@ display: table-column;
 float: left;
 }
 img.movie-thumb{
-width: 240px;
-height: 180px;
+width: 128px;
+height: 72px;
 cursor:pointer;
 }

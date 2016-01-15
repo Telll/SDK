@@ -25,6 +25,7 @@ MoviesList.prototype._init = function(t){
 * @return bool
 */
 MoviesList.prototype._showWidget = function(data){
+    console.log('MoviesList: opening ...');
     var tmpl = require('./templates/movies_list.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
@@ -40,6 +41,7 @@ MoviesList.prototype._showWidget = function(data){
     //$('#popup-movies-list').css('z-index','999');
     $('html').addClass('overlay');
 
+    console.log('MoviesList: opening ... ok');
     /* // other buttons
     $( ".tag-titlebar button.trackms" ).on("click", function(e) {
         e.preventDefault();
@@ -59,16 +61,18 @@ MoviesList.prototype._showWidget = function(data){
     $( ".movies-list-titlebar button.close" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
-	me.state = "selected";
+	me.state = "detached";
 	me.detach();
     });
 
     $( ".movie-thumb" ).on("click", function(e) {
+        console.log("Click");
         e.preventDefault();
-        var movie = JSON.parse($(this).attr('data'));
+        var movieData = JSON.parse($(this).attr('data'));
+        console.log("Clicked!!!: ", movieData);
         me.state = 'selected';
-        me.emit(me.state, movie);
-        telll.setCookie('movieId',movie.id,telll.conf.extime);
+        me.emit(me.state, movieData);
+        telll.setCookie('movieId',movieData.id,telll.conf.extime);
 	me.detach();
     });
     
@@ -85,6 +89,7 @@ MoviesList.prototype._showWidget = function(data){
         $(this).find('.movie-label').fadeOut();
     });
 
+    console.log('MoviesList: opening ... done');
     return true;
 };
 

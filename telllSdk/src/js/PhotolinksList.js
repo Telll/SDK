@@ -18,7 +18,11 @@ PhotolinksList.prototype =Object.create(iView.prototype);
 */
 PhotolinksList.prototype._init = function(t){
     this.state = null;
-    this._showWidget(t.store);
+    var me = this;
+    t.getPhotolinksOfMovie(t.movie.id, function(pl){
+       me.list = pl;
+       me._showWidget(t.store);
+    });
     return null;
 };
 
@@ -29,22 +33,23 @@ PhotolinksList.prototype._init = function(t){
 * @return bool
 */
 PhotolinksList.prototype._showWidget = function(data){
-    console.log('Showing the photolinks-list-widget');
     var tmpl = require('./templates/panel.mtjs');
     var html = Mustache.render(tmpl.html, data);
     if (tmpl.css)
     $('<style id="panel-css">'+tmpl.css+'</style>').appendTo('head');
     $(html).appendTo('body');
     this.state = "open";
+    this.emit(this.state, this.list);
     var telll = this.t;
     var me = this;
+/*
     $( "#close-button" ).on("click", function(e) {
         e.preventDefault();
 	// do stuff
 	me.state = "sent";
 	me.detach();
     });
-
+*/
     $("div#telll-controls").fadeIn();
 
 
@@ -222,7 +227,7 @@ PhotolinksList.prototype._showWidget = function(data){
  *
  */
 PhotolinksList.prototype.highlightPhotolink = function(n){
-    pls = $("#panel").find('.frame-icon img');
+    var pls = $("#panel").find('.frame-icon img');
     console.log('---> '+n);
     console.log(pls.eq(n));
     pls.each(function(i){

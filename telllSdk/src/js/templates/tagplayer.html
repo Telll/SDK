@@ -1,7 +1,12 @@
+<div id="telll-tag-player-widget" class="telll-widget">
+<div id="tag-player-frame">
 {{#tags}}
-<div id="pl-{{id}}" class="tag tag-none">
+<div id="pl-{{ photolink}}" class="tag tag-none">
 	<div class="clkbl">
-		<div class="tag-label">{{title}}</div>
-		<p>implement-me!!!</p>
-</div></div>
+		<div class="tag-label">{{getLabel}}</div>
+		<div class="tag-image"><img src="{{getImage}}" id="tag-{{photolink}}"></div>
+        </div>
+</div>
 {{/tags}}
+</div>
+</div>
