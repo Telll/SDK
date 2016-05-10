@@ -2,12 +2,26 @@
 
 ### Telll core SDK.
 
-To integrate mobile and web apps with the telll player.
+The SDK is a collection of classes and helpers to communicate with telll TWS (REST and Websockets services) and implement the widgets used in telll webapp.
 
-### telllSDK is a simple lib to manage non intrusive ads 
-telllSDK can be very easy to use to integrate, manage and control non intrusive advertising in mobile application.<br/>
+- TWS docs: http://telll.github.io/tws/
+- webapp docs: http://telll.github.io/webapp/
+- SDK jsdoc:  http://telll.github.io/sdk-classes/
 
-The toolkit has implementations in javascript and Swift.
+# Helpers:
+- 
+- 
+
+# UI:
+- 
+- 
+
+## To integrate mobile and web apps with the telll player.
+
+### Technology: multimedia inline links
+telllSDK is a library to manage multimedia inline links.
+
+telllSDK can be very easy to use to integrate, manage and control non intrusive advertising in mobile application.
 
 # javascript
 
@@ -47,7 +61,6 @@ ls SDK/telllSDK/build/js
 ```
 Copy it to your web server and begin using telll
 
-
 ### 2. Setup and configuration
 
 ### 3. Add Code
@@ -57,8 +70,8 @@ Copy it to your web server and begin using telll
 This code bellow is the simplest way to load all telll widgets
 
 ```javascript
-/* Basic telll load */
-myMoviePlayer = document.getElementById('movie-player'); // the div (video or canvas) player id
+/* Basic telll load with jQuery*/
+myMoviePlayer = $('#movie-player'); // the div (video or canvas) player id
 myAdManager = new telllSDK.Telll(myMoviePlayer);
 myAdManager.start();
 ```
@@ -70,16 +83,3 @@ myAdManager.start();
 ##### c. Telll button
 ##### c. The clickbox
 ##### c. The Dashboard
-
-## Usage - Swift
-
-### 1. Download and install the library files
-
-### 2. Setup and Configuration
-
-### 3. Add Code
-
-#### a. Basic
-#### a. Login
-#### g. Load and display video ads
-
