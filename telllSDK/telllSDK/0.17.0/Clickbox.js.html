@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Clickbox.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Clickbox.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require ('./iView.js');
+/**
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* Clickbox --> init -> loadPhotolinks -> telll.getPhotolinksOfUser -> tws.readUserPhotolinks
+* @constructor
+*/
+function Clickbox(t){
+    this.t = t;
+    this._init(t);
+}
+
+Clickbox.prototype = Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+Clickbox.prototype._init = function(t){
+    if (!this.t.credentials.authKey){ throw("No authKey ... hmmm, aborting!"); }
+    //this.verifyCWS(); // to have compatibility
+     this.date = this.Date(0);
+    // default pick photolinks from one week ago
+    this.beginDate = this.Date(-7);
+    var me = this;
+    this.loadPhotolinks(this.beginDate, function(ps){
+        me.photolinks = ps;
+        me.state = "loaded";
+        me.emit("loaded", me);
+        t.store.clickbox = ps;
+        me._showWidget(t.store);
+    });
+    me.state = "init";
+    me.emit ("init");
+    me.createPhotolink();
+    return null;
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+Clickbox.prototype.verifyCWS = function(){
+   // to be done ... ;) 
+};
+ 
+
+/**
+* @param data {} 
+* @return bool
+*/
+Clickbox.prototype._showWidget = function(data){
+    var tmpl = require('./templates/clickbox.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('&lt;style id="clickbox-css">'+tmpl.css+'&lt;/style>').appendTo('head');
+    $(html).appendTo('body');
+    var telll = this.t;
+    var me = this;
+    $(".telll-clickbox-widget .close").on( "click", function( e, data ) {
+	me.detach();
+    });
+    // The popup 
+    $('&lt;div id="popup-clickbox" class="popup">&lt;div class="top-line rgb-bg" style="z-index: 9;">&lt;/div>&lt;/div>').appendTo('body');
+    $("#clickbox-widget").appendTo('#popup-clickbox').fadeIn();
+    $('#popup-clickbox').css('z-index','999');
+    $('html').addClass('overlay');
+    this.state = "show";
+    me.emit("show", me);
+    return true;
+};
+
+/**
+* @return null
+*/
+Clickbox.prototype.createPhotolink = function(){
+    var me = this;
+    me.t.getPhotolink( function(e,got){
+        if (e) throw (e)
+        else {
+		// TODO: deprecate photolinkbb param
+            if (got.photolinkbb){
+               got.photolink = got.photolinkbb; // compatibility with demo
+            }
+            var rData = unescape(got.extra_data);
+            try {
+            var got = JSON.parse(rData); } catch(e){
+            throw(e)}
+            me.state = "got";
+            me.emit ("got", got);
+            me.updatePhotolinksList(got);
+            me.showPhotolinkImage(got);
+        }
+    });
+    me.state = "created";
+    me.emit ("created");
+};
+
+/** 
+ */
+Clickbox.prototype.showPhotolinkImage =  function (got){
+    var me = this;
+    var myPl = got;
+    // TODO hmmm ... it looks bad ... we need an image size manager
+    try {
+    var img = got.thumb.replace('_180x90','');
+    } catch (err) {
+    var img = "/img/transp.png";
+    }
+    $('&lt;div id="photolink-image">&lt;img class="main"/>&lt;/div>').appendTo("body");
+    $('#photolink-image img.main').attr('src', img);
+    $('#photolink-image img.main').css({'width':'100%'});
+    $('#photolink-image a').attr('href', myPl.link);
+    $('#photolink-image a').attr('target', '_blank');
+    $('#photolink-image').fadeIn(); 
+    setTimeout(function(){
+        $('#photolink-image').fadeOut("slow", function (){$('#photolink-image').detach()}); 
+    }, 4000);
+    me.state = "image";
+    me.emit ("image",got);
+       
+};
+
+/** 
+ *
+ * @see Telll.store.clickbox
+ */
+Clickbox.prototype.updatePhotolinksList = function (got) {
+    var me = this;
+    var myList ="";
+    this.t.store.clickbox.push(got);
+    var devicePhotolinks = this.t.store.clickbox;
+    this.emit("got", got);
+    $('#clickbox-empty').detach();
+    $('#clickbox *').detach();
+    $('#clickbox').height($(window).height()-40); 
+    for(var i=0; i&lt;devicePhotolinks.length;i++){
+        if (! devicePhotolinks[i] || devicePhotolinks[i].photolink === undefined){ 
+            throw("Error: clickbox has a bad photolinks list ...");
+            return false 
+        }
+        else {
+            var $element     = $('&lt;div class="photolink-list-element">&lt;/div>');
+            var $controlsFrm = $('&lt;div class="ple-controls-frame">&lt;/div>');
+            var $shareBtn    = $('&lt;div class="share telll-control">&lt;/div>');
+            var $favBlueBtn  = $('&lt;div class="favorite-blue telll-control">&lt;/div>');
+            var $buyBtn      = $('&lt;div class="buy telll-control">&lt;/div>');
+            var myPl = devicePhotolinks[i];
+            var $content     = $('&lt;a target="_blank" href="'+myPl.link+'">&lt;div class="ple-img">&lt;img src="'+myPl.thumb+'">&lt;/div>&lt;div class="ple-info">&lt;span class="ple-title">'+myPl.title+'&lt;/span>&lt;span class="ple-desc">'+myPl.description+'&lt;/span>&lt;span class="ple-desc">'+myPl.imdbPlot+'&lt;/span>&lt;/a>');
+            $element.append(
+                $content,
+                $controlsFrm.append($shareBtn, $favBlueBtn, $buyBtn)
+            );
+	    // Special share feed
+	    $shareBtn.on ("click", function(){
+	        FB.ui({
+	            method: 'feed',
+	            picture: myPl.thumb,
+	            link: 'http://webapp.telll.me/cgi-bin/photolink.pl?id='+myPl.id,
+	            caption: myPl.title,
+	        }, function(response){
+	            if (response) telllDialog("Thanks to share on Facebook!",3000);
+	        });
+	    });
+	    $buyBtn.on ("click", function(){
+                window.open(myPl.link,'_blank');  
+            });
+	    $favBlueBtn.on ("click", function(){
+                window.open("http://webapp.telll.me/cgi-bin/photolink.pl?id="+myPl.id,'_blank');  
+            });
+            $('#clickbox').append($element);
+        }
+    }
+    me.state = "list";
+    me.emit ("list",got);
+};
+
+/**
+* @return null
+*/
+Clickbox.prototype.detach = function(){
+    $('.telll-clickbox-widget').detach();
+    $('#popup-clickbox').detach();
+    this.state = "detached";
+    this.emit("detached");
+};
+
+/**
+* @return null
+*/
+Clickbox.prototype.attach = function(){
+    this._showWidget(this.t.store);
+};
+
+/**
+* Return actual date plus offset
+* @param offset {int} number off days
+* @return {string} the time in the format YYY-MM-DD hh:mm:ss
+* it must be escaped to work in tws
+*/
+Clickbox.prototype.Date = function(offset){
+var n = new Date();
+var m = new Date(n.getTime() + offset * 24 * 60 * 60 * 1000);
+var dateString =
+  m.getUTCFullYear() +"-"+
+  ("0" + (m.getUTCMonth()+1)).slice(-2) +"-"+
+  ("0" + m.getUTCDate()).slice(-2) + " " +
+  ("0" + m.getUTCHours()).slice(-2) + ":" +
+  ("0" + m.getUTCMinutes()).slice(-2) + ":" +
+  ("0" + m.getUTCSeconds()).slice(-2);
+  return dateString;
+};
+
+/**
+* @param date {String} the date from
+* @param cb {Function} callback
+* @return null 
+* the list of photolinks sent to this user since date
+*/
+Clickbox.prototype.loadPhotolinks = function(date, cb){
+     var me = this;
+     // read cookies
+     var deleted = this.t.getCookie("deleted");
+     this.deleted = deleted || this.deleted || [];
+     // read user data
+     me.t.getPhotolinksOfUser(null, escape(date), function(list){
+         if (!list.length) {
+               // TODO what can we do here? :P
+               list = [];
+         }
+         if (cb){ cb(list) } 
+         else{
+	 throw("Fatal error: Clickbox.loadPhotolinks needs a callback, please.")}
+     });
+};
+
+module.exports = {Clickbox:Clickbox};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 15:37:30 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

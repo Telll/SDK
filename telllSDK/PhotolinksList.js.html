@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: PhotolinksList.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: PhotolinksList.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require ('./iView.js');
+/**
+* Generated On: 2015-10-8
+* Class: PhotolinksList
+* @param t {Telll} The telll object
+* @constructor
+*/
+function PhotolinksList(t){
+    this.t = t;
+    this._init(t);
+}
+
+PhotolinksList.prototype =Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+PhotolinksList.prototype._init = function(t){
+    this.state = null;
+    var me = this;
+    t.getPhotolinksOfMovie(t.movie.id, function(pl){
+       me.list = pl;
+       me._showWidget(t.store);
+    });
+    return null;
+};
+
+
+/**
+* Create the widget
+* @param data {} 
+* @return bool
+*/
+PhotolinksList.prototype._showWidget = function(data){
+    var tmpl = require('./templates/panel.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('&lt;style id="panel-css">'+tmpl.css+'&lt;/style>').appendTo('head');
+    $(html).appendTo('body');
+    this.state = "open";
+    this.emit(this.state, this.list);
+    var telll = this.t;
+    var me = this;
+/*
+    $( "#close-button" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "sent";
+	me.detach();
+    });
+*/
+    //$("div#telll-controls").fadeIn();
+
+
+    // Fill panel with photolinks
+    //photolinks = myPhotolinks;
+    //console.log(photolinks);
+    //$("#panel-slider").html(""); // clean panel
+
+    
+    
+    
+    /*	    for (i = 0; i &lt; photolinks.length; ++i) {
+	       //console.log(photolinks[i]);
+	       $("#panel-slider").append('&lt;div class="frame-icon">&lt;img class="photolink-icon" id="icon_'+photolinks[i].id+'" src="'+photolinks[i].thumb+'" id_photolink='+photolinks[i].id+'>&lt;label for="icon_'+photolinks[i].id+'">'+photolinks[i].links[0].title+'&lt;label>&lt;/div>');
+	    }
+            // mouse out : labels
+            $(".frame-icon *").on("mouseover",function(e){
+                 var thisid=$( this ).attr('id');
+                 //console.log(thisid);
+                 $('label[for='+thisid+']' ).css("display","inline");
+            });
+            $(".frame-icon *").on("mouseleave",function(e){
+                 $('label').css("display","none");
+            });
+            // touch : labels
+            $(".frame-icon *").on("touchstart",function(e){
+                 var thisid=$( this ).attr('id');
+                 //console.log(thisid);
+                 $('label[for='+thisid+']' ).css("display","inline");
+            });
+            $(".frame-icon *").on("touchend",function(e){
+                 $('label').css("display","none");
+            });
+/*
+            $(".frame-icon *").click(function() {
+                sendPhotolink($(this).attr('id_photolink'));
+            });
+            //$('.frame-icon *').dblclick(function (e) {
+*/
+
+/*            $('.frame-icon *').doubletap( function (e) {
+                console.log('Double Click!!!');
+                thePlayer.setPause();
+                var ap = parseInt($(e.srcElement).attr('id_photolink'));
+                // show dialog with photolinked webpage
+                $('body').append('&lt;div id="ph-dialog-'+ap+'">&lt;iframe width="100%" height="100%" src="js/projekktor/themes/maccaco/buffering.gif"/>&lt;/div>');
+                //path = '/cgi-bin/mirror.pl?url='+myPhotolinks[ap].links[0].url;
+                path = myPhotolinks[ap].links[0].url;
+                $( "#ph-dialog-"+ap+" iframe" ).attr('src', path);
+                $( "#ph-dialog-"+ap ).dialog({
+                       modal: true,
+                       width: '80%',
+                       height: theHeight - 5,
+                       title: myPhotolinks[ap].links[0].title,
+                       buttons: {
+                	 "See in the movie": function() {
+                           var position = trackms[ap].points[0].t;
+                	   $( this ).dialog( "close" );
+                           thePlayer.setPlay();
+                           setTimeout(function(){
+                           thePlayer.setPlayhead(Number(position.toString()));
+                           actualPhotolink = ap;
+                           },500);
+                           $("&lt;div data-role='popup' class='telll-popup'>Searching tag on movie ...&lt;/div>").appendTo('body');
+                           $( ".telll-popup" ).popup();
+                           $( ".telll-popup" ).popup( "open", null );
+                           setTimeout(function(){
+                               $( ".telll-popup" ).popup('close');
+                               $( ".telll-popup" ).detach();
+                           },2000);
+
+                	 }
+                       }
+                });
+                $( "#ph-dialog-"+ap ).dialog( "open" );
+            }, function(e){
+              console.log('Single Click!!!');
+              var ap = parseInt($(e.srcElement).attr('id_photolink'));
+              console.log('Sendind Photolink ');
+              console.log(this);
+              sendPhotolink(ap);
+            },400);
+            //highlightPhotolink(0);
+    }
+    function scrollPhotolinksPanel(n){
+            //console.log("Scrolled by:");
+            //console.log(n);
+            highlightedPhotolink += n;
+            //console.log("Highlighted Photolink:");
+            //console.log(highlightedPhotolink);
+	    pls = $("#panel").find('.frame-icon img');
+            //console.log(pls);
+            // Catching some errors
+            if (highlightedPhotolink > pls.length-1){
+                highlightedPhotolink = parseInt(pls.length)-1;
+            }
+            if (highlightedPhotolink &lt; 0){
+                highlightedPhotolink = 0; 
+            }
+            
+            highlightPhotolink(highlightedPhotolink);
+
+            // Scroll panel to position
+            // claculate offset
+            var ml = 0;
+            pls.each(function(i){
+                if (parseInt(pls.eq(i).attr('id_photolink')) &lt; highlightedPhotolink - Math.round(phListSize/2) 
+                //   &amp;&amp; highlightedPhotolink &lt; parseInt(pls.length) - Math.round(phListSize/2)
+                ){
+                    ml ++; 
+                }
+            });
+            var of = ml * phListElementWidth * -1;
+            $('#panel-slider').animate({
+                 'margin-left' : of+"px" 
+            }, 400, function(){
+	        //pls.eq(0).insertAfter(pls.eq(pls.length-1));
+	        //pls.eq(0).css('margin-left',ml);
+                //panelSliding = 0;
+                console.log('Panel scrolled by: '+of);
+            });
+
+            /*
+            if (highlightedPhotolink == 0){ highlightPhotolink(0); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == 1){ highlightPhotolink(1); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == 2){ highlightPhotolink(2); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == 3 &amp;&amp; n === 1){ highlightPhotolink(3); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-1){
+                    highlightPhotolink(6); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-2 ){
+                    highlightPhotolink(5); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-3){
+                    highlightPhotolink(4); panelSliding = 0;return 0; }
+            if (highlightedPhotolink == pls.length-4 &amp;&amp; n === -1){
+                    highlightPhotolink(3); panelSliding = 0;return 0; }
+            ml = pls.css('margin-left');
+            mwidth = '-120px';
+            if (n === -1){
+	        pls.eq(pls.length-1).insertBefore(pls.eq(0));
+	        pls.eq(pls.length-1).css('margin-left',mwidth);
+                pls.eq(pls.length-1).animate({
+                            'margin-left': ml,
+                            'transparency' : 0
+                       }, 400, function(){
+                           //panelSliding = 0;
+                });
+	    } else if (n === 1){
+                pls.eq(0).animate({
+                        'margin-left': mwidth,
+                        'transparency' : 0
+                   }, 400, function(){
+	               pls.eq(0).insertAfter(pls.eq(pls.length-1));
+	               pls.eq(0).css('margin-left',ml);
+                       //panelSliding = 0;
+                });
+	    } else if (Math.abs(n) > 1) {
+                for (i=0; i&lt;Math.abs(n) ; i++){
+                    setTimeout(function(){
+                        scrollPhotolinksPanel(n/Math.abs(n));
+                    },(i+1)*451);
+                }
+            }
+            // done
+           // restore photolinks
+           setTimeout(function(){
+               highlightPhotolink(3); panelSliding = 0;
+           },450);
+           */
+
+
+    return true;
+};
+
+/**
+ *
+ */
+PhotolinksList.prototype.highlightPhotolink = function(n){
+    var pls = $("#panel").find('.frame-icon img');
+    console.log('---> '+n);
+    console.log(pls.eq(n));
+    pls.each(function(i){
+        //console.log(pls.eq(i).attr('id_photolink'));
+        //newSrc = pls.eq(i).find('img').attr('src').replace("_green.jpg", ".jpg");
+        //pls.eq(i).find('img').attr('src', newSrc);
+        if (parseInt(pls.eq(i).attr('id_photolink')) != n ){
+            pls.eq(i).css('opacity', '0.3');
+        } else {
+            pls.eq(n).css('opacity', '1');
+            console.log('highlighting '+n);
+        }
+    });
+    // highlight actual photolink
+    //newSrc = pls.eq(n).find('img').attr('src').replace(".jpg", "_green.jpg");
+    //pls.eq(n).find('img').attr('src', newSrc);
+    //pls.eq(n).css({'width':'96px','height':'52px'});
+};
+
+
+
+module.exports = {PhotolinksList:PhotolinksList};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 12:17:52 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

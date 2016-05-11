@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dashboard.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Dashboard.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require('./iView.js');
+/**
+ * @param {Telll} t the telll object
+ * @author Monsenhor filipo at kobkob.org
+ * @constructor
+ */
+function Dashboard(t) {
+  this.t = t;
+  this._init(t);
+}
+
+Dashboard.prototype = Object.create(iView.prototype);
+
+/**
+ * @param t {}
+ * @return bool
+ */
+Dashboard.prototype._init = function(t) {
+  this.state = null;
+  this.tagEditor = null;
+  this.metricsPanel = null;
+  t.store.df = t.conf.dashboardFields;
+  t.store.dm = t.conf.dashboardMenu;
+  t.store.da = t.conf.dashboardAddOns;
+  t.store.db = t.conf.dashboardButtons;
+  this._showWidget(t.store);
+  return null;
+}
+
+/**
+ * @param data {}
+ * @return bool
+ */
+Dashboard.prototype._showWidget = function(data) {
+  var tmpl = require('./templates/dashboard.mtjs');
+  var html = Mustache.render(tmpl.html, data);
+  if (tmpl.css)
+    $('&lt;style id="dashboard-css">' + tmpl.css + '&lt;/style>').appendTo('head');
+  $(html).appendTo('body');
+  this.state = "open";
+  var telll = this.t;
+  var me = this;
+  $("#close-button").on("click", function(e) {
+    e.preventDefault();
+    // do stuff
+    me.state = "sent";
+    me.detach();
+  });
+  var $adminFrame = $("&lt;div id='admin-frame' class='dashboard-panel'>&lt;/div>");
+  var $adminContent = $("&lt;div id='admin-content'>&lt;/div>").appendTo($adminFrame);
+  $adminContent.load(telll.conf.admin);
+  $("div#telll-dashboard-frame").append($adminFrame);
+  $adminFrame.fadeIn();
+  // open dashboard forms
+  // setup behaviors
+  // TODO create functions or classes for each dashboard form
+
+  ///////////////////////
+  // user form
+  $(".dashboard-home li#user-profile").on("click", function(e) {
+    // load user data
+    me.loadUser();
+    $('.dashboard-panel').hide();
+    $('.dashboard-home li').removeAttr('style');
+    $(".dashboard-home li").removeClass('tab-active').addClass('tab-iddle');
+    $(this).removeClass('tab-iddle').addClass('tab-active');
+    $("#user-dashboard").slideToggle("slow");
+  });
+  // user form behaviors
+  $('#user-dashboard input.save-button').on('click', function(e) {
+    telll.saveUser($('#user-dashboard form#dashboard_form_user').serializeArray(), function(e, d) {
+      me.loadUser();
+      me.timeDialog("User data saved ...", 1600);
+    });
+
+  });
+  $('#user-dashboard input.delete-button').on('click', function(e) {
+    console.log(confirm("Do you really want to delete your account? It can't de undone"));
+  });
+  ////////////////////////
+  // movies form
+  $(".dashboard-home li#movies").on("click", function(e) {
+    $('.dashboard-panel').hide();
+    $('.dashboard-home li').removeAttr('style');
+    $(".dashboard-home li").removeClass('tab-active').addClass('tab-iddle');
+    $(this).removeClass('tab-iddle').addClass('tab-active');
+    // load description input onto textarea and limit length
+    var $input = $('#description-field');
+    var $textarea = $('&lt;textarea maxlength=255 id="decription-field" cols=40 rows=10 name="description">&lt;/textarea>');
+    $textarea.attr('id', $input.attr('id'));
+    $textarea.val($input.val());
+    $input.replaceWith($textarea);
+    $textarea.on('keyup blur', function() {
+      var maxlength = $(this).attr('maxlength');
+      var val = $(this).val();
+      if (val.length > maxlength) {
+        $(this).val(val.slice(0, maxlength)); // limit field length
+      }
+    });
+    // create image field
+    if (!$('img#movie-image').length) {
+      $("&lt;img id='movie-image'>").insertBefore("#image-field");
+      $("#movie-image").attr('src', $("#image-field").val());
+    }
+    // create the file upload field
+    if (!$('input#movie-image-upload').length) {
+      $("&lt;input type='file' id='movie-image-upload'>").insertAfter("#image-field");
+      $("#movie-image-upload").on("change", function(e) {
+        var upl = this;
+        telll.getUser(null, function(data) {
+          var username = data.username;
+          var file = upl.files[0];
+          var fd = new FormData();
+          fd.append("imagefile", file);
+          fd.append("username", username);
+          $.ajax({
+            url: telll.conf.upload,
+            type: "POST",
+            data: fd,
+            enctype: 'multipart/form-data',
+            processData: false,
+            contentType: false
+          }).done(function(data) {
+		  console.log(data);
+            //var json = JSON.parse(data);
+            var json = data;
+            if (json.error) {
+              telllDialog("Error: " + json.error + " ...&lt;br> Contact the telll administrator.", 8000);
+            } else {
+              // Change image field
+              $("#image-field").val(json.url);
+              $("#movie-image").attr('src', $("#image-field").val());
+              telllDialog("Image uploaded: " + json.url, 1600);
+            }
+          });
+        });
+      });
+    }
+    me.reloadSelectMovies();
+    $("#movies-dashboard").slideToggle("slow");
+  });
+  // movies form behaviors
+  $('#movies-dashboard input.save-button').on('click', function(e) {
+    if ($("#description-field").val().length > 255) {
+      alert("Description field has " + $("#description-field").val().length + " caracters. It must have less than 256 caracters. Fix it please!");
+      return;
+    }
+    telll.saveMovie($('#movies-dashboard form#dashboard_form_movie').serializeArray(), function(e, d) {
+      me.reloadSelectMovies();
+      me.timeDialog("Movie saved ...", 1600);
+    });
+  });
+  $('#movies-dashboard input.delete-button').on('click', function(e) {
+    if (confirm('Do you really want to delete this movie? It can\'t be undone.'))
+      telll.deleteMovie($('#movies-dashboard form#dashboard_form_movie').serializeArray(), function(e, d) {
+        me.reloadSelectMovies();
+        //Clear all fields
+        $("#movies-dashboard fieldset input:text").val("");
+        $("#movies-dashboard fieldset #player-select").val(0);
+        me.timeDialog("Movie deleted ...", 1600);
+      });
+  });
+
+  $("#movies-dashboard #movie-select").on('change', function(e) {
+    $("#movies-dashboard #movie-select option:selected").each(function() {
+      if ($(this).val() == 'clear') {
+        //Clear all fields
+        $("#movies-dashboard fieldset input:text").val("");
+        $("#movies-dashboard fieldset #player-select").val(0);
+        //$("#movies-dashboard fieldset #movie-select").val('clear');
+      } else if ($(this).val() != 'none') {
+        // Get movie data
+        var myVal = $(this).val();
+        var selMv = $.grep(telll.moviesList, function(e) {
+          return e.id == myVal;
+        });
+        // Load the movie data into form fields
+        $.each(selMv[0], function(name, value) {
+          $("#movies-dashboard fieldset #" + name + "-field").val(value);
+        });
+        // load image
+        $("#movie-image").attr('src', $("#image-field").val());
+      }
+    });
+  });
+
+
+  ////////////////////////////
+  // photolinks form
+  $(".dashboard-home li#photolinks").on("click", function(e) {
+    $('.dashboard-panel').hide();
+    $('.dashboard-home li').removeAttr('style');
+    $(".dashboard-home li").removeClass('tab-active').addClass('tab-iddle');
+    $(this).removeClass('tab-iddle').addClass('tab-active');
+    $("#photolinks-dashboard").slideToggle("slow");
+    $("#photolinks-dashboard div.telll-dashboard-field").detach();
+    me.reloadPlSelectMovies();
+    var $newPl = $('div#photolinks-dashboard div.dashboard-titlebar button').hide();
+    $newPl.on('click', function(event){
+         event.stopImmediatePropagation()
+         $(".no-photolink").detach();
+         me.createPhotolinkField();
+         return false; 
+    });
+  });
+
+  $("#photolinks-dashboard #movie-select").on('change', function(e) {
+    telll.movie = null;
+    $('div#photolinks-dashboard div.dashboard-titlebar button').show();
+    $("#photolinks-dashboard #movie-select option:selected").each(function() {
+      if ($(this).val() != 'none') {
+        // Get photolinks for movie
+        var mId = $(this).val();
+        $("#photolinks-dashboard fieldset").html('');
+        $('&lt;input type="hidden" name="id" id="id-field" value="' + mId + '">').appendTo("#photolinks-dashboard fieldset");
+        // load and show photolinks
+        var hasPl = false;
+        var $bufImg = $('&lt;img src="img/buffering.gif" class="img-buffer">').appendTo("#photolinks-dashboard fieldset");
+        telll.getMovie(mId, function(movie) {
+          me.loadMovieData(movie, function(mov, d) {
+            $.each(d.photolinks, function(j, p) {
+              hasPl = true;
+              // get trackmotions for this photolink
+              var tracks = [];
+              for (var k = 0; k &lt; d.tags.length; k++) {
+                if (d.tags[k].photolink == p.photolink.id) {
+                  tracks.push(d.tags[k]);
+                }
+              }
+              // create the photolink field
+              var $phField = me.createPhotolinkField({
+                  id: p.photolink.id,
+                  title: p.photolink.title,
+                  thumb: p.thumb,
+                  description: p.photolink.description
+              });
+              // create the link fields for this photolink
+              for (var i = 0; i &lt; p.photolink.link.length; i++) {
+                me.addLinkField ($phField, {
+                    title: p.photolink.link[i].title,
+                    description: p.photolink.link[i].description,
+                    url: p.photolink.link[i].url 
+                });
+              }
+              // create the trackmotions for this photolink
+              for (var l = 0; l &lt; tracks.length; l++) {
+                if (tracks[l] &amp;&amp; tracks[l].points &amp;&amp; tracks[l].points.length) {
+                    me.addTrackmotionField ($phField, {
+			    points: tracks[l].points,
+                                      thumb: p.thumb,  //TODO get the thumb from track
+		    });
+                }
+                if (j == d.photolinks.length - 1) {
+                  $bufImg.detach();
+                }
+              }
+            });
+            if (!hasPl) {
+              $("&lt;div class='notes no-photolink'>This movie doesn't have photolinks. Create a new one!&lt;/div>").appendTo("#photolinks-dashboard fieldset");
+              $bufImg.detach();
+            }
+          });
+        });
+      }
+    });
+  });
+
+  ////////////////////////////
+  // Tags editor
+  $(".dashboard-home li#tags").on("click", function(e) {
+    me.tagEditor = new telllSDK.View.TagEditor(telll);
+    me.state = "tagging";
+  });
+
+  ////////////////////////////
+  // Metrics dashbard
+  $(".dashboard-home li#clicks").on("click", function(e) {
+    $('.dashboard-panel').hide();
+    $('.dashboard-home li').removeAttr('style');
+    $(".dashboard-home li").removeClass('tab-active').addClass('tab-iddle');
+    $(this).removeClass('tab-iddle').addClass('tab-active');
+    $("#clicks-dashboard").slideToggle("slow");
+  });
+
+  return true;
+};
+
+/**
+ * @param plData {Object} Photolink data to save
+ * @return null
+ */
+Dashboard.prototype.createPhotolinkField = function(plData) {
+    var me = this;
+    var thumb = "default.png";
+    var telll = this.t;
+    if (!plData) {
+       plData = {
+           id:"",
+           title:"",
+           mediaType:"",
+           description:""
+       };
+    }
+    var $phElement = $('&lt;div class="photolink-list-element">&lt;div class="ple-img">&lt;img src="'+thumb+'">&lt;/div>&lt;div class="ple-info">&lt;span class="ple-title">'+plData.title+'&lt;/span>&lt;span class="ple-desc">'+plData.description+'&lt;/span>&lt;/div>&lt;/div>').css("background","black");
+    var $phField = $('&lt;div class="telll-dashboard-field">&lt;/div>').hide();
+    var $phMenu = $('&lt;div class="photolink-menu">&lt;/div>');
+    $phField.append($phMenu);
+    var $savePhButton = $('&lt;input type="button" name="save" class="save-button" value="save">');
+    var $deletePhButton = $('&lt;input type="button" name="delete" class="delete-button" value="delete">');
+    var $addLinkButton = $('&lt;input type="button" name="add_link" class="add-button" value="add link">');
+    var $addTrackButton = $('&lt;input type="button" name="add_track" class="add-button" value="add track">');
+    var $showButton = $('&lt;input type="button" name="show_pl" class="add-button" value="show photolink">');
+    $phMenu.append($savePhButton);
+    $phMenu.append($deletePhButton);
+    $phMenu.append($addLinkButton);
+    $phMenu.append($addTrackButton);
+    $phMenu.append($showButton);
+    $("#photolinks-dashboard fieldset").prepend($phField);
+    $("#photolinks-dashboard fieldset").prepend($phElement);
+
+    $phElement.on('click', function(){
+        $phElement.slideUp();
+        $phField.slideDown();
+    });
+    $showButton.on('click', function(){
+        $phElement.slideDown();
+        $phField.slideUp();
+    });
+
+    var $phId = $('&lt;input type="hidden" name="id" class="id-field" value="' + plData.id + '" size="12">');
+    $phField.append($phId);
+    $phField.append($('&lt;label>Title:&lt;/label>'));
+    var $phTitle = $('&lt;input type="text" name="title" class="title-field" value="' + plData.title + '" size="80">');
+    $phField.append($phTitle);
+    $phField.append($('&lt;label>Description:&lt;/label>'));
+    var $phDesc = $('&lt;input type="text" name="desc" class="desc-field" value="' + plData.description + '" size="80">');
+    $phField.append($phDesc);
+    $phField.append($('&lt;label>Media type:&lt;/label>'));
+    var $phMt = $('&lt;input type="text" name="mt" class="mt-field" value="' + plData.mediaType + '" size="80">');
+    $phField.append($phMt);
+    // update photolink element
+    $phTitle.on('change', function(){
+       var $elTitle = $(this).parent().prev().find(".ple-info .ple-title");
+       $elTitle.html($(this).val());
+    });
+    $phDesc.on('change', function(){
+       var $elDesc = $(this).parent().prev().find(".ple-info .ple-desc");
+       $elDesc.html($(this).val());
+    });
+    // save this photolink
+    $savePhButton.on('click', function() {
+      var toSave = {
+        id: $phId.val(),
+        title: $phTitle.val(),
+        description: $phDesc.val(),
+        mediatype: $phMt.val(),
+        //thumb: $phThumb.attr('src')
+      };
+      me.savePhotolink(toSave);
+    });
+    // delete this photolink
+    $deletePhButton.on('click', function() {
+      me.deletePhotolink(plData.id);
+      $phField.detach();
+    });
+    // add link to this photolink
+    $addLinkButton.on('click', function() {
+      me.addLinkField($phField)
+    });
+    // add track motion this photolink
+    $addTrackButton.on('click', function() {
+      me.addTrackmotionField($phField)
+    });
+    return $phField;
+};
+
+/**
+ * @param phField {jQuery} phField to insert link form
+ * @param plData {Object} Photolink data to save
+ * @return null
+ */
+Dashboard.prototype.addLinkField = function($phField, plData) {
+    var me = this;
+    var telll = this.t;
+    if (!plData) {
+       plData = {
+           id:"",
+           title:"",
+           photolink:"",
+           url:"http://",
+           description:"",
+	   value:1000
+       };
+    }
+    var $linkFrame = $('&lt;div class="link-frame">&lt;/div>').appendTo($phField);
+    $linkFrame.append($('&lt;label>Link:&lt;/label>'));
+    $linkFrame.append($('&lt;br>&lt;label>Title:&lt;/label>'));
+    var $linkTitle = $('&lt;input type="text" name="link_title" class="link-title-field" value="' + plData.title + '" size="80">');
+    $linkFrame.append($linkTitle);
+    $linkFrame.append($('&lt;label>Description:&lt;/label>'));
+    var $linkDesc = $('&lt;input type="text" name="link_desc" class="link-desc-field" value="' + plData.description + '" size="80">');
+    $linkFrame.append($linkDesc);
+    $linkFrame.append($('&lt;label>Url:&lt;/label>'));
+    var $linkUrl = $('&lt;input type="text" name="link_url" class="link-url-field" value="' + plData.url + '" size="80">');
+    $linkFrame.append($('&lt;label>Value (US$ milicents):&lt;/label>'));
+    var $linkValue = $('&lt;input type="text" name="link_value" class="link-value-field" value="' + plData.value + '" size="80">');
+     $linkFrame.append($linkValue);
+    var $saveLinkButton = $('&lt;input type="button" name="save_link" class="save-button" value="save">').on('click', function(){
+        me.saveLink({
+		id          : plData.id          ,
+		title       : $linkTitle.val()       ,
+		photolink   : $linkPhotolink.val()   ,
+		description : $linkDescription.val() ,
+		href        : $linkUrl.val()        ,
+		value       : $linkValue.val()       ,
+	});
+    });
+    $linkFrame.append($saveLinkButton);
+    var $deleteLinkButton = $('&lt;input type="button" name="delete_link" class="delete-button" value="delete">').on('click', function(){
+        $linkFrame.detach();
+	me.deleteLink();
+    });
+    $linkFrame.append($deleteLinkButton);
+ 
+    $saveLinkButton.on('click', function() {});
+    $deleteLinkButton.on('click', function() {});
+    $linkTitle.focus();
+};
+
+/**
+ * @param $phField {jQuery} phField to insert track form
+ * @param tmData {Object} the track motion data to show
+ * @return null
+ */
+Dashboard.prototype.addTrackmotionField = function($phField, tmData) {
+    var me = this;
+    var telll = me.t;
+    var points =  tmData ? tmData.points : null;
+    var thumb  =  tmData ? tmData.thumb  : '/default.png';
+    var myId   =  tmData ? tmData.id     : null;
+
+    if (!points || !points.length) {
+        points = [{t:0,x:0,y:0},{t:1,x:10,y:10}];
+    }
+    var $trackFrame = $('&lt;div class="track-frame">&lt;/div>').appendTo($phField);
+    $trackFrame.append($('&lt;label>Track motion:&lt;/label>'));
+    var $deleteTrackButton = $('&lt;input type="button" name="delete_track" class="delete-button" value="delete track">').appendTo($trackFrame).on('click', function(){
+        $trackFrame.detach();
+        me.deleteTrackmotion(myId);	
+    });
+    $trackFrame.append($('&lt;br>&lt;label>Thumb:&lt;/label>'));
+    var $phThumb = $('&lt;img src="' + thumb + '">');
+    $trackFrame.append($phThumb);
+    var $uploadImage = $('&lt;input type="file">');
+    $trackFrame.append($uploadImage);
+    // upload thumb
+    $uploadImage.on("change", function(e) {
+        var $elThumb = $(this).parent().prev().find("div.ple-img img");
+        me.uploadImage(this, $phThumb, $elThumb);
+    });
+
+    for (var n = 0; n &lt; points.length; n++) {
+      addPoint($trackFrame, points[n]);
+    }
+
+    function addPoint($trackFrame, point, $pos){
+        var $pointFrame = $("&lt;div class='point-frame'>&lt;/div>");
+        if ($pos) {
+            $pos.after($pointFrame);
+        } else {
+            $pointFrame.appendTo($trackFrame);
+        }
+        $pointFrame.append($('&lt;label>Time:&lt;/label>'));
+        var $pointTime = $('&lt;input type="text" name="track_time" class="track-time-field" value="' + point.t + '" size="5">');
+        $pointFrame.append($pointTime);
+        $pointFrame.append($('&lt;label>X:&lt;/label>'));
+        var $pointX = $('&lt;input type="text" name="track_x" class="track-x-field" value="' + point.x + '" size="5">');
+        $pointFrame.append($pointX);
+        $pointFrame.append($('&lt;label>Y:&lt;/label>'));
+        var $pointY = $('&lt;input type="text" name="track_y" class="track-y-field" value="' + point.y + '" size="5">');
+        $pointFrame.append($pointY);
+        var $savePointButton = $('&lt;input type="button" name="save_point" class="save-button" value="save">');
+        var $deletePointButton = $('&lt;input type="button" name="delete_point" class="delete-button" value="delete">');
+        var $addPointButton = $('&lt;input type="button" name="add_point" class="delete-button" value="add point">');
+        $pointFrame.append($savePointButton);
+        $pointFrame.append($deletePointButton);
+        $pointFrame.append($addPointButton);
+        $pointTime.focus();
+        $savePointButton.on('click', function() {});
+        $deletePointButton.on('click', function() {});
+        $addPointButton.on('click', function() {
+            addPoint($trackFrame, {t:0,x:0,y:0}, $(this).parent());
+        });
+    }
+};
+
+/**
+ * @param upl {Element} The file input
+ * @param imgField {jQuery} Image tag receiving 
+ * @param imgField2 {jQuery} Image tag receiving 
+ * @return null
+ */
+Dashboard.prototype.uploadImage = function(upl, imgField, imgField2) {
+    var me = this;
+    var telll = this.t;
+    telll.getUser(null, function(data) {
+      var username = data.username;
+      var file = upl.files[0];
+      var fd = new FormData();
+      fd.append("imagefile", file);
+      fd.append("username", username);
+      $.ajax({
+        url: telll.conf.upload,
+        type: "POST",
+        data: fd,
+        enctype: 'multipart/form-data',
+        processData: false,
+        contentType: false
+      }).done(function(json) {
+        //var json = JSON.parse(data);
+        if (json.error) {
+          telllDialog("Error: " + json.error + " ...&lt;br> Contact the telll administrator.", 8000);
+        } else {
+          // Change thumb field
+          //imgField.val(telll.conf.home + json.url);
+          imgField.attr('src', json.url);
+          if (imgField2) imgField2.attr('src', json.url);
+          telllDialog("Image uploaded: " + json.url, 1600);
+        }
+      });
+    });
+};
+
+/**
+ * @param data {Object} Photolink data to save
+ * @return null
+ */
+Dashboard.prototype.savePhotolink = function(data) {
+  var me = this;
+  var telll = me.t;
+  if (data) telll.savePhotolink(data);
+};
+
+/**
+ * @param id {Integer} Photolink to delete
+ * @return null
+ */
+Dashboard.prototype.deletePhotolink = function(id) {
+  var me = this;
+  var telll = me.t;
+  if (id){
+    telll.deletePhotolink(id);
+  } else {
+    console.log('Nothing to delete here!');
+  }
+};
+
+/**
+ * @param id {Integer} Trackmotion to delete
+ * @return null
+ */
+Dashboard.prototype.deleteTrackmotion = function(id) {
+  var me = this;
+  var telll = me.t;
+  if (id){
+    telll.deleteTrackmotion(id);
+  } else {
+    console.log('Nothing to delete here!');
+  }
+};
+
+
+/**
+ * @param data {Object} Link data to save
+ * @return null
+ */
+Dashboard.prototype.saveLink = function(data) {
+  console.log(data);
+};
+
+/**
+ * @param id {Integer} Link to delete
+ * @return null
+ */
+Dashboard.prototype.deleteLink = function(id) {
+  console.log(id);
+};
+
+/**
+ * @param data {Object} Point data to save
+ * @return null
+ */
+Dashboard.prototype.savePoint = function(data) {
+  console.log(data);
+};
+
+/**
+ * @param id {Integer} Point to delete
+ * @return null
+ */
+Dashboard.prototype.deletePoint = function(id) {
+  console.log(id);
+};
+
+
+
+/**
+ * @return null
+ */
+Dashboard.prototype.attach = function() {
+  this._showWidget(this.t.store);
+};
+
+/**
+ * @return null
+ */
+Dashboard.prototype.reloadSelectMovies = function() {
+  var telll = this.t;
+  // Reload select widget
+  $("#movies-dashboard #movie-select").html('');
+  $("#movies-dashboard #movie-select").append($('&lt;option value="none">Select a movie:&lt;/option>'));
+  $("#movies-dashboard #movie-select").append($('&lt;option value="clear">[Create new movie]&lt;/option>'));
+  // Load movies list from telll server
+  telll.listMovies(null, function(d) {
+    $.each(d, function(i, j) {
+      $("#movies-dashboard #movie-select").append(
+        $('&lt;option value="' + j.id + '">' + j.title + '&lt;/option>'));
+    });
+  });
+
+};
+/**
+ * @return null
+ */
+Dashboard.prototype.reloadPlSelectMovies = function() {
+  var telll = this.t;
+  // Reload select widget
+  $("#photolinks-dashboard #movie-select").html('');
+  $("#photolinks-dashboard #movie-select").append($('&lt;option value="none">Select a movie:&lt;/option>'));
+  // Load movies list from telll server
+  telll.listMovies(null, function(d) {
+    $.each(d, function(i, j) {
+      $("#photolinks-dashboard #movie-select").append(
+        $('&lt;option value="' + j.id + '">' + j.title + '&lt;/option>'));
+    });
+  });
+
+};
+
+
+/**
+ * @return null
+ */
+Dashboard.prototype.loadUser = function() {
+  var telll = this.t;
+  telll.getUser(null, function(d) {
+    $("#user-dashboard #userid-field").val(d.id);
+    $("#user-dashboard #username-field").val(d.username);
+    $("#user-dashboard #email-field").val(d.email);
+    $("#user-dashboard #password-field").val(d.password);
+  });
+};
+
+/** Load photolinks and tags to store
+ * */
+Dashboard.prototype.loadMovieData = function(m, cb) {
+  var result = {};
+  var loaded = 0;
+  me = this;
+  if (!m.photolinks) {
+    myAdFw.getPhotolinksOfMovie(m.id, function(aPl) {
+      loaded++;
+      result.photolinks = aPl.photolinks;
+      if (cb &amp;&amp; loaded == 2) cb(m, result);
+    });
+  } else {
+    loaded++;
+    result.photolinks = m.photolinks;
+  }
+  if (!m.tags) {
+    myAdFw.getTracks(m.id, function(er, da) {
+      loaded++;
+      result.tags = da.trackmotions;
+      if (cb &amp;&amp; loaded == 2) cb(m, result);
+    });
+  } else {
+    loaded++;
+    result.tags = m.tags;
+  }
+  if (cb &amp;&amp; loaded == 2) cb(m, result);
+}
+
+
+/**
+ * @return null
+ */
+Dashboard.prototype.detach = function() {
+  $('.telll-dashboard-widget').detach();
+  this.state = "detached";
+};
+
+/**
+ * @return null
+ */
+Dashboard.prototype.close = function() {
+  $('.telll-dashboard-widget').fadeOut();
+  this.state = "closed";
+};
+
+/**
+ * @return null
+ */
+Dashboard.prototype.open = function() {
+  $('.telll-dashboard-widget').fadeIn();
+  this.state = "open";
+};
+
+/**
+ * @return null
+ * @param msg
+ */
+Dashboard.prototype.timeDialog = function(msg, delay) {
+  $("&lt;div class='time-dialog'>" + msg + "&lt;/div>").appendTo("body").fadeIn(function() {
+    setTimeout(function() {
+      $(".time-dialog").fadeOut(function() {
+        $(".time-dialog").detach();
+      })
+    }, delay);
+  });
+};
+
+
+module.exports = {
+  Dashboard: Dashboard
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 12:17:52 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

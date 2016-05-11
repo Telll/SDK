@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: TagEditor.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: TagEditor.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require ('./iView.js');
+/**
+  * TagEditor
+  * Implements a functional player (movie, photolinks, tags) and tools to edit it
+  * @constructor 
+  */
+TagEditor = function (t)
+{
+  this._init (t);
+}
+
+TagEditor.prototype =Object.create(iView.prototype);
+
+/**
+ * _init 
+ * @param t Telll object 
+ */
+TagEditor.prototype._init = function (t)
+{
+    this.t = t;
+    this.time = 0; 
+    this._showWidget(t.store);
+}
+
+/**
+ * 
+ * @param player
+ * @param callback
+    *      
+ */
+TagEditor.prototype.sync = function (p, callback)
+{
+  this.t.syncPlayer(this, p, callback);
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+TagEditor.prototype._showWidget = function(data){
+    console.log('Showing the tag editor widget');
+    var tmpl = require('./templates/tageditor.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('&lt;style id="tageditor-css">'+tmpl.css+'&lt;/style>').appendTo('head');
+    $("div#telll-tageditor").css({'width':'100%','height':'100%'}); 
+    $(html).appendTo('body');
+    this.state = "open";
+    var telll = this.t;
+    var me = this;
+
+    // The player 
+    var mvPlayer = new telllSDK.View.MockPlayer(telll);
+    var tgPlayer = new telllSDK.View.TagPlayer(telll, mvPlayer);
+    me.sync(mvPlayer);
+    //tgPlayer.sync(mvPlayer); // its already done
+    mvPlayer.on('loaded', function(){
+	    console.log('appending movie player to tag editor');
+            $('#movie-player').appendTo('#tags-dashboard');
+    });
+
+    // The popup 
+    //$('&lt;div class="popup-overlay">&lt;/div>').appendTo('body');
+    $('&lt;div id="popup-tags" class="popup">&lt;/div>').appendTo('body');
+    $("#tags-dashboard").appendTo('#popup-tags').fadeIn();
+    $('#popup-tags').css('z-index','999');
+    $('html').addClass('overlay');
+    // other buttons
+    $( ".tag-titlebar button.trackms" ).on("click", function(e) {
+        e.preventDefault();
+        // The draggable pointer
+        me.drgPointer();
+	me.state = "tracking";
+	
+    });
+    $( ".tag-titlebar button.tag" ).on("click", function(e) {
+        e.preventDefault();
+        // The tag editor
+        me.tagEditor();
+	me.state = "tagging";
+	
+    });
+    $( ".tag-titlebar button.close" ).on("click", function(e) {
+        e.preventDefault();
+	// do stuff
+	me.state = "sent";
+	me.detach();
+    });
+    this.formatScreen();
+    $( window ).resize(function() { this.formatScreen(); });
+    $(window).on('orientationchange', function(event) { this.formatScreen(); });
+}
+/**
+* @return null
+*/
+TagEditor.prototype.formatScreen = function(){
+    $('#telll-movie').width($(window).width());
+    if ($("#telll-movie").height() > $(window).height()) $("#telll-movie").height( $(window).height() );
+};
+ 
+/**
+* @return null
+*/
+TagEditor.prototype.drgPointer = function(){
+    alert('Click and draw to capture the movement!');
+    var mouseX, mouseY, pntOfs, trackms;
+    var me = this;
+    $(document).on("mousemove", function (e) {
+    if ($('#popup-tags').length){
+        mouseX = e.pageX;
+        mouseY = e.pageY;
+        pntOfs = $('#popup-tags').offset(); //TODO fix it, have an error of some pixels
+        $('div.tag-pointer').css({
+           left:  mouseX - pntOfs.left - 15,
+           top:   mouseY - pntOfs.top - 15
+        });
+    }}); 
+    var frameRate = 12; // the number of frames per second 
+    var timeInterval = Math.round( 1000 / frameRate ); 
+    var atimer = null;
+    $("div.tag-pointer").on('mouseup', function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        clearTimeout(atimer);
+        $("div.tag-pointer").fadeOut(function(){
+            alert('Captured!');
+            console.log(trackms);
+            // Save data on tws
+        });
+    });
+    $("div.tag-pointer").fadeIn();
+    $("div.tag-pointer").on('mousedown', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        trackms = []; 
+        atimer = setInterval( function (t){
+            // get the mouse data each time period
+            trackms.push({
+                  x: mouseX - pntOfs.left - 15,
+                  y: mouseY - pntOfs.top - 15,
+                  t: me.time
+            });
+        }, timeInterval ); 
+    });
+};
+
+/**
+* @return null
+*/
+TagEditor.prototype.attach = function(){
+    this._showWidget(this.t.store);
+};
+
+/**
+* @return null
+*/
+TagEditor.prototype.tagEditor = function(){
+    console.log('Implement tag editor!!!!');
+};
+
+
+/**
+* @return null
+*/
+TagEditor.prototype.detach = function(){
+    //$('div#tags-dashboard').detach();
+    //$('div.popup-overlay').detach();
+    $('div#popup-tags').detach();
+    this.state = "detached";
+};
+
+/**
+* @return null
+*/
+TagEditor.prototype.close = function(){
+    $('.telll-tag-editor-widget').fadeOut();
+    this.state = "closed";
+};
+
+/**
+* @return null
+*/
+TagEditor.prototype.open = function(){
+    $('.telll-tag-editor-widget').fadeIn();
+    this.state = "open";
+};
+
+
+module.exports = {TagEditor:TagEditor};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 15:37:30 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

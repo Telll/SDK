@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Tws.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Tws.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>//require('./iData.js');
+/**
+  * class Tws
+* @constructor
+  * 
+  */
+Tws = function (server)
+{
+  this._init (server);
+}
+
+//Tws.prototype = new iData ();
+/*
+Tws.prototype = {
+    user: new telllSDK.TWS.User(),
+    device: new telllSDK.TWS.Device(),
+    movie: new telllSDK.TWS.Movie(),
+    trackms: new telllSDK.TWS.Trackms(),
+    photolink: new telllSDK.TWS.Photolink()
+};*/ 
+
+/**
+ * Init
+ */
+Tws.prototype._init = function (server)
+{
+
+this.m_server = server;
+this.method;
+this.url;
+this.delimiter;
+//this.headers = {"X-API-Key": 123, "X-Auth-Key": "395fb7b657db2fb5656f34de3840e73c90b79c31"}; 
+this.headers;
+this.xhr;
+
+}
+/**
+ * setHeaders
+ */
+Tws.prototype.setHeaders = function (h)
+{
+this.headers = h;
+}
+
+
+/**
+ * user 
+ * 
+ */
+Tws.prototype.user = function (data)
+{
+    console.log('Creating new user on Tws');
+    console.log(data);
+    if (data.username &amp;&amp; data.email &amp;&amp; data.password){
+        // call Tws to create a new user
+
+        var send = JSON.stringify(data);
+        //console.log(send);
+        var xhr = new XMLHttpRequest();
+        xhr.addEventListener('load', function(){
+            console.log('Response');
+            console.log(this.responseText);
+        });
+        xhr.open('POST', 'http://52.3.72.192:3000/app/user', true);
+        for(var key in this.headers) {
+                xhr.setRequestHeader(key, this.headers[key]);
+        }
+        xhr.send(send);
+        return xhr;
+
+
+    } else {
+        console.log ("{error:'wrong user data'}");
+        return "{error:'wrong user data'}";
+    }
+}
+
+/**
+ * self 
+ * 
+ */
+Tws.prototype.self = function ()
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/user/self', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+/**
+ * getMovie 
+ * 
+ */
+Tws.prototype.getMovie = function (id)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie/'+id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+/**
+ * getPhotolinksOfMovie 
+ * 
+ */
+Tws.prototype.getPhotolinksOfMovie = function (id)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie/'+id+'/photolinks', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+/**
+ *  
+ * 
+ */
+Tws.prototype.readUserPhotolinks = function (userId, from)
+{
+    var id = userId || "self";
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/user/'+id+'/photolinks?from_date='+from, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+
+
+/**
+ * moviesList 
+ * 
+ */
+Tws.prototype.moviesList = function ()
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('GET', 'http://'+this.m_server+'/app/movie', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    xhr.send();
+    return xhr;
+}
+
+/**
+ * saveMovie 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.saveMovie = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/movie', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * savePhotolink 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.savePhotolink = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/photolink/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+/**
+ * saveTrackmotion 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.saveTrackmotion = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/trackmotion', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * deleteTrackmotion 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deleteTrackmotion = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        // donut?
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/track_motion/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * deletePhotolink 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deletePhotolink = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/photolink/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+
+/**
+ * deleteMovie 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deleteMovie = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/movie/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * saveUser 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.saveUser = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('POST', 'http://'+this.m_server+'/app/user/self', true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+/**
+ * deleteUser 
+ * @param data
+ * @param id
+ * 
+ */
+Tws.prototype.deleteUser = function (data)
+{
+    // call Tws
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener('load', function(){
+        //console.log('Response');
+        //console.log(this.responseText);
+    });
+    xhr.open('DELETE', 'http://'+this.m_server+'/app/user/'+data.id, true);
+    for(var key in this.headers) {
+            xhr.setRequestHeader(key, this.headers[key]);
+    }
+    var send = JSON.stringify(data);
+    xhr.send(send);
+    return xhr;
+}
+
+
+
+
+/**
+ * login 
+ * 
+ */
+Tws.prototype.login = function (data, model)
+{
+    var url = 'http://'+this.m_server+'/login';
+    var ptype = "POST";
+    this.headers = {"X-API-Key": 123}; 
+    var msg = "Login on Tws ...";
+    data.user_name = data.username;
+    data.model = model;
+    //console.log(msg);
+    //console.log(data);
+    if (data.username &amp;&amp; data.password){
+        // call Tws to login
+        var strSend = JSON.stringify(data);
+        //console.log(send);
+        var xhr = new XMLHttpRequest();
+        xhr.addEventListener('load', function(){
+            //console.log('Response');
+            //console.log(this.responseText);
+            loginData = JSON.parse(this.responseText);
+            this.headers = {"X-API-Key": 123, "X-Auth-Key": loginData.auth_key}; 
+        });
+        xhr.open(ptype , url, true);
+        for(var key in this.headers) {
+                xhr.setRequestHeader(key, this.headers[key]);
+        }
+        xhr.send(strSend);
+        return xhr;
+    } else {
+        console.log ("{error:'wrong user data'}");
+        return "{error:'wrong user data'}";
+    }
+}
+
+/**
+ * 
+ * 
+ */
+Tws.prototype.getPhotolink = function ()
+{
+	this.url = this.m_server+'/app/photolink/lp';
+        var lp = new LongPolling("GET", this.m_server+"/app/photolink/lp", "\n//----------//", this.headers);
+        //var lp = new LongPolling("GET", "http://52.3.72.192:3000/app/photolink/lp", "\n//----------//", {"X-Api-Key": 1234, "X-Auth-Key": "4574eb62ff5337ce17f3d657f3b74cbcf3f9cc42"});
+        lp.create();
+	return lp;
+}
+
+/**
+ * 
+ * 
+ */
+Tws.prototype.sendPhotolink = function (str)
+{
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', this.m_server+'/app/photolink/send/0/0', true);
+        for(var key in this.headers) {
+                xhr.setRequestHeader(key, this.headers[key]);
+        }
+
+        xhr.send(str);
+}
+
+
+
+module.exports = {TWS:Tws};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 15:37:30 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

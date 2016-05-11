@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: MockPlayer.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: MockPlayer.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require('./iPlayer.js');
+/**
+  * Use it as a basic player mockup to begin your own player 
+  * Rewrite the methods you need.
+  *
+  * Enjoy!
+  *
+  * @param t {Telll} The Telll object
+  * @class
+  * @implements {iPlayer}
+  */
+MockPlayer = function (t)
+{
+  this._init (t);
+}
+
+MockPlayer.prototype =Object.create(iPlayer.prototype);
+
+/**
+ * Event loaded
+ * Movie loaded in player
+ *
+ * @event MockPlayer#loaded
+ * @type {Movie}
+ */
+
+/**
+ * Event timeupdate
+ * Time is updated
+ *
+ * @event MockPlayer#timeupdate
+ * @type {integer}
+ */
+
+/**
+ * Event playing
+ * Movie is playing
+ *
+ * @event MockPlayer#playing
+ * @type {integer}
+ */
+
+/**
+ * Event paused
+ * Movie is paused
+ *
+ * @event MockPlayer#paused
+ * @type {integer}
+ */
+
+
+
+/**
+ * _init 
+ */
+MockPlayer.prototype._init = function (t)
+{
+    this.t = t;
+    this.time = 0;
+    if (!this.t.movie) {
+        // is this a good feature? Please, comment it if you don't like :)
+        telllDialog("Error: movie not selected. Sorry.", 3000);
+        this.selectMovie();
+    }
+    else
+    this._showWidget(t);
+    this.state = "init";
+    this.emit("init", null);
+}
+
+/**
+ * Private method
+ * @param t {Telll} The Telll object
+ * @fires MockPlayer#loaded
+ */
+MockPlayer.prototype._showWidget = function (t)
+{
+    var me = this;
+    var telll = t;
+    var movie = t.movie;
+    t.movie.title = movie.title.split('{')[0];
+    var $moviePlayer = $("&lt;div id='movie-player' class='mock' style='display:none'>&lt;/div>").appendTo('body');
+    $("&lt;div id='mock-buttons'>&lt;button class='play'>Play&lt;/button>&lt;button class='pause'>Pause&lt;/button>&lt;button class='stop'>Stop&lt;/button>&lt;/div>&lt;div id='title-pos'>&lt;button class='movie'>Select Movie&lt;/button>: "+t.movie.title+"- &lt;b>pos:&lt;/b>&lt;input id='pos'>&lt;/div>").appendTo($moviePlayer);
+    ////////////////////////////////////////////////////////////
+    // to work with inline video on iphone see http://apple.co/1VQRL58
+    this.video = document.createElement('video');
+    this.video.setAttribute('webkit-playsinline', 'true');
+    this.video.setAttribute('src', movie.url);
+    this.video.setAttribute("id", "telll-movie");
+    document.body.appendChild(this.video); // append video to DOM
+    ////////////////////////////////////////////////////////////
+    $(this.video).appendTo($moviePlayer); // return to jquery
+    $('#movie-player .movie').on('click', function (e){me.selectMovie()});
+    $('#movie-player .play').on('click', function (e){me.play()});
+    $('#movie-player .pause').on('click', function (e){me.pause()});
+    $('#movie-player .stop').on('click', function (e){me.stop()});
+    this.loadBehaviors(t);
+    this.video.load();
+    this.video.play();
+    // postpone 1 sec ... gambiarra para corrigir sincronias ... :P
+    setTimeout(function(){
+        me.state = "loaded";
+        me.emit('loaded', movie );     
+    },1000);
+}
+ 
+/**
+ * 
+ * @param t {Telll}
+ */
+MockPlayer.prototype.loadBehaviors = function (t)
+{
+    var me = this;
+    var telll = t;
+    var movie = t.movie;
+    ///////////////////////////
+    // mirror some video events
+    this.video.onloadstart = function() {
+        me.state = "loaded";
+        me.emit('loaded', movie );
+       // TODO if it is an iphone do something!!! 
+        var agent = navigator.userAgent.toLowerCase();
+        if (agent.indexOf('iphone') >= 0){
+		// what can i do? :p
+        } 
+    };
+    this.video.onplaying = function() {
+       me.state = "playing";
+       me.emit('playing', movie );
+    };
+    this.video.oncanplaythrough = function() {
+       telllDialog("Loading: "+movie.title+" ...", 2000);
+       me.state = "canplaythrough";
+       me.emit("canplaythrough", movie );
+       me.play();
+    }; 
+    this.video.ontimeupdate = function(){
+        me.timeupdate();
+        $('#pos').val(me.time);
+    };
+    this.video.onpause = function(){
+        me.time = me.video.currentTime;
+        me.state = "pause";
+        me.emit( 'pause', me.time );
+    };
+    this.video.ended = function(){
+        me.time = me.video.currentTime;
+        me.state = "ended";
+        me.emit( 'ended', me.time );
+    };
+     ////////////////////////////
+};
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.timeupdate = function ()
+{
+        this.time = this.video.currentTime;
+        this.emit( 'timeupdate', this.time );
+};
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.play = function (e, callback)
+{
+    this.video.play();
+    this.state = "playing";
+    this.emit("playing", this.time);
+}
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.pause = function (evt, callback)
+{
+    this.video.pause();
+    this.state = "paused";
+    this.emit("paused", this.time);
+}
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.stop = function (evt, callback)
+{
+    this.time = 0;
+    this.state = "stop";
+    this.emit("stop", this.time);
+    this.video.pause();
+    this.video.currentTime = 0;
+}
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.seek = function (pos, callback)
+{
+    this.time = pos;
+    this.video.currentTime = pos;
+}
+
+
+/**
+ * 
+ * @param error
+ * @param callback
+ */
+MockPlayer.prototype.selectMovie = function (e, callback)
+{
+    var me = this;
+    var t = me.t;
+    this.t.showMoviesList(function (m){
+        me.detach();
+        me._showWidget(t);
+    });
+}
+
+/**
+* @return null
+*/
+MockPlayer.prototype.detach = function(){
+    //$('div.popup-overlay').detach();
+    //$('div.popup').detach();
+    $('#movie-player').detach();
+    this.state = "detached";
+    this.emit("detach", this.time);
+};
+
+/**
+* @return null
+*/
+MockPlayer.prototype.atach = function(){
+    this._showWidget(this.t);
+    this.state = "atached";
+    this.emit("atached", this.time);
+};
+
+
+
+
+module.exports = {MockPlayer:MockPlayer};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 12:17:52 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

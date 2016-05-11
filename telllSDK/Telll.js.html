@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Telll.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Telll.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+* Implements the telll controler
+* @author Monsenhor filipo at kobkob.org
+* @param config {Object} the configuration
+* @constructor
+*/
+function Telll(config){
+    this.VERSION = VERSION;
+    //Constructor
+    var conf = require('./conf.js');
+    for ( var vl in config ) {
+	    console.log(vl);
+	    conf[vl] = config[vl]; 
+    }
+    this.conf = conf;
+    this.device = this.getDevice();
+    // get credentials and device id
+    this.credentials = {
+        //username: this.getCookie('username'),
+        //password: this.getCookie('password'),
+        device: this.device.id,
+        apiKey: '1234',
+        authKey: this.getCookie('auth_key')
+    };
+    //this.movie = this.getMovie(this.getCookie('movieId'));
+
+    // store var for views
+    this.store = require('./store.js');
+    // views
+    this.loginView = {state:null};
+    this.dashboardView = {state:null};
+    this.clickboxView = {state:null};
+    this.moviesListView = {state:null};
+    this.photolinksListView = {state:null};
+    this.telllBtnView = {state:null};
+    this.tagPlayerView = {state:null};
+    this.moviePlayerView = {state:null};
+
+    // the web server API 
+    this.tws = new telllSDK.TWS(this.conf.host); 
+    this.cws = new telllSDK.CWS(this.conf.host);
+    this.device.model = "iPad"; //TODO use other models ... :)
+    
+    // setting states
+    if (this.credentials.authKey)
+        this.tws.headers = {"X-API-Key": 123, "X-Auth-Key": this.credentials.authKey}; 
+    this.cws.on("open", function() {
+         //CWS Opened!!!'
+    });
+}
+
+/**
+* @return {null}
+*/
+Telll.prototype.start = function(){
+    this.getDevice(); 
+    this.login(this.loadWidgets);
+};
+
+/**
+* Telll.loadWidgets()
+* @return bool
+*/
+Telll.prototype.loadWidgets = function(){
+   // Load widgets
+   this.showDashboard();
+   this.showClickbox();
+   this.showPhotolinksList();
+   this.showTagPlayer();
+   this.showTelllBtn();
+};
+
+/**
+* Telll.login()
+* @param data {} 
+* @return bool
+Construct the login machine.
+- login widget
+- donut if still authorized 
+*/
+Telll.prototype.login = function(data, cb){
+    var loginView;
+    var me = this;
+    // Creates the Login view object if dont have authKey
+    if (!this.credentials.authKey) {
+	    me.loginView = new telllSDK.View.Login( this );
+            me.loginView.on('authOk', function(){if(cb) cb(null, data);});
+    } else {if(cb) cb(null, data);}
+
+    return true;
+};
+
+/**
+* Telll.showClickbox()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.showClickbox = function(data){
+    if (this.clickboxView.state) {
+        switch (this.clickboxView.state){
+        case 'closed':
+        this.clickboxView.open();
+        break;
+        case 'open':
+        this.clickboxView.close();
+        break;
+        case 'detached':
+        this.clickboxView.attach();
+        break;
+        }
+     } else this.clickboxView = new telllSDK.View.Clickbox ( this );
+    return this.clickboxView;
+};
+
+/**
+* Telll.showDashboard()
+* @param data {Object} Add-ons and fields to be included 
+* @param cb {Function} callback
+* @return bool
+*/
+Telll.prototype.showDashboard = function(data, cb){
+	if (data &amp;&amp; data.addons){
+		this.conf.dashboardAddOns = merge(this.conf.dashboardAddOns, data.addons);
+	}
+	if (data &amp;&amp; data.fields){
+		this.conf.dashboardFields = merge(this.conf.dashboardFields, data.fields);
+	}
+	if (data &amp;&amp; data.menus){
+		this.conf.dashboardMenus = merge(this.conf.dashboardMenus, data.menus);
+	}
+	if (data &amp;&amp; data.buttons){
+		this.conf.dashboardButtons = merge(this.conf.dashboardButtons, data.buttons);
+	}
+
+
+    if (this.dashboardView.state) {
+        switch (this.dashboardView.state){
+        case 'closed':
+        this.dashboardView.open();
+        break;
+        case 'open':
+        // hmmmm ... its suposed to be closed now!
+        this.dashboardView.detach();
+        this.dashboardView = new telllSDK.View.Dashboard ( this );
+        break;
+        case 'detached':
+        this.dashboardView.attach();
+        break;
+        }
+     } else this.dashboardView = new telllSDK.View.Dashboard ( this );
+
+     if (cb) cb();
+
+     function merge () {
+	var o = {};
+        var i = 0,
+            il = arguments.length,
+            key;
+        for (; i &lt; il; i++) {
+            for (key in arguments[i]) {
+                if (arguments[i].hasOwnProperty(key)) {
+                    o[key] = arguments[i][key];
+                }
+            }
+        }
+        return o;
+    }
+
+    return true;
+};
+
+
+/**
+* Telll.wsAuth()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.wsAuth = function(data, cb) {
+    var me = this;
+    try {
+        var ret = this.cws.cmd.login({
+            api_key:    this.credentials.apiKey,
+            user_name:  data.user_name ? data.user_name : data.username,
+            password:   data.password,
+            model:      this.device.model
+        }, function(response) {
+        if(response.error) {
+                telllDialog("Please, try again: "+response.error, 3000);
+                //cb(response.error, response.data);
+	} else if("auth_key" in response.data) {
+                me.credentials.authKey = response.data.auth_key;
+                me.credentials.username = data.username;
+                me.credentials.password = data.password;
+                me.tws.headers = {"X-API-Key": 123, "X-Auth-Key": response.data.auth_key}; 
+                if(cb) cb(null, response.data);
+        } else cb(response.error, response.data);
+        });
+    } catch(e) {
+        telllDialog("Telll has a connection error, see log for details.", 3000);
+        console.log("Connection error: ", e);
+    }
+    return ret;
+};
+
+/**
+* Telll.logout()
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.logout = function(cb) {
+    var ret = this.cws.cmd.logout({
+        api_key:    this.credentials.apiKey,
+        auth_key:   this.credentials.authKey,
+    }, function(response) {
+        if(cb) cb(response.error, response.data);
+    });
+};
+
+/**
+* Telll.syncPlayer()
+* @param tagPlayer {} 
+* @param moviePlayer {} 
+* @return bool
+*/
+Telll.prototype.syncPlayer = function(t, m, cb) {
+    m.on('timeupdate', function(time){
+        t.time = time;
+        t.emit( 'changeTime', t.time );
+    });
+    t.on('timeupdate', function(time){
+         //
+    });
+    if(cb) cb(t.time);
+};
+
+
+
+/**
+* @param trkm {} 
+* @return {null}
+*/
+Telll.prototype.auth = function(data, cb){
+    this.user = new telllSDK.TWS.User(data);
+    var xhr = this.tws.login(this.user, this.device.model);
+    xhr.addEventListener('load', function(){
+        var jsData = JSON.parse(this.responseText);
+        $.extend(jsData,data,jsData);
+        if (jsData.error) alert(jsData.error);
+	else if(cb) cb.call(this, jsData);
+    });	 
+    return xhr;
+};
+
+/**
+* @return {iView} the PhotolinksList View
+*/
+Telll.prototype.showPhotolinksList = function(){
+    // get movie and list of photolinks
+    var me = this;
+    if (!this.movie) {
+        alert('Please, select a movie first.');
+        this.showMoviesList(function(m){
+            //register movie
+            //me.movie = m;
+            //get photolinks list
+            me.photolinksListView = new telllSDK.View.PhotolinksList( me );
+        });
+    }
+    else this.photolinksListView = new telllSDK.View.PhotolinksList( this );
+    return this.photolinksListView;
+};
+
+/**
+* @return {null}
+* @listens MockPlayer
+*/
+Telll.prototype.showMockPlayer = function(cb){
+    if (!this.moviePlayerView.state) {
+    this.moviePlayerView = new telllSDK.View.MockPlayer ( this );
+    this.moviePlayerView.once("loaded", function(movie){
+        if (cb) cb(this);
+    });
+    } else {
+      this.moviePlayerView.atach();
+      if (cb) cb(this.moviePlayerView);
+    }
+};
+
+/**
+* @return {null}
+*/
+Telll.prototype.showMoviePlayer = function(){
+    this.TPlayerView = new telllSDK.View.TelllPlayer ( this );
+};
+
+/**
+* @return {null}
+*/
+Telll.prototype.showYoutubePlayer = function(cb){
+    this.YPlayerView = new telllSDK.View.YoutubePlayer ( this );
+    if (cb) cb();
+    return this.YPlayerView;
+};
+
+/**
+* @return {null}
+*/
+Telll.prototype.showVimeoPlayer = function(movie, cb){
+    //this.VPlayerView = new telllSDK.View.VimeoPlayer ( this, movie, cb );
+};
+
+/**
+* @param player {iPlayer} The movie Player must be a iPlayer 
+* @return {null}
+*/
+Telll.prototype.showTagPlayer = function(player, cb){
+    var me = this;
+    var t = this.t;
+    this.tagPlayerView = new telllSDK.View.TagPlayer ( me, player );
+    if (cb) cb( me.tagPlayerView );
+};
+
+/**
+* MoviesList is a modal widget showing a mosaic of movie thumbnails
+* with title and description. 
+* When a movie is selected it is assigned to telll.movie and is sent to the callback
+* 
+* @return {null}
+*/
+Telll.prototype.showMoviesList = function(cb){
+    var me = this;
+    this.listMovies(null, function(ml){
+        me.store.movies = ml;
+        me.moviesListView = new telllSDK.View.MoviesList( me );
+        me.moviesListView.on('selected', function(m){
+            me.getMovie(m.id, function (movie){
+               // assign movie to me!!!
+               me.movie = movie;
+	       // Return the movie to caller
+               if(cb) cb(movie);
+            });
+        });
+    });
+};
+
+/**
+* MoviePage is a modal widget showing the movie details and the link to play
+* 
+* @param movie {Movie} the movie to load
+* @param cb {Function} callback 
+* @return {MoviePage} the MoviePage object
+*/
+Telll.prototype.showMoviePage = function(movie, cb, embed){
+    var title = unescape(movie.title); 
+    var desc = unescape(movie.description); 
+    var jsonTitle;
+    var plugTitle;
+    var jsonDesc;
+    var newTitle = title.split('{');
+    for (var i = 1; i &lt; newTitle.length; i++) {
+	        plugTitle="{"+newTitle[i].split('}')[0]+"}";
+    }
+    try {
+        jsonTitle = JSON.parse(plugTitle);
+    }
+    catch(err) {
+        jsonTitle = {"imdbid":"mock"}
+    }
+    var imdbid = null;
+    if (jsonTitle.imdbid ) imdbid = jsonTitle.imdbid;
+    var me = this;
+    var data = {imdbid:"mock"};
+    if (imdbid) data.imdbid = imdbid;
+    var moviePage = new telllSDK.View.MoviePage(this, data, embed);
+    if (cb) cb(moviePage, movie);
+    return moviePage;
+};
+
+/**
+* @param data {} 
+* @return {null}
+*/
+Telll.prototype.listMovies = function(data, cb){
+    var me = this;
+    if (this.credentials.authKey){ 
+	var xhr = this.tws.moviesList();
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.error) alert(jsData.error);
+            else {
+		me.moviesList = jsData.movies;
+	        if(cb) cb(jsData.movies);
+	    } 
+        });	
+    }
+    //if (cb) cb(this.moviesList);
+    return null;
+};
+
+
+
+/**
+* @param trkm {} 
+* @return {null}
+*/
+Telll.prototype.showTelllBtn = function(trkm){
+    this.telllBtnView = new telllSDK.View.TelllBtn ( this );
+};
+
+
+/**
+* @param movieId {}
+* @param cb callback
+* @return {Movie}
+*/
+Telll.prototype.getPhotolinksOfMovie = function(movieId, cb){
+    if (this.credentials.authKey){ 
+        if (!this.movie)
+        this.movie = new telllSDK.TWS.Movie(this);
+	this.movie.readPhotolinks(movieId, cb);
+    }
+    return this.movie;
+};
+
+/**
+* @param userId {int}
+* @param from {date}
+* @param cb {function} callback
+* @return bool
+*/
+Telll.prototype.getPhotolinksOfUser = function(userId, from, cb){
+    var me = this;
+    if (this.credentials.authKey){ 
+	var xhr = this.tws.readUserPhotolinks(userId, from);
+        xhr.addEventListener('load', function(){
+            var jsData;
+            try {
+                jsData = JSON.parse(this.responseText);
+            } catch (e) {
+                jsData = [];
+                console.log("Error: ",e);
+            }
+            if (jsData.error) alert(jsData.error);
+            else {
+		me.userPhotolinks = jsData;
+	        if(cb) cb(jsData);
+	    } 
+        });
+    } 
+    return null;
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.createMovie = function(data, cb){
+    this.saveMovie(data, cb);
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.updateMovie = function(data, cb){
+    this.saveMovie(data, cb);
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.readMovie = function(data, cb){
+    this.getMovie(data, cb);
+};
+
+/**
+* Load movieId in this.movie 
+* forward the callback to Movie.read()
+* @param movieId {}
+* @param cb callback
+* @return bool
+*/
+Telll.prototype.getMovie = function(movieId, cb){
+    if (this.credentials.authKey){
+        if (!this.movie)
+        this.movie = new telllSDK.TWS.Movie(this);
+	this.movie.read(movieId, cb);
+    }
+    return false;
+};
+
+/**
+ * Save movie data from form
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.saveMovie = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        if (e.value &amp;&amp; e.value != '') result[e.name]=e.value;
+    });
+    if (!this.movie)
+    this.movie = new telllSDK.TWS.Movie(this);
+    this.movie.save(result, cb);
+};
+
+/**
+ * Delete movie
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deleteMovie = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    if (!this.movie)
+    this.movie = new telllSDK.TWS.Movie(this);
+    this.movie.delete(result, cb);
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.createPhotolink = function(data, cb){
+    this.savePhotolink(data, cb);
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.updatePhotolink = function(data, cb){
+    this.savePhotolink(data, cb);
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.readPhotolink = function(data, cb){
+   if (this.credentials.authKey){
+        if (!this.photolink)
+        this.photolink = new telllSDK.TWS.Photolink(this);
+	this.photolink.read(photolinkId, cb);
+    }
+    return false;
+};
+
+/**
+ * save photolink
+* @param data {Object} the photolink data to be saved
+* @param cb {Function} callback function
+* @return bool
+*/
+Telll.prototype.savePhotolink = function(data, cb){
+    var me = this;
+    if (this.credentials.authKey){ 
+	var xhr = this.tws.savePhotolink(data);
+        xhr.addEventListener('load', function(){
+            var jsData = {};
+            try { jsData = JSON.parse(this.responseText); }
+            catch(e) { jsData.error = "Inexpected error: "+e}
+            if (jsData.error) alert(jsData.error);
+            if (jsData.errors) alert(jsData.errors.message);
+            else {
+	        if(cb) cb(jsData);
+	    } 
+        });	
+    }
+    //if (cb) cb(this.moviesList);
+    return null;
+};
+
+/**
+ * Delete photolink
+* @param id
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deletePhotolink = function(id, cb){
+    var me = this;
+    if (this.credentials.authKey){ 
+	var xhr = this.tws.deletePhotolink({"id":id});
+        xhr.addEventListener('load', function(){
+            var jsData = {};
+            try { jsData = JSON.parse(this.responseText); }
+            catch(e) { jsData.error = "Inexpected error: "+e}
+            if (jsData.error) alert(jsData.error);
+            else {
+	        if(cb) cb(jsData);
+	    } 
+        });	
+    }
+    return null;
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.createTrackmotion = function(data, cb){
+    this.saveTrackmotion(data, cb);
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.updateTrackmotion = function(data, cb){
+    this.saveTrackmotion(data, cb);
+};
+
+/**
+* @param data {} 
+* @return bool
+*/
+Telll.prototype.readTrackmotion = function(data, cb){
+    this.getTrackmotion(data, cb);
+};
+
+/**
+* Load trackmotionId in this.trackmotion 
+* forward the callback to Trackmotion.read()
+* @param trackmotionId {}
+* @param cb callback
+* @return bool
+*/
+Telll.prototype.getTrackmotion = function(trackmotionId, cb){
+    if (this.credentials.authKey){
+        if (!this.trackmotion)
+        this.trackmotion = new telllSDK.TWS.Trackmotion(this);
+	this.trackmotion.read(trackmotionId, cb);
+    }
+    return false;
+};
+
+/**
+ * Save trackmotion data from form
+* @param data {} SerializedArray from dashboard trackmotion form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.saveTrackmotion = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        if (e.value &amp;&amp; e.value != '') result[e.name]=e.value;
+    });
+    if (!this.trackmotion)
+    this.trackmotion = new telllSDK.TWS.Trackmotion(this);
+    this.trackmotion.save(result, cb);
+};
+
+
+/**
+ * Delete trackmotion
+* @param id
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deleteTrackmotion = function(id, cb){
+    var me = this;
+    if (this.credentials.authKey){ 
+	var xhr = this.tws.deleteTrackmotion({"id":id});
+        xhr.addEventListener('load', function(){
+            var jsData = {};
+            try { jsData = JSON.parse(this.responseText); }
+            catch(e) { jsData.error = "Inexpected error: "+e}
+            if (jsData.error) alert(jsData.error);
+            else {
+	        if(cb) cb(jsData);
+	    } 
+        });	
+    }
+    return null;
+};
+
+
+/**
+* @param userId {} 
+* @return bool
+*/
+Telll.prototype.getUser = function(userId, cb){
+    var me = this;
+    this.user = new telllSDK.TWS.User(this);
+    if (this.credentials.authKey){ 
+        if (!userId){
+	    this.user.self(cb);
+        } else {
+	    this.user.read(userId, cb);
+        }
+    } 
+    return this.user;
+};
+
+/**
+ * Save user data from form
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.saveUser = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.user = new telllSDK.TWS.User(this);
+    this.user.save(result, cb);
+};
+
+/**
+ * Delete user
+* @param data {} SerializedArray from dashboard movie form
+* @param cb callback function
+* @return bool
+*/
+Telll.prototype.deleteUser = function(data, cb){
+    var result = {};
+    data.forEach(function(e){
+        result[e.name]=e.value;
+    });
+    this.user = new telllSDK.TWS.User(this);
+    this.user.delete(result, cb);
+};
+
+/**
+* @param userId {} 
+* @return bool
+*/
+Telll.prototype.createUser = function(userData, cb){
+    this.saveUser(userData, cb);
+    return this.user;
+};
+
+/**
+* @param userId {} 
+* @return bool
+*/
+Telll.prototype.updateUser = function(userData, cb){
+    this.saveUser(userData, cb);
+    return this.user;
+};
+
+
+
+/**
+* @param trkId {} 
+* @return {null}
+*/
+Telll.prototype.getTrackms = function(trkId){
+    //TODO: Implement Me 
+
+};
+
+/**
+* @param id {Integer} 
+* @param cb {} Callback 
+* @return {null}
+*/
+Telll.prototype.getTracks = function(id, cb){
+    var ret = this.cws.cmd.trackmotions_from_movie({
+        api_key:    this.credentials.apiKey,
+        auth_key:   this.credentials.authKey,
+	movie: parseInt(id)
+    }, function(response) {
+        if(cb) cb(response.error, response.data);
+    });
+};
+
+
+
+/**
+* @param data {} 
+* @return {null}
+*/
+Telll.prototype.listPhotolinks = function(data){
+    //TODO: Implement Me 
+    this.listPhotolinksView = new telllSDK.View.ListPhotolinks ( this );
+
+};
+
+/**
+* @param data {} 
+* @return {null}
+*/
+Telll.prototype.sendPhotolink = function(data){
+    //TODO: Implement Me 
+
+};
+
+/**
+ * Begin the websocket or long poling wait for photolinks
+* @param cb {function} callback 
+* @return {null}
+*/
+Telll.prototype.getPhotolink = function(cb){
+   var me = this;
+   var cwsOpen = me.cws.cmd.length;
+   if ( !cwsOpen ){
+       // cws doesnt open 
+       this.cws.on("open", function() {
+           var ret = me.cws.cmd.photolink({
+              api_key:   me.credentials.apiKey,
+              auth_key:  me.credentials.authKey,
+           }, function(response) {
+              if(cb) cb(response.error, response.data);
+           });
+       });
+   } else {
+       // cws is allready open
+       var ret = me.cws.cmd.photolink({
+          api_key:   me.credentials.apiKey,
+          auth_key:  me.credentials.authKey,
+       }, function(response) {
+          if(cb) cb(response.error, response.data);
+       });   
+   }
+};
+
+
+
+
+/**
+* @param cname 
+* @param cvalue 
+* @param extime
+* @return string
+*/
+Telll.prototype.setCookie = function (cname, cvalue, extime) {
+    var d = new Date();
+    d.setTime(d.getTime() + extime);
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+};
+
+/**
+* @param cname 
+* @return {null}
+*/
+Telll.prototype.getCookie = function (cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i&lt;ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) === 0) return c.substring(name.length,c.length);
+    }
+    return "";
+};
+
+/**
+* Retrieve the device.
+* If  
+* @return {null}
+*/
+Telll.prototype.getDevice = function () {
+    var device = this.device || {id:null};
+    if (device.id){return device;}
+    device.id = this.getCookie('device');
+    // TODO: connect with TWS to retrieve device data
+    //device.model = navigator.userAgent; TODO: retrieve model from environment
+    device.model = 'iPad'; // default model
+    // TODO: it bellow is better to be in some view ... we want node.js compatibility
+    device.isMobile = {
+    Android: function() {
+        return navigator.userAgent.match(/Android/i);
+    },
+    BlackBerry: function() {
+        return navigator.userAgent.match(/BlackBerry/i);
+    },
+    iOS: function() {
+        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+    },
+    Opera: function() {
+        return navigator.userAgent.match(/Opera Mini/i);
+    },
+    Windows: function() {
+        return navigator.userAgent.match(/IEMobile/i);
+    },
+    any: function() {
+        return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+    }
+};
+    return device;
+};
+
+module.exports = {Telll:Telll};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 12:17:52 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Login.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Login.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const util = require('util');
+const EventEmitter = require('events');
+/**
+* View Login, implements the login widget 
+* It has 3 states: 
+* - "loginWait" - The widget was shown
+* - "LoginDone" - The user filled fields and clicked login button
+* - "authOk"    - User authenticated
+* 
+* The view emits  event with the same name of status when reached.
+* It uses the mustache template login_template.mtjs
+*
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* @constructor
+*/
+function Login(t){
+    this.t = t;
+    this.state = "init";
+    this._init();
+}
+util.inherits(Login, EventEmitter);
+
+/**
+ * Init widget
+ */
+Login.prototype._init = function () {
+    this._showLoginWidget(this.t.credentials);
+    EventEmitter.call(this);
+    this.state = "loginWait";
+    this.emit(this.state);
+}
+
+/**
+* @param data {} 
+* @return bool
+*/
+Login.prototype._showLoginWidget = function(data){
+    var telll = this.t;
+    var me = this;
+    me.state = "opened";
+    me.emit(me.state, me);
+    // Create widget
+    var tmpl = require('./templates/login_template.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    $('&lt;style id="login-css">'+tmpl.css+'&lt;/style>').appendTo('head');
+    $(html).appendTo('body');
+    // As a popup    
+    $('&lt;div class="login-popup-overlay">&lt;/div>').appendTo('body');
+    $('&lt;div id="popup-login" class="popup">&lt;/div>').appendTo('body');
+    $(".telll-login-widget").appendTo('#popup-login').fadeIn();
+    //$('#popup-movies-list').css('z-index','999');
+    $('html').addClass('overlay');
+    this.centerPanel();
+    $( window ).resize(function() { me.centerPanel(); });
+    $(window).on('orientationchange', function() { me.centerPanel(); });
+    // Behaviors
+    $('input#email').on('focus',function(){$(this).val("")});
+    $('input#password').on('focus',function(){$(this).val(""); $(this).attr('type', 'password')});
+    // Sign up &amp; Facebook login
+    $('div#sign-up').on('click',function(){me.signUp()});
+    $('div#face-login').on('click',function(){me.faceLogin()});
+    // Login done
+    this.on( "authOk", function( data ) {
+	me.detach();
+        //telll.setCookie('username',data.username,telll.conf.extime);
+        //telll.setCookie('password',data.password,telll.conf.extime);
+        telll.setCookie('auth_key',data.auth_key,telll.conf.extime);
+        telll.setCookie('device',data.device,telll.conf.extime);
+    });
+    var authOk = function ( error, data ){ 
+            if (error) return alert(error);
+	    me.state = 'authOk';
+            var d = telll.credentials;
+            for (var a in data) { d[a] = data[a]; }
+            data = d;
+	    me.emit(me.state, data);
+    }; 
+    this.on( "loginDone", function( data ) {
+        // Authenticate device via ws or rest
+        via = window.WebSocket != undefined ? "ws" : "lp";
+        if (via == 'ws') {
+            //Websocket opened, initating login
+            telll.wsAuth( data, authOk );
+        }
+	else {
+            telll.auth(data, authOk);
+        }
+    });
+
+    // Listen user action
+    $( "#login-ok-button" ).click(function(e) {
+        e.preventDefault();
+	var dataAuth = {
+	    username: $('#email').val(),
+	    password: $('#password').val()
+	};
+	me.state = 'loginDone';
+        me.emit( me.state, dataAuth );
+    });
+    return true;
+};
+
+/**
+* @return null
+*/
+Login.prototype.signUp = function(){
+	me = this;
+    var $signupWidget = $("&lt;div id='signup-widget'>&lt;/div>");
+    var $signupFrame = $("&lt;div id='signup-frame'>&lt;/div>");
+ /*   var $usernameField = $("&lt;input id='username-field'/>");
+    var $emailField = $("&lt;input id='email-field'/>").on('change', function(){ 
+        me.verifyEmail( $(this).val() );
+    });
+    var $passwordField 
+	    = $("&lt;input type='password' id='password-field'/>").on('change', function(){ 
+        me.verifyPassword( $(this).val() );
+    });
+    var $submitButton 
+	    = $("&lt;button id='submit-button'>Create account&lt;/button>").on('click', 
+    function(){
+        me.createUser( {
+	    username: $usernameField.val(),
+	    password: $passwordField.val(),
+	    email: $emailField.val()
+	} );
+    });
+    $signupFrame.append([
+        $("&lt;div class='notes'>Fill with your personal data to create a new account:&lt;/div>"),
+	$('&lt;div class="tr">&lt;/div>').append([
+	    $("&lt;label for='username-field'>Username:&lt;/label>"), $usernameField
+	]),
+	$('&lt;div class="tr">&lt;/div>').append([
+	    $("&lt;label for='email-field'>Email:&lt;/label>"), $emailField
+	]),
+	$('&lt;div class="tr">&lt;/div>').append([
+	    $("&lt;label for='password-field'>Password:&lt;/label>"), $passwordField
+	]),
+	$submitButton
+    ]);
+    telllPopup($signupWidget.append($signupFrame),"Create account");
+    */
+    telllPopup($signupWidget.append($signupFrame.load("/signup")),"Create account");
+};
+
+/**
+* @return null
+* @param email {String} email string to test
+*/
+Login.prototype.verifyEmail = function(email){
+     var re = /^(([^&lt;>()[\]\\.,;:\s@\"]+(\.[^&lt;>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+     if (! re.test(email) ) {
+	     telllDialog("This email is not valid, please verify it.", 2000);
+     }
+}; 
+
+/**
+* @return null
+*/
+Login.prototype.verifyPassword = function(pass){
+    var re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/;  
+    if (! re.test(pass) ) {
+	     telllDialog("Your password must have 6 to 20 characters which contain at least one numeric digit, one uppercase and one lowercase letter, please verify it.", 3000);
+     }
+
+} ;
+
+/**
+ * @param userData {Object} the user personal data
+* @return null
+*/
+Login.prototype.createUser = function(userData){
+    var me = this;
+//    me.t.createUser(userData, function(result){
+//        telllDialog(result.msg, 2000);
+//    });
+    // send email to new user and to administrator with data
+    var urlLead = 'https://crm.zoho.com/crm/WebToLeadForm'; 
+    userData = merge (userData, { 
+	    formName:'WebToLeads1655497000000097006', 
+            xnQsjsdp: '80a6c4b3a3900c8666c28eb867a340173328af9ed88794bd6f2ce0e359810586',
+	    zc_gad : '',
+	    xmIwtLD: '60a5f25b7df4ec876b16b5df740648626b60c088fb23bbb62801c33fcdb203f3',
+	    actionType: 'TGVhZHM=',
+            returnURL: 'http&amp;#x3a;&amp;#x2f;&amp;#x2f;webapp.telll.me'
+    });
+    //$.post(me.t.conf.newAccount, userData, function(data){
+    console.log("Sending: ", userData);
+    $.post(urlLead, userData, function(data){
+          //telllDialog(data.msg, 2000);
+          console.log(data);
+    }).done(function() {
+	        console.log( "second success" );
+		  })
+      .fail(function(e) {
+	           console.log( "fail",e.statusText );
+		    })
+      .error(function(e) {
+	           console.log( "error",e );
+		    })
+      .always(function() {
+		     console.log( "finished" );
+      });
+
+    function merge () {
+	var o = {};
+        var i = 0,
+            il = arguments.length,
+            key;
+        for (; i &lt; il; i++) {
+            for (key in arguments[i]) {
+                if (arguments[i].hasOwnProperty(key)) {
+                    o[key] = arguments[i][key];
+                }
+            }
+        }
+        return o;
+    };  
+
+
+} ;
+
+/**
+* @return null
+*/
+Login.prototype.faceLogin = function(){
+	try {
+          FB.login(function(response){
+		  console.log(response);
+          });
+	} catch (e) {
+		telllDialog('Error: '+e,2000);
+	}
+} ;
+
+
+/**
+* @return null
+*/
+Login.prototype.centerPanel = function(){
+  var height = $(window).height();
+  var panelSize = {
+    width:  $("div.telll-login-widget").width(),
+    height: $("div.telll-login-widget").height()
+  };
+  var marginTop = (height - panelSize.height) / 2 ;
+  if (marginTop &lt; 0) marginTop = 0;
+  $("div.telll-login-widget").css("margin-top",marginTop+"px");
+};
+
+
+/**
+* @return null
+*/
+Login.prototype.detach = function(){
+    $('.telll-login-widget').detach();
+    $('div.login-popup-overlay').detach();
+    $('div#popup-login').detach();
+
+};
+
+module.exports = {Login:Login};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 12:17:52 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

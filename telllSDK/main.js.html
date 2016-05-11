@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: main.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: main.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/** telll SDK
+* Copyright 2015, 2016 by Monsenhor &lt;filipo@kobkob.org>
+* license GPL Affero 3.0
+* telll requires jQuery version 2.2.0
+*/
+
+VERSION = "0.17.01";
+
+// Load mustache
+Mustache = require('mustache');
+
+// Apply some jQuery plugins
+(function($){
+/*
+ * jQuery FxQueues 2.1
+ * Copyright 2009, 2010 Luciano German Panaro &lt;contact@decodeuri.com>
+ * Released under the MIT and GPL licenses.
+ */
+  var fxQueue = function(queueName) {
+    return {
+      name: queueName,
+
+      isFxQueue: true,
+
+      paused: false,
+
+      playing: null,
+
+      shouldStart: function() {
+          return (this.playing == null || !this.paused);
+      },
+
+      pause: function() {
+          if (!this.playing) { return false; }
+          ((this.playing.isScope)? this.playing: this.playing.elem).stop();
+          this.paused = true;
+          return true;
+      },
+
+      stop: function() {
+          if (!this.playing) { return false; }
+          ((this.playing.isScope)? this.playing: this.playing.elem).stop();
+          this.playing = null;
+          this.paused = false;
+          this.length = 0;
+          return true;
+      },
+
+      start: function() {
+          // if a dequeued fn was paused
+          if (this.playing &amp;&amp; this.paused) {
+              this.playing();
+              this.paused = false;
+              return true;
+          // or if the queue has not started
+          } else if (this.length &amp;&amp; !this.playing) {
+              this.playing = this[0];
+              $(document).dequeue(this.name);
+              return true;
+          }
+          return false;
+      },
+
+      getScope: function( scopeName ) {
+          if (this.playing &amp;&amp; this.playing.isScope &amp;&amp; this.playing.called == scopeName) {
+              return this.playing;
+          }
+
+          for (var i = 0; i &lt; this.length; i++) {
+              if (this[i].isScope &amp;&amp; this[i].called == scopeName) {
+                  return this[i];
+              }
+          }
+          return false;
+      },
+
+      dequeue: function( caller ) {
+          // Do nothing if queue is not playing anything
+          if (!this.playing) {
+            return false;
+          }
+
+          if (this.playing.isScope) {
+
+              var queueItems = this.playing.items;
+              // Find the actual element in scope's items
+              for ( var i=0; i &lt; queueItems.length; i++) {
+                  if ( caller == queueItems[i].elem[0] &amp;&amp; !queueItems[i].finished ) {
+                      queueItems[i].finished = true;
+                      this.playing.finishedItems++;
+                  }
+              }
+
+              // Do not dequeue if scope is not finished
+              if (this.playing.finishedItems &lt; queueItems.length) {
+                  return false;
+              }
+
+          // Dequeue just once for every selection
+          } else if (this.playing.elem &amp;&amp; this.playing.elem[0] != caller) {
+              return false;
+          }
+
+          var queue = this;
+
+          setTimeout(function() {
+              queue.playing = queue[0];
+              $(document).dequeue(queue.name);
+          }, this.playing.postDelay);
+
+          return true;
+      }
+
+    };
+
+  };
+
+  var fxScope = function ( scopeName ) {
+      var newScope = function() {
+          for (var i=0; i &lt; newScope.items.length; i++) {
+              newScope.items[i]();
+          }
+      };
+      newScope.called = scopeName;
+      newScope.isScope = true;
+      newScope.finishedItems = 0;
+      newScope.stop = function() {
+          for (var i=0; i &lt; newScope.items.length; i++) {
+              newScope.items[i].elem.stop();
+          }
+      };
+      newScope.items = [];
+      return newScope;
+  };
+
+  // We need to overload the default animate method
+  var _animate = $.fn.animate;
+
+  $.fn.animate = function( props, speed, easing, callback ) {
+      if (!this.length) {
+          return this;
+      }
+
+      var options = (typeof speed == "object")? speed: $.speed(speed, easing, callback);
+
+      // Load in the default options
+      var opts = $.extend({
+          queue: "fx",
+          position: "end",
+          limit: -1,
+          preDelay: 0,
+          postDelay: 0,
+          complete: null
+      }, options );
+
+      // Let normal animations just pass through
+      if ( !opts.queue || opts.queue == "fx" ) {
+          return _animate.apply( this, arguments );
+      }
+
+      // Get the name of the queue
+      var queueName = opts.queue;
+
+      // Get the effect queue (A global queue is centered on 'document')
+      var queue = $(document).queue( opts.queue );
+
+      // Queue initialization
+      if ( queue.length == 0 &amp;&amp; !queue.isFxQueue ) {
+          $(document).queue( queueName, [] ); //initialize queue
+          queue = $(document).queue( queueName ); //get the new queue
+          $.extend(queue, fxQueue(queueName)); //extend with fxQueue
+      }
+
+      // We're overriding the default queueing behavior
+      opts.queue = false;
+
+      // The animation to queue
+      var fn = function() {
+          opts.complete = function() {
+              queue.dequeue(this);
+              if ( $.isFunction(fn.users_complete) ) {
+                  return fn.users_complete.apply(this, arguments);
+              }
+          };
+          setTimeout(function() {
+              fn.elem.animate( props, opts );
+          }, fn.preDelay);
+      };
+      fn.elem = this;
+      fn.preDelay = opts.preDelay || 0;
+      fn.postDelay = opts.postDelay || 0;
+      fn.users_complete = speed.complete || callback; //Do not use the one generated by $.speed
+
+      // If scope exists, just add the animation and return
+      var scope = queue.getScope( opts.scope );
+      if ( scope ) {
+          scope.items.push( fn );
+          // Start the animation if the scope is already being played
+          if (queue.playing == scope) {
+              fn();
+          }
+          return this;
+      }
+
+      // Restrict the animation to a specifically sized queue
+      if ( opts.limit &lt; 0 || queue.length &lt; opts.limit) {
+
+          var add = null; //What we are going to add into the queue
+          if ( opts.scope ) {
+              add = fxScope( opts.scope );
+              add.items.push(fn);
+          } else {
+              add = fn;
+          }
+
+          if ( opts.position == "end" ) {
+            queue.push( add );
+          } else if ( opts.position == "front" ) {
+            queue.splice( 1, 0, add );
+          }
+
+          if ( queue.shouldStart() ) {
+            queue.start();
+          }
+
+          return this;
+      }
+  };
+
+  // A simple global fx queue getter
+  $.extend({
+      fxqueue: function(queueName) {
+          return $(document).queue( queueName );
+      }
+  });
+
+  $.fxqueue.version = "2.1";
+
+
+  // Create event to listen when jquery changes a class
+  // We need that to trigger the projekktor toolbar and reposition the warn tool
+  var originalAddClassMethod = $.fn.addClass;
+  $.fn.addClass = function() {
+    var result = originalAddClassMethod.apply(this, arguments);
+    // trigger a custom event
+    $(this).trigger('cssClassChanged');
+    return result;
+  };
+
+  // Create the doubletap method
+  // based on http://appcropolis.com/blog/howto/implementing-doubletap-on-iphones-and-ipads/
+  $.fn.doubletap = function(onDoubleTapCallback, onTapCallback, delay) {
+
+	var agent = navigator.userAgent.toLowerCase();
+	// detect ios
+	var isiOS = false;
+	var isIpad = false;
+	var isIphone = false;
+	if (agent.indexOf('iphone') >= 0) {
+	    isiOS = true;
+	    isIphone = true;
+	}
+	if (agent.indexOf('ipad') >= 0) {
+	    isiOS = true;
+	    isIpad = true;
+	}
+	// detect android
+	var isAndroid = false;
+	if (agent.indexOf('android') >= 0) {
+	    isAndroid = true;
+	}
+
+    var eventName, action;
+    delay = delay === null ? 500 : delay;
+    eventName = isiOS === true || isAndroid === true ? 'touchend' : 'click';
+
+    $(this).on(eventName, function(event) {
+      var now = new Date().getTime();
+      /** the first time this will make delta a negative number */
+      var lastTouch = $(this).data('lastTouch') || now + 1;
+      var delta = now - lastTouch;
+      clearTimeout(action);
+      if (delta &lt; 500 &amp;&amp; delta > 0) {
+        if (onDoubleTapCallback !== null &amp;&amp; typeof onDoubleTapCallback == 'function') {
+          event.preventDefault();
+          onDoubleTapCallback(event);
+        }
+      } else {
+        $(this).data('lastTouch', now);
+        action = setTimeout(function(evt) {
+          if (onTapCallback !== null &amp;&amp; typeof onTapCallback == 'function') {
+            event.preventDefault();
+            onTapCallback(event);
+          }
+          clearTimeout(action); // clear the timeout
+        }, delay, [event]);
+      }
+      $(this).data('lastTouch', now);
+    });
+    return this;
+  };
+})(jQuery);
+///////////////////////////////////////////////////
+
+
+
+// create the object telllSDK
+/**
+ * The main Telll module object
+ * @module telllSDK
+ */
+telllSDK = {};
+telllSDK = require('./Telll.js');
+/**
+ * The main TWS module object
+ * @module telllSDK.TWS
+ */
+telllSDK.TWS = {};
+telllSDK.TWS = require('./Tws.js').TWS;
+telllSDK.CWS = require("./CommandWS.js");
+telllSDK.View = {};
+telllSDK.TWS.User = require('./User.js').User;
+telllSDK.TWS.Device = require('./Device.js').Device;
+telllSDK.TWS.Movie = require('./Movie.js').Movie;
+telllSDK.TWS.Trackmotion = require('./Trackmotion.js').Trackmotion;
+telllSDK.TWS.Photolink = require('./Photolink.js').Photolink;
+telllSDK.View.Login = require('./Login.js').Login;
+telllSDK.View.TagPlayer = require('./TagPlayer.js').TagPlayer;
+telllSDK.View.PhotolinksList = require('./PhotolinksList.js').PhotolinksList;
+telllSDK.View.MoviesList = require('./MoviesList.js').MoviesList;
+telllSDK.View.MoviePage = require('./MoviePage.js').MoviePage;
+telllSDK.View.Clickbox = require('./Clickbox.js').Clickbox;
+telllSDK.View.TelllBtn = require('./TelllBtn.js').TelllBtn;
+telllSDK.View.Dashboard = require('./Dashboard.js').Dashboard;
+telllSDK.View.TelllPlayer = require('./TelllPlayer.js').TelllPlayer;
+telllSDK.View.MockPlayer = require('./MockPlayer.js').MockPlayer;
+telllSDK.View.TagEditor = require('./TagEditor.js').TagEditor;
+telllSDK.View.YoutubePlayer = require('./YoutubePlayer.js').YoutubePlayer;
+
+/**
+ * Provides requestAnimationFrame/cancelRequestAnimation in a cross browser way.
+ * from paul irish + jerome etienne
+ * - http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+ * - http://notes.jetienne.com/2011/05/18/cancelRequestAnimFrame-for-paul-irish-requestAnimFrame.html
+ */
+
+if ( !window.requestAnimationFrame ) {
+	window.requestAnimationFrame = ( function() {
+		return window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame ||
+		window.oRequestAnimationFrame ||
+		window.msRequestAnimationFrame ||
+		function( callback, element ) {
+			return window.setTimeout( callback, 1000 / 60 );
+		};
+	} )();
+}
+if ( !window.cancelRequestAnimationFrame ) {
+	window.cancelRequestAnimationFrame = ( function() {
+		return window.webkitCancelRequestAnimationFrame ||
+		window.mozCancelRequestAnimationFrame ||
+		window.oCancelRequestAnimationFrame ||
+		window.msCancelRequestAnimationFrame ||
+		clearTimeout
+	} )();
+}
+
+// load default css
+var tmpl = require('./templates/default.mtjs');
+if (tmpl.css)
+$('&lt;style id="default-css">'+tmpl.css+'&lt;/style>').appendTo('head');
+
+///////////////////////////
+/**
+ * Util widgets and plugins
+ * @ module telllSDK.util
+ */
+
+/**
+ * Telll Dialog
+ * @function telllDialog
+ * @param msg {String} The message
+ * @param delay {integer} The delay
+ * @global
+ */
+telllDialog = function(msg, delay){
+    $("&lt;div class='telll-dialog'>"+msg+"&lt;/div>").appendTo("body").fadeIn(function(){
+        setTimeout(function(){
+             $(".telll-dialog").fadeOut(function(){$(".telll-dialog").detach();})
+        }, delay);
+    });
+};
+
+/** 
+ * Telll Modal Popup
+ * @function telllPopup
+ * @param element {JQuery} The Jquery object to embbed in popup
+ * @param title {string} The popup title, defaults to "telll"
+ * @param cb {function} callback called when popup is loaded
+ * @return {String} the unique class name
+ * @global
+ */
+telllPopup = function(element, title, cb){
+    var idPopup = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for( var i=0; i &lt; 30; i++ )
+        idPopup += possible.charAt(Math.floor(Math.random() * possible.length));
+ 
+    if (!title) title = "telll";
+    //$('&lt;div id="'+idPopup+'-overlay" class="overlay">&lt;/div>').appendTo('body');
+    $('&lt;div id='+idPopup+' class="telll-popup popup">&lt;div class="popup-titlebar widget-titlebar">&lt;div class="logo-86x86">&lt;/div>&lt;span class="title">'+title+'&lt;/span>&lt;button class="close">Close&lt;/button>&lt;/div>&lt;/div>').append(element).appendTo('body').fadeIn("slow",function(){
+	    if (cb) cb(idPopup);
+    });
+    $('.telll-popup').css('z-index','99999');
+    $('html').addClass('overlay');
+    $('#'+idPopup+' div.popup-titlebar .close').on('click', function(){
+        //$('#'+idPopup+'-overlay').detach();
+        $('#'+idPopup).detach();
+    });
+    return idPopup;
+}
+
+/** 
+ * TelllTimer
+ * @function telllTimer
+ * @param fn {JQuery} The Jquery object to embbed in popup
+ * @param countdown {string} The popup title, defaults to "telll"
+ * @return {Integer} The telllTimer object
+ * @global
+ */
+telllTimer = function (fn, countdown) {
+    var ident, complete = false;
+    function _time_diff(date1, date2) {
+        return date2 ? date2 - date1 : new Date().getTime() - date1;
+    }
+    function cancel() { clearTimeout(ident); }
+    function pause() {
+        clearTimeout(ident);
+        total_time_run = _time_diff(start_time);
+        complete = total_time_run >= countdown;
+    }
+    function resume() {
+        ident = complete ? -1 : setTimeout(fn, countdown - total_time_run);
+    }
+    var start_time = new Date().getTime();
+    ident = setTimeout(fn, countdown);
+    return { cancel: cancel, pause: pause, resume: resume };
+}
+
+/**
+* Animate the screen with the 3 columns sliding down and up
+* the animation takes 1600 miliseconds
+* @param $element {jQuery} element to fade on 
+* @param cb1 {function} callback called when loaded 
+* @param cb2 {function} callback called when screen is hidden 
+* @param cb3 {function} callback called when effect desapeared
+*/
+telllWipeScreen = function($element,cb1,cb2,cb3){
+    if ($element) {
+    $element.hide();
+    setTimeout(function(){$element.fadeIn()},1000);
+    }
+    var screenSize = {
+        width:$(window).width(),
+        height:$(window).height(),
+    };
+    var $wp = $('&lt;div id="#wipe-screen" class="top-line rgb-bg">&lt;div class="cframe">&lt;div class="red-bg col">&lt;/div>&lt;/div>&lt;div class="cframe">&lt;div class="green-bg col">&lt;/div>&lt;/div>&lt;div class="cframe">&lt;div class="blue-bg col">&lt;/div>&lt;/div>&lt;/div>');
+    if (!$("div#wipe-screen.topline").length) {
+	$wp.appendTo("body");
+    }
+    $wp.css({"height":"100%","z-index":99999999999999});
+    var col = $wp.find("div.col");
+    var frame = $wp.find("div.cframe");
+    col.css({"width":"100%", "height":"100%","display":"none"});
+    frame.css({"width":screenSize.width/3, "height":screenSize.height,"display":"block","float":"left"});
+    var promisseRed   = $(col[0]).slideDown(400);
+    var promisseGreen = $(col[1]).slideDown(600);
+    var promisseBlue  = $(col[2]).slideDown(800);
+    if (cb1) cb1(); 
+    $.when (promisseRed, promisseGreen, promisseBlue).then(function() {
+         if (cb2) cb2(); 
+         var promisseRedUp   = $(col[0]).slideUp(400);
+         var promisseGreenUp = $(col[1]).slideUp(600);
+         var promisseBlueUp  = $(col[2]).slideUp(800);
+         $.when (promisseRedUp, promisseGreenUp, promisseBlueUp).then(function() {
+               $wp.detach();
+               if (cb3) cb3(); 
+         });
+    });
+};
+
+
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 12:17:52 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

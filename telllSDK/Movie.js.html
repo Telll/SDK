@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Movie.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Movie.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require('./iData.js');
+/**
+* Class: Movie
+* @constructor
+*/
+function Movie(t){
+    this._init (t);
+}
+Movie.prototype = Object.create(iData.prototype);
+/**
+* @param t {} 
+* @return bool
+*/
+Movie.prototype._init = function(t){
+    this.t = t;
+    this.title = "none";
+};
+
+/** 
+ * getTitle
+  * */
+Movie.prototype.getTitle = function ()
+{
+   return this.title;
+};
+
+/** 
+ * getUrl
+  * */
+Movie.prototype.getUrl = function ()
+{
+   return this.url;
+};
+
+
+
+/** 
+ * Create
+ * @param data {}
+ * @param cb function(){}
+  * */
+Movie.prototype.create = function (data, cb)
+{
+   this.save(data, cb);
+};
+
+/** 
+ * Update
+ * @param data {}
+ * @param cb function(){}
+  * */
+Movie.prototype.update = function (data, cb)
+{
+   this.save(data, cb);
+};
+
+/** 
+ * Read a movie id and when done callback(me)
+ * @param id integer
+ * @return nulll
+ * */
+Movie.prototype.read = function (id, cb)
+{
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.getMovie(id);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert("Error: "+JSON.stringify(jsData.errors[0].message));
+            else {
+                me.merge(jsData);
+	        if(cb) cb(me);
+	    } 
+        });	
+    }
+};
+
+/** 
+ * ReadPhotolinks
+ * @param id {integer} the movie id
+ * @param cb {} callback
+ * */
+Movie.prototype.readPhotolinks = function (id, cb)
+{
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.getPhotolinksOfMovie(id);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert("Error: "+JSON.stringify(jsData.errors[0].message));
+            else {
+                me.merge(jsData);
+	        if(cb) cb(jsData, id);
+	    } 
+        });	
+    }
+};
+
+
+/** 
+ * Save
+ * @param data {}
+ * @param cb {function} callback
+ * */
+Movie.prototype.save = function (data, cb)
+{
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.saveMovie(data);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert("Error: "+JSON.stringify(jsData.errors[0].message));
+            else {
+                me.merge(data);
+	        if(cb) cb(jsData);
+	    } 
+        });	
+    }
+};
+
+/** 
+ * Delete
+ * @param data {}
+ * @param cb function(){}
+ * */
+Movie.prototype.delete = function (data, cb)
+{
+    var me = this;
+    if (this.t.credentials.authKey){
+	var xhr = this.t.tws.deleteMovie(data);
+        xhr.addEventListener('load', function(){
+            var jsData = JSON.parse(this.responseText);
+            if (jsData.errors) alert(jsData.errors);
+            else {
+	        if(cb) cb(jsData);
+                me = {};
+	    } 
+        });	
+    }
+};
+
+module.exports = {Movie:Movie};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 12:17:52 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

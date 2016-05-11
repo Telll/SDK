@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: MoviePage.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: MoviePage.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require ('./iView.js');
+/**
+* @param {Telll} t the telll object
+* @author Monsenhor filipo at kobkob.org
+* @constructor
+*/
+function MoviePage(t, data, embed){
+	if (embed) this.embed = true;
+    this.t = t;
+    this.imdbid = data.imdbid;
+    this._init(t);
+}
+
+MoviePage.prototype = Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+*/
+MoviePage.prototype._init = function(t){
+    this.state = "init";
+    var me =this;
+    this.loadImdbData(this.imdbid, function(){
+       me._showWidget(t.store);
+    });
+    return null;
+}
+
+/**
+* @param t {} 
+* @return bool
+*/
+MoviePage.prototype.loadImdbData = function(id, cb){
+        // TODO change to themoviedb.org
+	var url = "http://www.omdbapi.com/?i="+id+"&amp;plot=fulll&amp;r=json";
+        var me = this;
+
+        var defaultData = 
+	{
+	Actors:      "",
+	Awards:      "",
+	Country:     "",
+	Director:    "",
+	Genre:       "",
+	Language:    "",
+	Metascore:   "",
+	Plot:        this.t.movie.description,
+	Poster:      this.t.movie.image,
+	Rated:       "",
+	Released:    "",
+	Response:    "",
+	Runtime:     "",
+	Title:       this.t.movie.title,
+	Type:        "",
+	Writer:      "",
+	Year:        "",
+	imdbID:       id,
+	imdbRating:  "",
+	imdbVotes:   ""
+	};
+	if (id != "mock") {
+	$.getJSON( url, function( data ) {
+             if (data.Response == "False") {
+                   telllDialog(data.Error + ": " + id, 3000);
+             } else {
+                 // do some clean check in the data response
+                 for (var prop in defaultData){
+                      if (!data[prop] || data[prop] == "N/A") data[prop] = defaultData[prop];
+                 }
+		 // TODO fix it, IMDb deny inject their images here ...
+		 data.Poster = defaultData.Poster;
+                 me.t.store.imdb = data;
+                 if (cb) cb(data);
+             }
+	});
+	} else {
+             me.t.store.imdb = defaultData;
+             if (cb) cb(defaultData);
+	}
+        return null;
+}
+
+
+/**
+* @param data {} 
+* @return bool
+*/
+MoviePage.prototype._showWidget = function(data){
+    // Cleaning title and description plugins
+    var tmpl = require('./templates/movie_page.mtjs');
+    var html = Mustache.render(tmpl.html, data);
+    if (tmpl.css)
+    $('&lt;style id="movie-page-css">'+tmpl.css+'&lt;/style>').appendTo('head');
+    $(html).appendTo('body');
+    var telll = this.t;
+    var me = this;
+    this.state = "open";
+    $(".movie-page-widget .close").on( "click", function( ) {
+	me.detach();
+    });
+    $("span.telll-bum_1, img.telll-img-poster").on( "click", function() {
+	me.emit("playnow", me.t.movie);
+	me.detach();
+	me.t.moviesListView.detach();
+    });
+
+    // The popup
+    if (! me.embed){
+        me.popup = telllPopup($("#movie-page-widget"), data.imdb.Title);
+    }
+    return true;
+};
+
+/**
+* @return null
+*/
+MoviePage.prototype.detach = function(){
+    //$('.movie-page-widget').detach();
+    $('#'+this.popup).detach();
+    //$('#'+this.popup+"-overlay").detach();
+    this.state = "detached";
+};
+
+/**
+* @return null
+*/
+MoviePage.prototype.attach = function(){
+    this._showWidget(this.t.store);
+};
+
+
+module.exports = {MoviePage:MoviePage};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 15:37:30 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

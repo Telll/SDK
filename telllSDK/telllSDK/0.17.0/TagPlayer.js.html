@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: TagPlayer.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: TagPlayer.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>require ('./iView.js');
+/**
+* Class: TagPlayer
+* 
+* It inherits the iView abstract class
+*
+* @param t {Telll} The Telll object
+* @param mp {iPlayer} The movie player as a iPlayer instance
+* @listens iPlayer 
+* @constructor
+*/
+function TagPlayer(t, mp){
+	if (! mp || mp.error) {
+		alert ('Error: TagPlayer not working. Talk with the system administrator, please. '+mp.error)} else {
+    this.t = t;
+    this.mp = mp;
+    this.state = 'new';
+    this._init(t);
+	}
+}
+
+TagPlayer.prototype =Object.create(iView.prototype);
+
+/**
+* @param t {} 
+* @return bool
+* @private
+*/
+TagPlayer.prototype._init = function(t){
+    var me = this;
+    this.animations = [];
+    this.tag; this.actualPhotolink; this.highlightedPhotolink;
+    this.state = "init";
+    this.emit('init');
+    var mid = parseInt(t.movie.id);
+    this.loadTags(mid, function (theStore){
+            me.show();
+    });
+    this.loadBehaviors();
+    return null;
+};
+
+/**
+* @return bool
+*/
+TagPlayer.prototype.loadBehaviors = function(){
+        var me = this;
+        var mp = this.t.moviePlayerView;
+	mp.on('loaded', function(m){
+		// get trackms for this movie
+	});
+	mp.on('playing', function(t){
+              if ( me.state == 'init' || me.state == 'detach'  ){ 
+                   //me.show();
+              }
+	});
+	mp.on('timeupdate', function(t){
+		me.handleTag(t);
+	});
+	/*mp.on('pause', function(t){
+                me.pause();
+	});
+	mp.on('stop', function(t){
+                me.detach();
+	});*/
+        $(".logo-86x86").addClass("flat");
+        $(".logo-86x86").addClass("logo-warn");
+        $("body").mousemove(function(event){
+            me.handleState(function(classe, i){
+               if (! $(".logo-86x86").hasClass(classe[i])){
+                   $.each(classe, function(tc){
+                       $(".logo-86x86").removeClass(classe[tc])
+                   }); 
+                   $(".logo-86x86").removeAttr("style"); 
+                   $(".logo-86x86").addClass(classe[i])
+               }
+            });
+        });
+        $("#telll-tag-player-widget * ").on("click", function(){
+              me.emit('send');
+	});
+        return null;
+};
+
+/** 
+ * Telll movie player has 4 possible screen status:
+ *
+ * - flat: movie controls and panel closed
+ * - controls: movie controls opened and panel closed
+ * - panel: movie controls closed and panel opened
+ * - controls-panel: movie controls and panel opened
+ *
+ * @param cb {Function} Callback
+ */
+TagPlayer.prototype.handleState = function(cb) {
+        setTimeout(function(){
+        var classe = ["flat","controls","panel","controls-panel"];
+        var state = {controls:"closed",panel:"closed"};
+        var i = 0 ;
+        // See the screen status and return the class to be applyed
+        // TODO .ppcontrols is the control from PRJK, what about mockPlayer ?
+        if ($(".ppcontrols").hasClass("active")){ state.controls = "opened" }
+        else if ($(".ppcontrols").hasClass("inactive")){ state.controls = "closed" }
+        if ($("#photolinks-list-widget").hasClass("active")){ state.panel = "opened" }
+        else if ($("#photolinks-list-widget").hasClass("inactive")){ state.panel = "closed" }
+        if (state.controls == "closed" &amp;&amp; state.panel == "closed") i = 0;
+        if (state.controls == "opened" &amp;&amp; state.panel == "closed") i = 1;
+        if (state.controls == "closed" &amp;&amp; state.panel == "opened") i = 2;
+        if (state.controls == "opened" &amp;&amp; state.panel == "opened") i = 3;
+        if (cb) cb(classe, i);
+        }, 200);
+};
+
+/**
+ *
+ * @param mid {Integer} The movie id 
+ * @param cb {function} callback
+ * @return bool
+ */
+TagPlayer.prototype.loadTags = function(mid, cb){
+    var t = this.t;
+    var me = this;
+    if (t.store.photolinks &amp;&amp; t.store.photolinks.length){
+       me.list = t.store.photolinks;
+       this.loadMustachePlugins();
+       if (cb) cb(t.store);
+       return null
+    } else { 
+     t.getPhotolinksOfMovie(mid, function(pl, rid){
+       me.list = t.store.photolinks = pl.photolinks;
+       t.getTracks(rid, function(e, d){
+             if (e) { 
+                 alert (e.message);
+                 throw(e.message);
+             }
+	     me.loadMustachePlugins();
+             if (cb) cb(t.store);
+       });
+     });
+    }
+};
+
+/**
+ * Needs to load tags ans photolinks in store first
+ * @return bool
+ */
+TagPlayer.prototype.loadMustachePlugins = function(){
+    var me = this;
+    var t = this.t;
+    me.tags = t.store.tags
+    me.state = "loaded";
+    me.emit('loaded');
+
+    /** The store mustache plugins
+     * */
+    t.store.getLabel = function(){
+        var label = "Untitled";
+        for (var i=0; i &lt; me.t.store.photolinks.length; i++){
+              if (me.t.store.photolinks[i].photolink.id == this.photolink &amp;&amp; me.t.store.photolinks[i].photolink.title ) label = me.t.store.photolinks[i].photolink.title;
+        }  
+        return label;
+    }    
+    t.store.getImage = function(){
+        var src  = "img/tag_default.png";
+        t.movie.photolinks.forEach(function(p){
+              if (p.photolink.id == this.photolink ) src = p.thumb;
+        });  
+        return src; 
+    }
+}
+
+/**
+ * Needs to load tags ans photolinks in store first
+ * @return bool
+ */
+TagPlayer.prototype.show = function(){
+    this._showWidget(this.t.store);
+    this.animations.forEach(function(a){
+        a.resume();
+    });
+    this.viewMode("none"); 
+}; 
+
+/**
+ * @return bool
+ */
+TagPlayer.prototype.pause = function(){
+    this.animations.forEach(function(ttimer){
+        ttimer.pause();
+    });
+    if (this.state == "show") this.detach();
+}; 
+
+
+/**
+ * @return bool
+ */
+TagPlayer.prototype.detach = function(){
+    //throw("See!!!");
+    $("div#telll-tag-player-widget").remove();
+    $("#tag-player-css").remove();
+
+    //$(".tag").detach();
+    this.state = "detach";
+    this.emit("detach" );
+}; 
+
+
+/**
+ *
+ * @param data {} 
+ * @return bool
+ */
+TagPlayer.prototype._showWidget = function(store){
+    var tmpl = require('./templates/tagplayer.mtjs');
+    var html = Mustache.render(tmpl.html, store);
+    if (tmpl.css)
+    $('&lt;style id="tag-player-css">'+tmpl.css+'&lt;/style>').appendTo('head');
+    $(html).appendTo('body');
+    $("#telll-tag-player-widget").css({
+        'position':'absolute',
+	'top':0,
+	'left':0,
+        'overflow':"hidden",
+	'width': "20%",
+	'height':"20%",
+	'position': "absolute",
+	'display':"block",
+	"z-index": 999991
+    });
+    this.state = "show";
+    this.emit("show", html );
+    return true;
+};
+
+/**
+* @param mp {iPlayer} The movie player to sync 
+* @param cb {} The callback
+* @return bool
+*/
+/*
+TagPlayer.prototype.follow = function(){
+        this.t.syncPlayer(this, mp, cb);
+	var telll = this.t;
+	var me = this;
+	telll.getTracks(telll.movie, function(e, d){
+             if (e) alert (e.message);
+             throw(e.message);
+             me.state = "loaded";
+             me.emit('loaded');
+	});
+
+	mp.on('loaded', function(m){
+		// get trackms for this movie
+	});
+	mp.on('playing', function(t){
+	});
+	mp.on('timeupdate', function(t){
+	});
+	mp.on('paused', function(t){
+	});
+	mp.on('stoped', function(t){
+	});
+        return null;
+};
+*/
+/**
+* @return null
+*/
+TagPlayer.prototype.scrollPhotolinksPanel = function(){
+  console.log('Implement method scrollPhotolinksPanel');
+};
+
+/**
+* @return null
+*/
+TagPlayer.prototype.flashIcon = function(){
+  console.log('Implement method flashIcon');
+};
+
+
+/** 
+* @param mode {String} default, none or boom
+* @return null
+*/
+TagPlayer.prototype.viewMode = function(mode){
+    if ( mode == "default" ){
+	    $("#telll-tag-player-widget").addClass("tgp-default").removeClass("tgp-none");
+            $(".tag.active").addClass("tgp-none").removeClass("tgp-boom");
+    }
+    if ( mode == "none" ){
+	    $("#telll-tag-player-widget").addClass("tgp-none").removeClass("tgp-default");
+            $(".tag.active").addClass("tgp-none").removeClass("tgp-boom");
+    }
+    if ( mode == "boom" ){
+	    $("#telll-tag-player-widget").addClass("tgp-default").removeClass("tgp-none");
+            $(".tag.active").addClass("tgp-boom").removeClass("tgp-none");
+    }
+    return null
+}
+
+
+
+/**
+* @return null
+*/
+TagPlayer.prototype.getTracks = function(){
+  console.log('Implement method getTracks');
+};
+
+/**
+* @return null
+*/
+TagPlayer.prototype.playTrackms = function(p1, p2){
+  var me = this;
+  // hide all tags
+  $("#tag-player-frame .tag").removeClass("tgp-boom").removeClass("active").removeClass("tgp-default");
+ 
+  var mph = this.t.store.photolinks;
+  var ph = this.tag.photolink;
+  this.tagWarn(parseInt((p2 - p1)*1000)); // warn the user that have a tag here
+  // show only this tag
+  $("#pl-"+ph).addClass("active");
+  var tag = mph[ph];
+  /**
+  * begin the animation
+  */
+  var animation = new telllTimer( function(){
+      $("#pl-"+me.tag.photolink).addClass("tgp-none").removeClass("active").removeClass("tgp-default").removeClass("tgp-boom");
+      // removing other possible booms
+      $(".tgp-boom").addClass("tgp-none").removeClass("active").removeClass("tgp-default").removeClass("tgp-boom");
+  }, 1000 * (p2 - p1));
+  this.animations.push( animation );
+  for (var i=0; i&lt;this.tag.points.length-1; i++){
+       var pt = this.tag.points[i];  //this point
+       var xpt= this.tag.points[i+1];//next point
+       var mp = me.mp.time;     //movie position
+       if (pt.t &lt; mp ){
+            if (i == this.tag.points.length-2){
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, 0, xpt.t-mp, this.tag.photolink,true);
+            } else {
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, 0, xpt.t-mp, this.tag.photolink, false);
+            }
+       } else {
+            if (i == this.tag.points.length-2){
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, pt.t-mp, xpt.t-pt.t, this.tag.photolink, true);
+            } else {
+                me.animTag(pt.x, pt.y, xpt.x, xpt.y, pt.t-mp, xpt.t-pt.t, this.tag.photolink, false);
+            }
+       }
+  }
+};
+
+/** animTag
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @param tout
+ * @param time
+ * @param plId
+ * @param last
+**/
+TagPlayer.prototype.animTag = function (x1, y1, x2, y2, tout, time, plId, last){
+     var me = this;
+     // using miliseconds
+     tout = tout*1000;
+     time = time*1000;
+     var vOffset = $('video').offset();
+     var vWidth  =  $('video').width();
+     var vHeight =  $('video').height()
+     x1=Math.round(vWidth*x1/100+vOffset.left);
+     x2=Math.round(vWidth*x2/100+vOffset.left);
+     y1=Math.round(vHeight*y1/100+vOffset.top);
+     y2=Math.round(vHeight*y2/100+vOffset.top);
+     var myPl = me.t.store.photolinks[plId].photolink.id;
+     $('div#telll-tag-player-widget').css({'left':x1,'top':y1});
+     $('div#telll-tag-player-widget').css({'width':'20%','height':'18%'});
+     // the fxQueue plugin controls the animations so we need to ident the queue
+     $('div#telll-tag-player-widget').animate({
+           'left':x2,
+           'top':y2,
+     },{duration: time, queue:"queue_"+myPl},function(){
+     });
+     this.moviePlayerView.on("pause", function(){ $.fxqueue("queue_"+myPl).pause(); });
+     this.moviePlayerView.on("play", function(){ $.fxqueue("queue_"+myPl).start(); });
+     this.moviePlayerView.on("stop", function(){ $.fxqueue("queue_"+myPl).stop(); });
+};
+
+/**
+* Traverse the tags to find a trackmotion begining to play now
+* Register the tag found and play it
+* 
+* #param t {Integer}
+* @return bool
+*/
+TagPlayer.prototype.handleTag = function(t){
+        for (var i = 0; i &lt; this.t.store.tags.length; i++) {
+          var p2 = this.t.store.tags[i].points[0].t;
+          var p1 = p2;
+          for (var j = 0; j &lt; this.t.store.tags[i].points.length; j++) {
+             var tp = this.t.store.tags[i].points[j].t;
+             if (tp > p2) p2 = tp;
+             if (tp &lt; p1) p1 = tp;
+          }
+          if (t >= p1 &amp;&amp; t &lt;= p2) { // It's playing now!
+            this.tag = this.t.store.tags[i];
+            if (this.t.store.tags[i].stopped) {
+              this.t.store.tags[i].stopped = 0;
+              // scroll photolink panel to here
+              this.actualPhotolink = this.t.store.tags[i].photolink;
+	      this.emit("tag", actualPhotolink );
+	      //TODO the panel is scrolled by app.js fix it!!!
+              //this.scrollPhotolinksPanel(this.actualPhotolink - this.highlightedPhotolink);
+              this.playTrackms(p1,p2); // animate tag
+            }
+          } else {
+            this.t.store.tags[i].stopped = 1;
+          }
+        }
+        return null;
+};
+
+/** 
+* the telll logo button is allways in the titlebar.
+* on called tagWarn the logo comes to body for time 
+* @param time {Integer} in milisseconds
+*/
+TagPlayer.prototype.tagWarn = function (time) {
+    var myPlace = $('.logo-86x86').parent();
+    if (($("body")[0] != myPlace[0]  )){
+        $('.logo-86x86').appendTo("body");
+        $('.logo-86x86').css({position:"absolute","z-index":9999999999999});
+        $(".logo-86x86").fadeIn(100, function() {
+            setTimeout(function() {
+                if ( ( myPlace &amp;&amp; $("body")[0] != myPlace[0] ) ) {
+                  myPlace.append($(".logo-86x86"));
+                  $(".logo-86x86").removeAttr("style").hide();
+                }
+            }, time);
+        });
+    }
+}
+
+/**
+* @return null
+*/
+
+TagPlayer.prototype.attach = function(){
+  console.log('Implement method attach');
+};
+/**
+* @return null
+*/
+TagPlayer.prototype.open = function(){
+  console.log('Implement method open');
+};
+
+/**
+* @return null
+*/
+TagPlayer.prototype.close = function(){
+  console.log('Implement method close');
+};
+
+
+module.exports = {TagPlayer:TagPlayer};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-telllSDK.html">telllSDK</a></li><li><a href="telllSDK.html#.module:TWS">TWS</a></li></ul><h3>Classes</h3><ul><li><a href="Auth.html">Auth</a></li><li><a href="Clickbox.html">Clickbox</a></li><li><a href="Dashboard.html">Dashboard</a></li><li><a href="Device.html">Device</a></li><li><a href="Login.html">Login</a></li><li><a href="MockPlayer.html">MockPlayer</a></li><li><a href="Movie.html">Movie</a></li><li><a href="MoviePage.html">MoviePage</a></li><li><a href="MoviesList.html">MoviesList</a></li><li><a href="Photolink.html">Photolink</a></li><li><a href="PhotolinksList.html">PhotolinksList</a></li><li><a href="TagEditor.html">TagEditor</a></li><li><a href="TagPlayer.html">TagPlayer</a></li><li><a href="Telll.html">Telll</a></li><li><a href="TelllBtn.html">TelllBtn</a></li><li><a href="TelllPlayer.html">TelllPlayer</a></li><li><a href="Trackmotion.html">Trackmotion</a></li><li><a href="Tws.html">Tws</a></li><li><a href="User.html">User</a></li><li><a href="YoutubePlayer.html">YoutubePlayer</a></li></ul><h3>Events</h3><ul><li><a href="iPlayer.html#event:loaded">loaded</a></li><li><a href="iPlayer.html#event:paused">paused</a></li><li><a href="iPlayer.html#event:playing">playing</a></li><li><a href="iPlayer.html#event:timeupdate">timeupdate</a></li><li><a href="MockPlayer.html#event:loaded">loaded</a></li><li><a href="MockPlayer.html#event:paused">paused</a></li><li><a href="MockPlayer.html#event:playing">playing</a></li><li><a href="MockPlayer.html#event:timeupdate">timeupdate</a></li></ul><h3>Interfaces</h3><ul><li><a href="iData.html">iData</a></li><li><a href="iPlayer.html">iPlayer</a></li><li><a href="iView.html">iView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#telllDialog">telllDialog</a></li><li><a href="global.html#telllPopup">telllPopup</a></li><li><a href="global.html#telllTimer">telllTimer</a></li><li><a href="global.html#VERSION">VERSION</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Wed May 11 2016 15:37:30 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
