@@ -71,8 +71,17 @@ Model interface for API data
 1. Tws.user()
 
 ## UI:
-- 
-- 
+4. Telll.wsAuth(data)
+5. Telll.login(data)
+6. Telll.logout(data)
+1. telll.showMoviePage(movie, cb) → {MoviePage}
+1. telll.showTagPlayer(player)
+2. telll.showTelllBtn(trkm)
+3. telll.syncPlayer(tagPlayer, moviePlayer)
+4. Telll.sendPhotolink(data)
+5. Telll.showClickbox(data)
+6. Telll.showMockPlayer()
+
 
 # Integrations
 
