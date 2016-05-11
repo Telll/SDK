@@ -121,12 +121,6 @@ Copy it to your web server and begin using telll
 
 ### 2. Setup and configuration
 
-### 3. Add Code
-
-#### a. Basic
-
-This code bellow is the simplest way to load all telll widgets
-
 ```javascript
 /* Basic telll load with jQuery*/
 /* Example */
