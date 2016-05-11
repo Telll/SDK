@@ -7,9 +7,32 @@ The SDK is a collection of classes and helpers to communicate with telll TWS (RE
 - TWS docs: http://telll.github.io/tws/
 - SDK jsdoc:  http://telll.github.io/SDK/telllSDK
 
-## Main classes
+## Important classes:
 
-telll
+[Telll] (http://telll.github.io/SDK/telllSDK/Telll.html)
+Facade class for telll commands
+
+[Tws](http://telll.github.io/SDK/telllSDK/Tws.html)
+Facade class for API helpers
+
+[Auth](http://telll.github.io/SDK/telllSDK/Auth.html)
+Authentication class
+
+[TagPlayer](http://telll.github.io/SDK/telllSDK/TagPlayer.html)
+View implementing the telll scheduling, sincronizes with a MockPlayer object.
+
+[MockPlayer](http://telll.github.io/SDK/telllSDK/MockPlayer.html)
+A simple iPlayer implementation for video tags. Syncs with a TagPlayer object.
+
+## interfaces
+[iView](http://telll.github.io/SDK/telllSDK/iView.html)
+Widgets and UI
+
+[iPlayer](http://telll.github.io/SDK/telllSDK/iPlayer.html)
+Sync tool with a video tag
+
+[iData](http://telll.github.io/SDK/telllSDK/iData.html)
+Model interface for API data
 
 ## Helpers:
 - 
