@@ -35,39 +35,39 @@ Sync tool with a video tag
 Model interface for API data
 
 ## Helpers:
-1. deleteMovie(data, id)
+1. Tws.deleteMovie(data, id)
 
-1. deletePhotolink(data, id)
+1. Tws.deletePhotolink(data, id)
 
-1. deleteTrackmotion(data, id)
+1. Tws.deleteTrackmotion(data, id)
 
-1. deleteUser(data, id)
+1. Tws.deleteUser(data, id)
 
-1. getMovie()
+1. Tws.getMovie()
 
-1. getPhotolink()
+1. Tws.getPhotolink()
 
-1. getPhotolinksOfMovie()
+1. Tws.getPhotolinksOfMovie()
 
-1. moviesList()
+1. Tws.moviesList()
 
-1. readUserPhotolinks()
+1. Tws.readUserPhotolinks()
 
-1. saveMovie(data, id)
+1. Tws.saveMovie(data, id)
 
-1. savePhotolink(data, id)
+1. Tws.savePhotolink(data, id)
 
-1. saveTrackmotion(data, id)
+1. Tws.saveTrackmotion(data, id)
 
-1. saveUser(data, id)
+1. Tws.saveUser(data, id)
 
-1. self()
+1. Tws.self()
 
-1. sendPhotolink()
+1. Tws.sendPhotolink()
 
-1. setHeaders()
+1. Tws.setHeaders()
 
-1. user()
+1. Tws.user()
 
 ## UI:
 - 
