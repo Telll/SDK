@@ -129,15 +129,68 @@ This code bellow is the simplest way to load all telll widgets
 
 ```javascript
 /* Basic telll load with jQuery*/
-myMoviePlayer = $('#movie-player'); // the div (video or canvas) player id
-myAdManager = new telllSDK.Telll(myMoviePlayer);
-myAdManager.start();
-```
+/* Example */
+function exampleImplementation (){
+console.log('Loading example implementation ...');
 
-#### b. Login
-#### c. Load and display video ads
-#### c. Load Widgets
-##### c. Photolinks list
-##### c. Telll button
-##### c. The clickbox
-##### c. The Dashboard
+myAdTest = new telllSDK.Telll();
+console.info('telll: ', myAdTest);
+// We may do it for a simplest aproach
+// myAdTest.start();
+
+// Detect if local machine is off line each 3600 seconds
+setInterval( function(){
+ $.ajax({
+   type: "GET",
+   cache: null,
+   url: "http://"+myAdTest.conf.host+"/ws"
+ }).fail( function() {
+   alert('Connection seems down! Please check your Internet.');
+ });
+},3600000);
+
+
+
+// After login create the buttons
+myAdTest.login(null, function(){
+    // define the instance player
+    var myPlayer = {"error":"Player not loaded!!!"};
+    // create buttons
+    $('<input type="button" value="Dashboard">').appendTo('body').on('click', function(){myAdTest.showDashboard()});
+    $('<input type="button" value="Clickbox">').appendTo('body').on('click', function(){myAdTest.showClickbox()});
+    $('<input type="button" value="Movies List">').appendTo('body').on('click', 
+	    function(){
+            // showMoviesList runs the callback after a movie is selected
+		    myAdTest.showMoviesList(function(m){
+                        console.log("Movie selected: "+m.getTitle());
+                        console.log(m);
+                    })
+	    });
+   $('<input type="button" value="Mock Player">').appendTo('body').on('click', 
+	   function(){
+            // showMockPlayer runs the callback after load
+		   myAdTest.showMockPlayer( function(m){
+                       myPlayer = m;       
+		       console.log(m); 
+		   })
+	   });
+    $('<input type="button" value="Telll Movie Player">').appendTo('body').on('click', function(){myAdTest.showMoviePlayer()});
+    $('<input type="button" value="Youtube Player">').appendTo('body').on('click', function(){myAdTest.showYoutubePlayer()});
+    $('<input type="button" value="Tag Player">').appendTo('body').on('click', 
+	   function(){
+            // showTagPlayer runs the callback after load
+	           myAdTest.showTagPlayer( myPlayer, function(tp){ 
+                           console.log(tp);
+	           }) 
+	   });
+    $('<input type="button" value="Photolinks List">').appendTo('body').on('click', function(){
+	    var list = myAdTest.showPhotolinksList();
+	    setTimeout(function(){
+	    console.log(list);
+	    list.on("open", function(pl){
+	        console.log("PL :", pl);
+	    });},200);
+    });
+    $('<input type="button" value="Telll Button">').appendTo('body').on('click', function(){myAdTest.showTelllBtn()});
+ 
+});
