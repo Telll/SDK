@@ -4,6 +4,7 @@
 
 The SDK is a collection of classes and helpers to communicate with telll TWS (REST and Websockets services) and implement the widgets used in telll webapp.
 
+- [Download telllSDK.js](https://raw.githubusercontent.com/Telll/SDK/master/telllSdk/build/js/telllSDK.js)
 - TWS docs: http://telll.github.io/tws/
 - SDK jsdoc:  http://telll.github.io/SDK/telllSDK
 
