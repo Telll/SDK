@@ -9,19 +9,19 @@ The SDK is a collection of classes and helpers to communicate with telll TWS (RE
 
 ## Important classes:
 
-[Telll] (http://telll.github.io/SDK/telllSDK/Telll.html)
+1. [Telll] (http://telll.github.io/SDK/telllSDK/Telll.html)
 Facade class for telll commands
 
-[Tws](http://telll.github.io/SDK/telllSDK/Tws.html)
+1. [Tws](http://telll.github.io/SDK/telllSDK/Tws.html)
 Facade class for API helpers
 
-[Auth](http://telll.github.io/SDK/telllSDK/Auth.html)
+1. [Auth](http://telll.github.io/SDK/telllSDK/Auth.html)
 Authentication class
 
-[TagPlayer](http://telll.github.io/SDK/telllSDK/TagPlayer.html)
+1. [TagPlayer](http://telll.github.io/SDK/telllSDK/TagPlayer.html)
 View implementing the telll scheduling, sincronizes with a MockPlayer object.
 
-[MockPlayer](http://telll.github.io/SDK/telllSDK/MockPlayer.html)
+1. [MockPlayer](http://telll.github.io/SDK/telllSDK/MockPlayer.html)
 A simple iPlayer implementation for video tags. Syncs with a TagPlayer object.
 
 ## interfaces
@@ -35,8 +35,39 @@ Sync tool with a video tag
 Model interface for API data
 
 ## Helpers:
-- 
-- 
+1. deleteMovie(data, id)
+
+1. deletePhotolink(data, id)
+
+1. deleteTrackmotion(data, id)
+
+1. deleteUser(data, id)
+
+1. getMovie()
+
+1. getPhotolink()
+
+1. getPhotolinksOfMovie()
+
+1. moviesList()
+
+1. readUserPhotolinks()
+
+1. saveMovie(data, id)
+
+1. savePhotolink(data, id)
+
+1. saveTrackmotion(data, id)
+
+1. saveUser(data, id)
+
+1. self()
+
+1. sendPhotolink()
+
+1. setHeaders()
+
+1. user()
 
 ## UI:
 - 
