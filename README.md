@@ -1,21 +1,25 @@
 [![Stories in Ready](https://badge.waffle.io/Telll/SDK.png?label=ready&title=Ready)](https://waffle.io/Telll/SDK)
 
-### Telll core SDK.
+# Telll core SDK.
 
 The SDK is a collection of classes and helpers to communicate with telll TWS (REST and Websockets services) and implement the widgets used in telll webapp.
 
 - TWS docs: http://telll.github.io/tws/
-- SDK jsdoc:  http://telll.github.io/sdk-classes/
+- SDK jsdoc:  http://telll.github.io/SDK/telllSdk
 
-# Helpers:
+## Main classes
+
+telll
+
+## Helpers:
 - 
 - 
 
-# UI:
+## UI:
 - 
 - 
 
-## To integrate mobile and web apps with the telll player.
+# Integrations
 
 ### Technology: multimedia inline links
 telllSDK is a library to manage multimedia inline links.
