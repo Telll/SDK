@@ -6,7 +6,7 @@ The SDK is a collection of classes and helpers to communicate with telll TWS (RE
 
 - License: GPLAffero 3.0 https://github.com/Telll/SDK/blob/master/LICENSE
 - Terms of Service: https://github.com/Telll/telll.github.io/wiki/Telll-Terms-of-Service
-- [Download telllSDK.js](https://raw.githubusercontent.com/Telll/SDK/master/telllSdk/build/js/telllSDK.js)
+- [Download telllSDK.js](https://github.com/Telll/webapp/blob/master/www/js/telllSDK.js)
 - TWS docs: http://telll.github.io/tws/
 - SDK jsdoc:  http://telll.github.io/SDK/telllSDK
 
