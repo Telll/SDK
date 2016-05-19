@@ -47,13 +47,6 @@ Sync tool with a video tag
 Model interface for API data
 
 ## Helpers:
-1. Tws.deleteMovie(data, id)
-
-1. Tws.deletePhotolink(data, id)
-
-1. Tws.deleteTrackmotion(data, id)
-
-1. Tws.deleteUser(data, id)
 
 1. Tws.getMovie()
 
@@ -65,19 +58,11 @@ Model interface for API data
 
 1. Tws.readUserPhotolinks()
 
-1. Tws.saveMovie(data, id)
-
-1. Tws.savePhotolink(data, id)
-
-1. Tws.saveTrackmotion(data, id)
-
 1. Tws.saveUser(data, id)
 
 1. Tws.self()
 
 1. Tws.sendPhotolink()
-
-1. Tws.setHeaders()
 
 1. Tws.user()
 
